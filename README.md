@@ -8,7 +8,11 @@ Mes modifications par rapport au [firmware NUNU de NTOIVOLA:]
 
 * **FLOCK supprimé - toutes les fréquences sont ouvertes en émission** pour libérer de l'espace, mais vous êtes responsables de l'utilisation.
 * **Puissances MID et LOW réduites**
-* **SCAN RANGE modifié pour accepter des fréquences de mémoire: la fréquence START est la fréquence mémoire, la fréquence STOP est la fréquence START+ l'offset définit en mémoire. Le STEP est celui indiqué en mémoire. On sélectionne la mémoire, on fait un appui long sur 5, cela affiche SCANRNG et les fréquences START/STOP, un F+5 lance le spectre sur cette plage.
+* **SCAN RANGE modifié pour accepter des fréquences de mémoire:**
+* la fréquence START est la fréquence en mémoire,
+* la fréquence STOP est la fréquence START+ l'offset définit en mémoire.
+* Le STEP est celui indiqué en mémoire.
+* On sélectionne la mémoire, on fait un appui long sur 5, cela affiche SCANRNG et les fréquences START/STOP, un F+5 lance le spectre sur cette plage.
 
 > [!TIP]
 > **REMARQUE !** Vous devez utiliser [le pilote UV-K5 CHIRP](https://github.com/ntoivola/uvk5-chirp-driver-nunu/) avec ce firmware.
