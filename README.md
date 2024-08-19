@@ -7,7 +7,7 @@ Ce source est un fork du [firmware NUNU de NTOIVOLA]([https://github.com/kamilss
 Mes modifications par rapport au [firmware NUNU de NTOIVOLA:]
 
 * **FLOCK supprimé - toutes les fréquences sont ouvertes en émission** pour libérer de l'espace, mais vous êtes responsables de l'utilisation.
-* **Puissances MID et LOW réduites**
+* **Puissances MID et LOW réduites** Tests en cours...
 * **SCAN RANGE modifié pour accepter des fréquences de mémoire:**
     * la fréquence START est la fréquence en mémoire,
     * la fréquence STOP est la fréquence START+ l'offset définit en mémoire.
