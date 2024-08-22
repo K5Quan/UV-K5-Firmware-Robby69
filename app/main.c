@@ -54,6 +54,9 @@ void toggle_chan_scanlist(void)
 
 	if ( SCANNER_IsScanning())
 		return;
+	SETTINGS_UpdateChannel(gTxVfo->CHANNEL_SAVE, gTxVfo, true);
+	gVfoConfigureMode = VFO_CONFIGURE;
+	gFlagResetVfos    = true;
 #ifdef ENABLE_SCAN_RANGES
 //Robby69 modification to use SCAN_RANGES for memories
 	if(!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
@@ -63,23 +66,19 @@ void toggle_chan_scanlist(void)
 			SWAP(gScanRangeStart, gScanRangeStop);
 		return;
 	}
-	else {
+	if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
 		//using offset to select stop frequency.
 		gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
 		gScanRangeStop = gTxVfo->pTX->Frequency;
 		if(gScanRangeStart > gScanRangeStop)
 			SWAP(gScanRangeStart, gScanRangeStop);
 		return;
-
 	}
 #endif
 	if (++gTxVfo->SCANLIST > 15)
 		gTxVfo->SCANLIST = 0;
 
-	SETTINGS_UpdateChannel(gTxVfo->CHANNEL_SAVE, gTxVfo, true);
 
-	gVfoConfigureMode = VFO_CONFIGURE;
-	gFlagResetVfos    = true;
 }
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
@@ -245,7 +244,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 #endif
 			}
 			else {
-#ifdef ENABLE_VOX
+#ifdef ENABLE_SCAN_RANGES //Robby69 correction
 				toggle_chan_scanlist();
 #endif
 			}

@@ -1,1 +1,5 @@
 AutoAdjustResolution
+APP_RunSpectrum
+APP_SetFreqByStepAndLimits
+RADIO_ValidMemoryChannelsCount
+LoadValidMemoryChannels

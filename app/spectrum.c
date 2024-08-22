@@ -118,7 +118,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -50,
+                             dbMax: -30, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
