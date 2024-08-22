@@ -1,3 +1,5 @@
+AUTHOR_STRING := ROBBY69
+VERSION_STRING := V3b11
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -15,10 +17,10 @@ ENABLE_AIRCOPY                := 0
 ENABLE_FMRADIO                := 1
 ENABLE_NOAA                   := 0
 ENABLE_VOICE                  := 0
-ENABLE_VOX                    := 1
+ENABLE_VOX                    := 0
 ENABLE_ALARM                  := 0
 ENABLE_TX1750                 := 0
-ENABLE_PWRON_PASSWORD         := 1
+ENABLE_PWRON_PASSWORD         := 0
 ENABLE_DTMF_CALLING           := 0
 
 # ---- CUSTOM MODS ----
@@ -205,18 +207,6 @@ endif
 
 OBJCOPY = arm-none-eabi-objcopy
 SIZE = arm-none-eabi-size
-
-AUTHOR_STRING := NUNU
-# the user might not have/want git installed
-# can set own version string here (max 7 chars)
-ifneq (, $(shell $(WHERE) git))
-	VERSION_STRING := $(shell git describe --tags --exact-match 2>$(NULL_OUTPUT))
-	ifeq (, $(VERSION_STRING))
-    	VERSION_STRING := $(shell git rev-parse --short HEAD)
-	endif
-endif
-#VERSION_STRING := 230930b
-
 
 ASFLAGS = -c -mcpu=cortex-m0
 ifeq ($(ENABLE_OVERLAY),1)
