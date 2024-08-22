@@ -141,11 +141,12 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMin = 1;
 			*pMax = 10;
 			break;	
-
+#ifdef ENABLE_FREQ_LOCKING
 		case MENU_F_LOCK:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_F_LOCK) - 1;
 			break;
+#endif
 
 		case MENU_MDF:
 			*pMin = 0;
@@ -246,10 +247,12 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 		#ifdef ENABLE_NOAA
 			case MENU_NOAA_S:
 		#endif
+		#ifdef ENABLE_FREQ_LOCKING
 		case MENU_350TX:
 		case MENU_200TX:
 		case MENU_500TX:
 		case MENU_350EN:
+		#endif
 		case MENU_SCREN:
 #ifdef ENABLE_ENCRYPTION
 		case MENU_MSG_ENC:
@@ -779,6 +782,7 @@ void MENU_AcceptSetting(void)
 			BOARD_FactoryReset(gSubMenuSelection);
 			return;
 
+#ifdef ENABLE_FREQ_LOCKING
 		case MENU_350TX:
 			gSetting_350TX = gSubMenuSelection;
 			break;
@@ -800,6 +804,7 @@ void MENU_AcceptSetting(void)
 			gVfoConfigureMode    = VFO_CONFIGURE_RELOAD;
 			gFlagResetVfos       = true;
 			break;
+#endif
 
 		case MENU_SCREN:
 			gSetting_ScrambleEnable = gSubMenuSelection;
@@ -1147,6 +1152,7 @@ void MENU_ShowCurrentSetting(void)
 			#endif
 			break;
 
+#ifdef ENABLE_FREQ_LOCKING
 		case MENU_350TX:
 			gSubMenuSelection = gSetting_350TX;
 			break;
@@ -1166,6 +1172,7 @@ void MENU_ShowCurrentSetting(void)
 		case MENU_350EN:
 			gSubMenuSelection = gSetting_350EN;
 			break;
+#endif
 
 		case MENU_SCREN:
 			gSubMenuSelection = gSetting_ScrambleEnable;

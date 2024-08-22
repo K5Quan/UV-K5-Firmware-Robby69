@@ -114,11 +114,13 @@ enum
 	MENU_NOAA_S,
 #endif
 	MENU_RESET,
+#ifdef ENABLE_FREQ_LOCKING
 	MENU_F_LOCK,
 	MENU_200TX,
 	MENU_350TX,
 	MENU_500TX,
 	MENU_350EN,
+#endif
 	MENU_SCREN,
 #ifdef ENABLE_F_CAL_MENU
 	MENU_F_CALI,  // reference xtal calibration

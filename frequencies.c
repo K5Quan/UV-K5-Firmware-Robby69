@@ -154,6 +154,7 @@ int TX_freq_check(const uint32_t Frequency)
 
 	if (Frequency >= BX4819_band1.upper && Frequency < BX4819_band2.lower)
 		return -1;  // BX chip does not work in this range
+#ifdef ENABLE_FREQ_LOCKING
 
 	switch (gSetting_F_LOCK)
 	{
@@ -219,6 +220,8 @@ int TX_freq_check(const uint32_t Frequency)
 
 	// dis-allowed TX frequency
 	return -1;
+#endif
+return 0;
 }
 
 int RX_freq_check(const uint32_t Frequency)

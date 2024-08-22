@@ -128,11 +128,13 @@ const t_menu_item MenuList[] =
 	{"Sql",    VOICE_ID_SQUELCH,                       MENU_SQL           },
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
+#ifdef ENABLE_FREQ_LOCKING
 	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        },
 	{"Tx 200", VOICE_ID_INVALID,                       MENU_200TX         }, // was "200TX"
 	{"Tx 350", VOICE_ID_INVALID,                       MENU_350TX         }, // was "350TX"
 	{"Tx 500", VOICE_ID_INVALID,                       MENU_500TX         }, // was "500TX"
 	{"350 En", VOICE_ID_INVALID,                       MENU_350EN         }, // was "350EN"
+#endif
 	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN"
 #ifdef ENABLE_F_CAL_MENU
 	{"FrCali", VOICE_ID_INVALID,                       MENU_F_CALI        }, // reference xtal calibration
@@ -153,7 +155,14 @@ const int CHANNEL_ONLY_SETTINGS[] = {
 
 const int VFO_ONLY_SETTINGS[] = {};
 
+#ifdef ENABLE_FREQ_LOCKING
 const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_F_LOCK;
+#endif
+
+#ifndef ENABLE_FREQ_LOCKING
+const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_SCREN;
+#endif
+
 
 const char gSubMenu_TXP[][5] =
 {
@@ -295,6 +304,7 @@ const char gSubMenu_RESET[][4] =
 	"ALL"
 };
 
+#ifdef ENABLE_FREQ_LOCKING
 const char * const gSubMenu_F_LOCK[] =
 {
 	"DEFAULT+\n137-174\n400-470",
@@ -306,6 +316,7 @@ const char * const gSubMenu_F_LOCK[] =
 	"PMR446",
 	"DISABLE\nALL"
 };
+#endif
 
 const char gSubMenu_BACKLIGHT[][7] =
 {
@@ -682,10 +693,12 @@ void UI_DisplayMenu(void)
 				case MENU_MSG_RX:
 				case MENU_MSG_ACK:
 			#endif
+#ifdef ENABLE_FREQ_LOCKING
 			case MENU_350TX:
 			case MENU_200TX:
 			case MENU_500TX:
 			case MENU_350EN:
+#endif
 			case MENU_SCREN:
 				strcpy(String, gSubMenu_OFF_ON[gSubMenuSelection]);
 				break;
@@ -877,10 +890,11 @@ void UI_DisplayMenu(void)
 			case MENU_RESET:
 				strcpy(String, gSubMenu_RESET[gSubMenuSelection]);
 				break;
-
+#ifdef ENABLE_FREQ_LOCKING
 			case MENU_F_LOCK:
 				strcpy(String, gSubMenu_F_LOCK[gSubMenuSelection]);
 				break;
+#endif
 
 			#ifdef ENABLE_F_CAL_MENU
 				case MENU_F_CALI:

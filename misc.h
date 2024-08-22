@@ -161,10 +161,12 @@ extern bool                  gSetting_350TX;
 #ifdef ENABLE_DTMF_CALLING
 extern bool                  gSetting_KILLED;
 #endif
+#ifdef ENABLE_FREQ_LOCKING
 extern bool                  gSetting_200TX;
 extern bool                  gSetting_500TX;
 extern bool                  gSetting_350EN;
 extern uint8_t               gSetting_F_LOCK;
+#endif
 extern bool                  gSetting_ScrambleEnable;
 
 extern uint8_t               gSetting_backlight_on_tx_rx;

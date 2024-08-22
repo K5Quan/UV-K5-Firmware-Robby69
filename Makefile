@@ -52,6 +52,7 @@ ENABLE_MESSENGER_FSK_MUTE               := 0
 ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
+ENABLE_FREQ_LOCKING						:= 0 //Robby69 0 to remove all frequency lock
 
 #############################################################
 
