@@ -484,8 +484,10 @@ static void ResetModifiers() {
 #endif
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
-      AutoAdjustResolution();
+      //AutoAdjustResolution();
   }
+  
+  AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isAttenuationApplied = false;
@@ -1582,7 +1584,7 @@ void APP_RunSpectrum(Mode mode) {
   if(appMode!=mode){
     ResetModifiers();
   }
-  appMode = mode;
+appMode = mode;
 #elif
 void APP_RunSpectrum() {
 #endif
@@ -1602,7 +1604,8 @@ void APP_RunSpectrum() {
           break;
         }
       }
-      settings.stepsCount = STEPS_128;
+      AutoAdjustResolution(); //Robby69
+      //settings.stepsCount = STEPS_128; //Robby69
     }
     else
   #endif
@@ -1722,16 +1725,13 @@ void APP_RunSpectrum() {
     AutoAdjustResolution();
   }
 
+//Robby69 16 and 32 added
   void AutoAdjustResolution()
   {
-    if (GetStepsCount() <= 64)
-    {
-      settings.stepsCount = STEPS_64;
-    }
-    else
-    {
-      settings.stepsCount = STEPS_128;
-    }
+    if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
+    if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
+    if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
+    if (GetStepsCount() <= 128){settings.stepsCount = STEPS_128;return;}
   }
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
