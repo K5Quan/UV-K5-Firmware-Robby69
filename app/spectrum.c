@@ -297,7 +297,7 @@ uint16_t GetStepsCount()
 #endif
 #ifdef ENABLE_SCAN_RANGES
   if(appMode==SCAN_RANGE_MODE) {
-    return 1+(gScanRangeStop - gScanRangeStart) / GetScanStep(); //Robby69 added 1 
+    return 1+((gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
   }
 #endif
   return 128 >> settings.stepsCount;
