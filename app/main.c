@@ -174,7 +174,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 				}
 				else
 				#endif
-				Band = BAND6_400MHz;
+				//Band = BAND6_400MHz; //Robby69
 
 				gTxVfo->Band = Band;
 
