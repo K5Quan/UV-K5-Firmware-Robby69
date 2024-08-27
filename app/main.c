@@ -173,9 +173,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 						Band = BAND1_50MHz;
 				}
 				else
+				Band = BAND6_400MHz; //Robby69
 				#endif
-				//Band = BAND6_400MHz; //Robby69
-
 				gTxVfo->Band = Band;
 
 				gEeprom.ScreenChannel[Vfo] = FREQ_CHANNEL_FIRST + Band;

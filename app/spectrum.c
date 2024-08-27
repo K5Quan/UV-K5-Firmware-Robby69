@@ -484,9 +484,8 @@ static void ResetModifiers() {
 #endif
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
-      //AutoAdjustResolution();
+      //AutoAdjustResolution();//Robby69
   }
-  
   AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
