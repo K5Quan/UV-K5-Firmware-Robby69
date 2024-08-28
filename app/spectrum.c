@@ -793,12 +793,11 @@ uint8_t Rssi2Y(uint16_t rssi) {
 
 static void DrawSpectrum() {
   for (uint8_t x = 0; x < 128; ++x) {
-    uint16_t rssi = rssiHistory[x >> settings.stepsCount];
+    uint16_t rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
     if (rssi != RSSI_MAX_VALUE) {
       DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
     }
-	++x;++x; //Robby69
-  }
+	}
 }
 
 static void DrawStatus() {
@@ -867,12 +866,10 @@ static void DrawF(uint32_t f) {
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   if (rxChannelName[0] != '\0') {
-    //sprintf(String, "%s", rxChannelName); //Robby69
-	sprintf(String, "%s", settings.stepsCount);
-      UI_PrintStringSmallBold(String, 1, 127, 0);
+      sprintf(String, "%s", rxChannelName);
+	    UI_PrintStringSmallBold(String, 1, 127, 0);
   } else if (isKnownChannel) {
-    //sprintf(String, "%s", channelName);
-	sprintf(String, "%s", settings.stepsCount);
+    sprintf(String, "%s", channelName);
     UI_PrintStringSmall(String, 1, 127, 0);
   }
 #endif
@@ -985,7 +982,7 @@ static void DrawRssiTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE || monitorMode)
     return;
   uint8_t y = Rssi2Y(settings.rssiTriggerLevel);
-  for (uint8_t x = 0; x < 128; x += 4) {//Robby69 2
+  for (uint8_t x = 0; x < 128; x += 2) {
     PutPixel(x, y, true);
   }
 }
