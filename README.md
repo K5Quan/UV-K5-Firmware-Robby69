@@ -1,4 +1,4 @@
-# firmware Quansheng UV-K5 V3b10
+# firmware Quansheng UV-K5 by Robby69
 
 Ce source est un fork du [firmware NUNU de NTOIVOLA]([https://github.com/kamilsss655/uv-k5-firmware-custom])
 
