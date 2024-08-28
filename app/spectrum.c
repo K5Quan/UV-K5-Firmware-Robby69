@@ -792,7 +792,7 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 
 static void DrawSpectrum() {
-  for (uint8_t x = -1; x < 128; ++x) { //Robby69 x= 0
+  for (uint8_t x = 0; x < 128; ++x) {
     uint16_t rssi = rssiHistory[x >> settings.stepsCount];
     if (rssi != RSSI_MAX_VALUE) {
       DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
@@ -991,7 +991,8 @@ static void DrawTicks() {
   uint32_t f = GetFStart();
   uint32_t span = GetFEnd() - GetFStart();
   uint32_t step = span / 128;
-  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {
+//  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {// Robby69
+	for (uint8_t i = 0; i < 128; i+=0) {
     f = GetFStart() + span * i / 128;
     uint8_t barValue = 0b00000001;
     (f % 10000) < step && (barValue |= 0b00000010);
@@ -999,6 +1000,7 @@ static void DrawTicks() {
     (f % 100000) < step && (barValue |= 0b00011000);
 
     gFrameBuffer[5][i] |= barValue;
+	i += (1 << settings.stepsCount) //Robby69
   }
   memset(gFrameBuffer[5] + 1, 0x80, 3);
   memset(gFrameBuffer[5] + 124, 0x80, 3);
