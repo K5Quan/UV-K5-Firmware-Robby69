@@ -792,7 +792,8 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 
 static void DrawSpectrum() {
-  for (uint8_t x = 0; x < 128; ++x) {
+  //for (uint8_t x = 0; x < 128; ++x) { //Robby69
+  for (uint8_t x = 1; x <= 128; ++x) { 
     uint16_t rssi = rssiHistory[x >> settings.stepsCount];
     if (rssi != RSSI_MAX_VALUE) {
       DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
@@ -1727,9 +1728,9 @@ void APP_RunSpectrum() {
 //Robby69 16 and 32 added
   void AutoAdjustResolution()
   {
-    if (GetStepsCount() <= 16){settings.stepsCount = 1+STEPS_16;return;}
-    if (GetStepsCount() <= 32){settings.stepsCount = 1+STEPS_32;return;}
-    if (GetStepsCount() <= 64){settings.stepsCount = 1+STEPS_64;return;}
+    if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
+    if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
+    if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
     if (GetStepsCount() <= 128){settings.stepsCount = STEPS_128;return;}
   }
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
