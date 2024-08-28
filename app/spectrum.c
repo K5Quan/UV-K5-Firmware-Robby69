@@ -792,8 +792,7 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 
 static void DrawSpectrum() {
-  //for (uint8_t x = 0; x < 128; ++x) { //Robby69
-  for (uint8_t x = 1; x <= 128; ++x) { 
+  for (uint8_t x = -1; x < 128; ++x) { //Robby69 x= 0
     uint16_t rssi = rssiHistory[x >> settings.stepsCount];
     if (rssi != RSSI_MAX_VALUE) {
       DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
