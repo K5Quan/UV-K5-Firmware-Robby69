@@ -997,9 +997,7 @@ static void DrawTicks() {
     (f % 10000) < step && (barValue |= 0b00000010);
     (f % 50000) < step && (barValue |= 0b00000100);
     (f % 100000) < step && (barValue |= 0b00011000);
-
     gFrameBuffer[5][i] |= barValue;
-	i += (1 << settings.stepsCount) //Robby69
   }
   memset(gFrameBuffer[5] + 1, 0x80, 3);
   memset(gFrameBuffer[5] + 124, 0x80, 3);
