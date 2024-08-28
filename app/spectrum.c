@@ -991,8 +991,7 @@ static void DrawTicks() {
   uint32_t f = GetFStart();
   uint32_t span = GetFEnd() - GetFStart();
   uint32_t step = span / 128;
-//  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {// Robby69
-	for (uint8_t i = 0; i < 128; i+=0) {
+  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {
     f = GetFStart() + span * i / 128;
     uint8_t barValue = 0b00000001;
     (f % 10000) < step && (barValue |= 0b00000010);
