@@ -447,7 +447,7 @@ static void ToggleRX(bool on) {
       BK4819_WriteRegister(0x43, GetBWRegValueForScan());
 
     // keep displaying the received channel for a second or so
-    rxChannelDisplayCountdown = 4;
+    rxChannelDisplayCountdown = 0; //4 Robby69
   }
 }
 
@@ -1727,9 +1727,9 @@ void APP_RunSpectrum() {
 //Robby69 16 and 32 added
   void AutoAdjustResolution()
   {
-    if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
-    if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
-    if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
+    if (GetStepsCount() <= 16){settings.stepsCount = 1+STEPS_16;return;}
+    if (GetStepsCount() <= 32){settings.stepsCount = 1+STEPS_32;return;}
+    if (GetStepsCount() <= 64){settings.stepsCount = 1+STEPS_64;return;}
     if (GetStepsCount() <= 128){settings.stepsCount = STEPS_128;return;}
   }
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
