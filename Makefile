@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := V4.7.5
+VERSION_STRING := V4.7.6
 
 
 # compile options (see README.md for descriptions)
