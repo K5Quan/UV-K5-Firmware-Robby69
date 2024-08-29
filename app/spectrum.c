@@ -797,7 +797,7 @@ static void DrawSpectrum() {//Robby69
 	for (uint8_t xi = 0; xi < settings.stepsCount; ++xi) {
 		for (uint8_t xj = 0; xj < 128/settings.stepsCount; ++xj){ 
 		uint16_t rssi = rssiHistory[1+ xi]; 
-		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (settings.stepsCount*xi+xj), true);
+		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (settings.stepsCount*xj+xi), true);
 		}
 	}
 }
