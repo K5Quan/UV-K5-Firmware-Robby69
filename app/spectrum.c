@@ -264,7 +264,7 @@ void CheckIfTailFound()
     interrupt_status_bits = BK4819_ReadRegister(BK4819_REG_02);
     // if tail found interrupt
     //if (interrupt_status_bits & BK4819_REG_02_CxCSS_TAIL)
-	if (interrupt_status_bits) //Robby69 
+	if (interrupt_status_bits || BK4819_REG_02_CxCSS_TAIL) //Robby69 
     {
         gTailFound = true;
         listenT = 0;
@@ -868,15 +868,25 @@ static void DrawF(uint32_t f) {
   UI_PrintStringSmall(String, 1, 127, 1);
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-  if (appMode==CHANNEL_MODE){ //Robby69 show names only in channel mode
-	if (rxChannelName[0] != '\0') {
+	//if (rxChannelName[0] != '\0') { //Robby69
+	
+	if (isKnownChannel) {
+		sprintf(String, "%s", channelName);
+		UI_PrintStringSmall(String, 1, 127, 0);
+	} else {
+		sprintf(String, "%s", rxChannelName);
+		UI_PrintStringSmallBold(String, 1, 127, 0);
+		}
+	
+	/*if (rxChannelName[0] != '\0') {
 		sprintf(String, "%s", rxChannelName);
 		UI_PrintStringSmallBold(String, 1, 127, 0);
 	} else if (isKnownChannel) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);
-	}
+	}*/
   }
+
 #endif
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
