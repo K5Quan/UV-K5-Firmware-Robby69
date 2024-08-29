@@ -118,7 +118,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -30, //Robby69 -50
+                             dbMax: -10, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -989,6 +989,7 @@ static void DrawRssiTriggerLevel() {
   }
 }
 
+#ifdef ENABLE_SPECTRUM_ARROW
 static void DrawTicks() {
   uint32_t f = GetFStart();
   uint32_t span = GetFEnd() - GetFStart();
@@ -1007,6 +1008,7 @@ static void DrawTicks() {
   gFrameBuffer[5][0] = 0xff;
   gFrameBuffer[5][127] = 0xff;
 }
+#endif
 
 #ifdef ENABLE_SPECTRUM_ARROW
 static void DrawArrow(uint8_t x) {
@@ -1281,7 +1283,9 @@ static void RenderStatus() {
 }
 
 static void RenderSpectrum() {
+  #ifdef ENABLE_SPECTRUM_ARROW
   DrawTicks();
+  #endif
   #ifdef ENABLE_SPECTRUM_ARROW
   if((appMode==CHANNEL_MODE)&&(GetStepsCount()<128u))
   {
@@ -1292,7 +1296,7 @@ static void RenderSpectrum() {
     DrawArrow(128u * peak.i / GetStepsCount());
   }
   #endif
-  
+
   DrawSpectrum();
   DrawRssiTriggerLevel();
   DrawF(peak.f);
