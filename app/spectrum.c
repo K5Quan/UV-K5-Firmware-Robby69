@@ -793,14 +793,12 @@ uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
 uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
-static void DrawSpectrum() {
-  uint8_t xi;
-  for (uint8_t x = 0; x < 128; ++x) {
-    xi= 128/settings.stepsCount
-    uint16_t rssi = rssiHistory[1+ xi]; //Robby69
-    if (rssi != RSSI_MAX_VALUE) {
-      DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
-    }
+static void DrawSpectrum() {//Robby69
+	for (uint8_t xi = 0; xi < settings.stepsCount; ++xi) {
+		for (uint8_t xj = 0; xj < 128/settings.stepsCount; ++xj){ 
+		uint16_t rssi = rssiHistory[1+ xi]; 
+		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (settings.stepsCount*xi+xj), true);
+		}
 	}
 }
 
