@@ -1729,7 +1729,7 @@ void APP_RunSpectrum() {
     if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
     if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
     if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
-    if (GetStepsCount() <= 128){settings.stepsCount = STEPS_128;return;}
+    if (GetStepsCount() > 65){settings.stepsCount = STEPS_128;return;} //Robby69 65 for SCANRANGE
   }
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
