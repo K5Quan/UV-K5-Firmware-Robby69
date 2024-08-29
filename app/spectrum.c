@@ -1759,7 +1759,7 @@ void APP_RunSpectrum() {
 //Robby69 16 and 32 added
   void AutoAdjustResolution()
   {
-    settings.stepsCount = GetStepsCount();return;}
+    settings.stepsCount = GetStepsCount();return;
   }
   
   /*void AutoAdjustResolution()
