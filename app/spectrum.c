@@ -186,7 +186,9 @@ static int clamp(int v, int min, int max) {
   return v <= min ? min : (v >= max ? max : v);
 }
 
+#ifdef ENABLE_SPECTRUM_ARROW
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
+#endif
 
 void SetState(State state) {
   previousState = currentState;
@@ -1006,6 +1008,7 @@ static void DrawTicks() {
   gFrameBuffer[5][127] = 0xff;
 }
 
+#ifdef ENABLE_SPECTRUM_ARROW
 static void DrawArrow(uint8_t x) {
   for (signed i = -2; i <= 2; ++i) {
     signed v = x + i;
@@ -1014,6 +1017,7 @@ static void DrawArrow(uint8_t x) {
     }
   }
 }
+#endif
 
 static void OnKeyDown(uint8_t key) {
   if (!isListening)
@@ -1278,6 +1282,7 @@ static void RenderStatus() {
 
 static void RenderSpectrum() {
   DrawTicks();
+  #ifdef ENABLE_SPECTRUM_ARROW
   if((appMode==CHANNEL_MODE)&&(GetStepsCount()<128u))
   {
     DrawArrow(peak.i * (settings.stepsCount + 1));
@@ -1286,6 +1291,8 @@ static void RenderSpectrum() {
   {
     DrawArrow(128u * peak.i / GetStepsCount());
   }
+  #endif
+  
   DrawSpectrum();
   DrawRssiTriggerLevel();
   DrawF(peak.f);

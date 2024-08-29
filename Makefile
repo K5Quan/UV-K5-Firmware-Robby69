@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := V4.7.8
+VERSION_STRING := V4.7.11
 
 
 # compile options (see README.md for descriptions)
@@ -54,6 +54,7 @@ ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_FREQ_LOCKING						:= 0 //Robby69 0 to remove all frequency lock
+ENABLE_SPECTRUM_ARROW					:= 0 //Robby69 0 to remove the spectrum arrow
 
 #############################################################
 
