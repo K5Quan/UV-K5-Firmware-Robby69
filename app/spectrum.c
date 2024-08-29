@@ -873,7 +873,8 @@ static void DrawF(uint32_t f) {
 	if (isKnownChannel) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);
-	} else {
+	} 
+  else {
 		sprintf(String, "%s", rxChannelName);
 		UI_PrintStringSmallBold(String, 1, 127, 0);
 		}
@@ -884,9 +885,8 @@ static void DrawF(uint32_t f) {
 	} else if (isKnownChannel) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);
-	}*/
-  }
-
+	}
+  }*/
 #endif
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
