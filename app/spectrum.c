@@ -12,6 +12,7 @@
  *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
+ * 	   Test
  */
 #include "app/spectrum.h"
 
@@ -793,9 +794,9 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 static void DrawSpectrum() {//Robby69
 	for (uint8_t xi = 0; xi < settings.stepsCount; xi++) {
-		for (uint8_t xj = 0; xj < (128/settings.stepsCount); ++xj){ 
-		uint16_t rssi = rssiHistory[1+ xi]; 
-		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (xj+128/settings.stepsCount*xi), true);
+		for (uint8_t xj = 0; xj <= (128/settings.stepsCount); ++xj){ 
+			uint16_t rssi = rssiHistory[1+ xi]; 
+			if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (xj+xi*128/settings.stepsCount), true);
 		}
 	}
 }
@@ -1303,10 +1304,8 @@ static void RenderStatus() {
 }
 
 static void RenderSpectrum() {
-  #ifdef ENABLE_SPECTRUM_ARROW
-  DrawTicks();
-  #endif
-  #ifdef ENABLE_SPECTRUM_ARROW
+	#ifdef ENABLE_SPECTRUM_ARROW
+	DrawTicks();
   if((appMode==CHANNEL_MODE)&&(GetStepsCount()<128u))
   {
     DrawArrow(peak.i * (settings.stepsCount + 1));
@@ -1757,7 +1756,7 @@ void APP_RunSpectrum() {
 //Robby69 16 and 32 added
   void AutoAdjustResolution()
   {
-    settings.stepsCount = GetStepsCount();return;
+    settings.stepsCount = GetStepsCount();return; //Robby69
   }
   
   /*void AutoAdjustResolution()
