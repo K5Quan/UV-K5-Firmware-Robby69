@@ -792,7 +792,7 @@ uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
 uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
-static void DrawSpectrum() {//Robby69
+static void DrawSpectrum() {//Robby69 V4.8.7
 	for (uint8_t xi = 0; xi < settings.stepsCount; xi++) {
 		for (uint8_t xj = 0; xj <= (128/settings.stepsCount); ++xj){ 
 			uint16_t rssi = rssiHistory[1+ xi]; 
