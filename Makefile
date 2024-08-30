@@ -1,5 +1,5 @@
 AUTHOR_STRING := R69.Y31
-VERSION_STRING := V4.8.0
+VERSION_STRING := V4.8.6
 
 
 # compile options (see README.md for descriptions)

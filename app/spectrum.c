@@ -501,9 +501,7 @@ static void RelaunchScan() {
   InitScan();
   ResetPeak();
   ToggleRX(false);
-#ifdef SPECTRUM_AUTOMATIC_SQUELCH
-  settings.rssiTriggerLevel = RSSI_MAX_VALUE;
-#endif
+  settings.rssiTriggerLevel = RSSI_MAX_VALUE; //Robby69
   preventKeypress = true;
   scanInfo.rssiMin = RSSI_MAX_VALUE;
 }
@@ -525,7 +523,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 8, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 10, 0, RSSI_MAX_VALUE); //Robby69 +8
   }
 }
 
@@ -574,9 +572,9 @@ static void ClampRssiTriggerLevel()
 
 static void UpdateRssiTriggerLevel(bool inc) {
   if (inc)
-      settings.rssiTriggerLevel += 2;
+      settings.rssiTriggerLevel += 5; //robby69 2
   else
-      settings.rssiTriggerLevel -= 2;
+      settings.rssiTriggerLevel -= 5; //robby69 2
 
   ClampRssiTriggerLevel();
 
@@ -794,10 +792,10 @@ uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
 static void DrawSpectrum() {//Robby69
-	for (uint8_t xi = 0; xi < settings.stepsCount; ++xi) {
-		for (uint8_t xj = 0; xj < 128/settings.stepsCount; ++xj){ 
+	for (uint8_t xi = 0; xi < settings.stepsCount; xi++) {
+		for (uint8_t xj = 0; xj < (128/settings.stepsCount); ++xj){ 
 		uint16_t rssi = rssiHistory[1+ xi]; 
-		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (settings.stepsCount*xj+xi), true);
+		if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (xj+128/settings.stepsCount*xi), true);
 		}
 	}
 }
