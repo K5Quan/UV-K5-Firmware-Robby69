@@ -119,7 +119,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -10, //Robby69 -50
+                             dbMax: 10, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -287,7 +287,10 @@ static void ResetPeak() {
   peak.rssi = 0;
 }
 
-bool IsCenterMode() { return settings.scanStepIndex < S_STEP_2_5kHz; }
+//bool IsCenterMode() { return settings.scanStepIndex < S_STEP_2_5kHz; }
+
+//bool IsCenterMode() { return 1; } //Robby69
+
 // scan step in 0.01khz
 uint16_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
@@ -301,18 +304,21 @@ uint16_t GetStepsCount()
 #endif
 #ifdef ENABLE_SCAN_RANGES
   if(appMode==SCAN_RANGE_MODE) {
-    return 1+((gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
+    return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
   }
 #endif
   return 128 >> settings.stepsCount;
 }
 
 uint32_t GetBW() { return GetStepsCount() * GetScanStep(); }
-uint32_t GetFStart() {
-  return IsCenterMode() ? currentFreq - (GetBW() >> 1) : currentFreq;
-}
 
-uint32_t GetFEnd() { return currentFreq + GetBW(); }
+uint32_t GetFStart() {
+	if(appMode==SCAN_RANGE_MODE) return currentFreq - GetScanStep();//robby69
+	return (currentFreq - (GetBW() >> 1));}
+
+uint32_t GetFEnd() {
+	if(appMode==SCAN_RANGE_MODE) return currentFreq + GetBW()+ GetScanStep();//robby69
+	return (currentFreq + (GetBW() >> 1));} //robby69
 
 static void TuneToPeak() {
   scanInfo.f = peak.f;
@@ -524,9 +530,10 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 10, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 30, 0, RSSI_MAX_VALUE); //Robby69 +8
   }
 }
+
 
 static void UpdatePeakInfoForce() {
   peak.t = 0;
@@ -536,7 +543,7 @@ static void UpdatePeakInfoForce() {
   #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
     LookupChannelInfo();
   #endif
-  AutoTriggerLevel();
+  AutoTriggerLevel(); //Robby69
 }
 
 static void UpdatePeakInfo() {
@@ -573,9 +580,9 @@ static void ClampRssiTriggerLevel()
 
 static void UpdateRssiTriggerLevel(bool inc) {
   if (inc)
-      settings.rssiTriggerLevel += 5; //robby69 2
+      settings.rssiTriggerLevel += 10; //robby69 2
   else
-      settings.rssiTriggerLevel -= 5; //robby69 2
+      settings.rssiTriggerLevel -= 10; //robby69 2
 
   ClampRssiTriggerLevel();
 
@@ -585,9 +592,9 @@ static void UpdateRssiTriggerLevel(bool inc) {
 
 static void UpdateDBMax(bool inc) {
   if (inc && settings.dbMax < 10) {
-    settings.dbMax += 1;
+    settings.dbMax += 10;
   } else if (!inc && settings.dbMax > settings.dbMin) {
-    settings.dbMax -= 1;
+    settings.dbMax -= 10;
   } else {
     return;
   }
@@ -671,6 +678,7 @@ static void ToggleStepsCount() {
   } else {
     settings.stepsCount--;
   }
+  AutoAdjustResolution();//Robby69 added
   AutoAdjustFreqChangeStep();
   ResetModifiers();
   redrawScreen = true;
@@ -792,23 +800,20 @@ uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
 uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
-static void DrawSpectrum() {//Robby69 V4.8.7
-	for (uint8_t xi = 0; xi < settings.stepsCount; xi++) {
-		for (uint8_t xj = 0; xj <= (128/settings.stepsCount); ++xj){ 
-			uint16_t rssi = rssiHistory[1+ xi]; 
-			if (rssi != RSSI_MAX_VALUE) DrawVLine(Rssi2Y(rssi), DrawingEndY, (xj+xi*128/settings.stepsCount), true);
-		}
-	}
+//Robby69 16 and 32 added
+void AutoAdjustResolution(){
+	if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
+	if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
+	if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
+	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}
 }
 
-/*static void DrawSpectrum() {
-  for (uint8_t x = 0; x < 128; ++x) {
-    uint16_t rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
-    if (rssi != RSSI_MAX_VALUE) {
-      DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);
-    }
-	}
-}*/
+static void DrawSpectrum() {//Robby69 V4.8.8
+	uint16_t rssi;
+	for (uint8_t x = 0; x < 128; ++x) {
+		rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
+		if (rssi != RSSI_MAX_VALUE) 
+			DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);}}
 
 static void DrawStatus() {
 #ifdef SPECTRUM_EXTRA_VALUES
@@ -881,10 +886,9 @@ static void DrawF(uint32_t f) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);
 	} 
-  else {
+  /*else {
 		sprintf(String, "%s", rxChannelName);
-		UI_PrintStringSmallBold(String, 1, 127, 0);
-		}
+		UI_PrintStringSmallBold(String, 1, 127, 0);}*/
 	
 	/*if (rxChannelName[0] != '\0') {
 		sprintf(String, "%s", rxChannelName);
@@ -981,8 +985,7 @@ static void DrawNums() {
     sprintf(String, "M:%d", scanChannel[GetStepsCount()-1]+1);
     GUI_DisplaySmallest(String, 108, 49, false, true);
   }
-  else
-  {
+  if(appMode==FREQUENCY_MODE){ 
     sprintf(String, "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
     GUI_DisplaySmallest(String, 0, 49, false, true);
 
@@ -990,6 +993,14 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 93, 49, false, true);
   }
 
+  if(appMode==SCAN_RANGE_MODE){
+    sprintf(String, "%u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
+    GUI_DisplaySmallest(String, 0, 49, false, true);
+
+    sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
+    GUI_DisplaySmallest(String, 93, 49, false, true);
+  }
+  
   if(isAttenuationApplied){
     sprintf(String, "ATT");
     GUI_DisplaySmallest(String, 52, 49, false, true);
@@ -1304,7 +1315,7 @@ static void RenderStatus() {
 }
 
 static void RenderSpectrum() {
-	#ifdef ENABLE_SPECTRUM_ARROW
+  #ifdef ENABLE_SPECTRUM_ARROW
 	DrawTicks();
   if((appMode==CHANNEL_MODE)&&(GetStepsCount()<128u))
   {
@@ -1508,8 +1519,7 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
-  AutoTriggerLevel();
-
+  AutoTriggerLevel(); //Robby69
   ToggleRX(IsPeakOverLevel() || monitorMode);
 }
 
@@ -1633,7 +1643,6 @@ void APP_RunSpectrum() {
         }
       }
       AutoAdjustResolution(); //Robby69
-      //settings.stepsCount = STEPS_128; //Robby69
     }
     else
   #endif
@@ -1753,20 +1762,6 @@ void APP_RunSpectrum() {
     AutoAdjustResolution();
   }
 
-//Robby69 16 and 32 added
-  void AutoAdjustResolution()
-  {
-    settings.stepsCount = GetStepsCount();return; //Robby69
-  }
-  
-  /*void AutoAdjustResolution()
-  {
-    if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
-    if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
-    if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
-    if (GetStepsCount() > 65){settings.stepsCount = STEPS_128;return;} //Robby69 65 for SCANRANGE
-  }*/
-  
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
   void ToggleNormalizeRssi(bool on)

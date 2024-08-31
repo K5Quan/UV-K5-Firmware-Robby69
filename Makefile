@@ -1,6 +1,5 @@
 AUTHOR_STRING := R69.Y31
-VERSION_STRING := V4.8.7
-
+VERSION_STRING := V4.8.9
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -53,8 +52,10 @@ ENABLE_MESSENGER_FSK_MUTE               := 0
 ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
-ENABLE_FREQ_LOCKING						:= 0 //Robby69 0 to remove all frequency lock
-ENABLE_SPECTRUM_ARROW					:= 0 //Robby69 0 to remove the spectrum arrow
+ENABLE_FREQ_LOCKING						:= 0 
+#Robby69 0 to remove all frequency lock
+ENABLE_SPECTRUM_ARROW					:= 0
+#Robby69 0 to remove the spectrum arrow
 
 #############################################################
 
