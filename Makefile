@@ -1,5 +1,5 @@
 AUTHOR_STRING := R69.Y31
-VERSION_STRING := V4.8.9
+VERSION_STRING := V4.9.0
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -21,7 +21,7 @@ ENABLE_VOX                    := 0
 ENABLE_ALARM                  := 0
 ENABLE_TX1750                 := 0
 ENABLE_PWRON_PASSWORD         := 0
-ENABLE_DTMF_CALLING           := 0
+ENABLE_DTMF			          := 0
 
 # ---- CUSTOM MODS ----
 ENABLE_BIG_FREQ                         := 1
@@ -56,6 +56,7 @@ ENABLE_FREQ_LOCKING						:= 0
 #Robby69 0 to remove all frequency lock
 ENABLE_SPECTRUM_ARROW					:= 0
 #Robby69 0 to remove the spectrum arrow
+
 
 #############################################################
 
@@ -353,8 +354,8 @@ endif
 ifeq ($(ENABLE_SPECTRUM_SHOW_CHANNEL_NAME),1)
 	CFLAGS  += -DENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 endif
-ifeq ($(ENABLE_DTMF_CALLING),1)
-	CFLAGS  += -DENABLE_DTMF_CALLING
+ifeq ($(ENABLE_DTMF),1)
+	CFLAGS  += -DENABLE_DTMF
 endif
 ifeq ($(ENABLE_SPECTRUM_CHANNEL_SCAN),1)
 	CFLAGS  += -DENABLE_SPECTRUM_CHANNEL_SCAN

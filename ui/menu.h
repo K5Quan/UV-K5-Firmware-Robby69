@@ -88,23 +88,25 @@ enum
 #ifdef ENABLE_ALARM
 	MENU_AL_MOD,
 #endif
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	MENU_ANI_ID,
 #endif
 	MENU_UPCODE,
 	MENU_DWCODE,
 	MENU_PTT_ID,
 	MENU_D_ST,
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	MENU_D_RSP,
 	MENU_D_HOLD,
 #endif
 	MENU_D_PRE,
-#ifdef ENABLE_DTMF_CALLING	
+#ifdef ENABLE_DTMF	
 	MENU_D_DCD,
 	MENU_D_LIST,
 #endif
+#ifdef ENABLE_DTMF
 	MENU_D_LIVE_DEC,
+#endif
 	MENU_PONMSG,
 	MENU_ROGER,
 	MENU_VOL,
@@ -154,7 +156,7 @@ extern const char* const gSubMenu_MDF[4];
 #ifdef ENABLE_ALARM
 	extern const char    gSubMenu_AL_MOD[2][5];
 #endif
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 extern const char        gSubMenu_D_RSP[4][11];
 #endif
 extern const char* const gSubMenu_PTT_ID[5];

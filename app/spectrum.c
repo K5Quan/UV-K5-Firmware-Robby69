@@ -119,7 +119,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: 10, //Robby69 -50
+                             dbMax: -10, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -484,6 +484,7 @@ static void InitScan() {
 
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
+  //squelch_level_mod=10;
   for (int i = 0; i < 128; ++i) {
     if (rssiHistory[i] == RSSI_MAX_VALUE)
       rssiHistory[i] = 0;
@@ -530,7 +531,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 30, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 20, 0, RSSI_MAX_VALUE); //Robby69 +8
   }
 }
 
@@ -579,13 +580,9 @@ static void ClampRssiTriggerLevel()
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-  if (inc)
-      settings.rssiTriggerLevel += 10; //robby69 2
-  else
-      settings.rssiTriggerLevel -= 10; //robby69 2
-
+  if (inc){settings.rssiTriggerLevel += 5;} //robby69 2
+  else {settings.rssiTriggerLevel -= 5;} //robby69 2
   ClampRssiTriggerLevel();
-
   redrawScreen = true;
   redrawStatus = true;
 }
@@ -810,7 +807,7 @@ void AutoAdjustResolution(){
 
 static void DrawSpectrum() {//Robby69 V4.8.8
 	uint16_t rssi;
-	for (uint8_t x = 0; x < 128; ++x) {
+	for (uint8_t x = 0; x < 127; ++x) { //Robby69 127 to remove vertical bar
 		rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
 		if (rssi != RSSI_MAX_VALUE) 
 			DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);}}
@@ -1519,7 +1516,7 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
-  AutoTriggerLevel(); //Robby69
+  //AutoTriggerLevel(); //Robby69
   ToggleRX(IsPeakOverLevel() || monitorMode);
 }
 

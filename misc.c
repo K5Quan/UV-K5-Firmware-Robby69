@@ -33,7 +33,7 @@ const uint8_t     menu_timeout_500ms               =  20000 / 500;  // 20 second
 const uint16_t    menu_timeout_long_500ms          = 120000 / 500;  // 2 minutes
 
 const uint8_t     DTMF_RX_live_timeout_500ms       =  6000 / 500;  // 6 seconds live decoder on screen
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 const uint8_t     DTMF_RX_timeout_500ms            = 10000 / 500;  // 10 seconds till we wipe the DTMF receiver
 const uint8_t     DTMF_decode_ring_countdown_500ms = 15000 / 500;  // 15 seconds .. time we sound the ringing for
 const uint8_t     DTMF_txstop_countdown_500ms      =  3000 / 500;  // 6 seconds
@@ -81,7 +81,7 @@ const uint16_t    NOAA_countdown_3_10ms            =   200 / 10;   // 200ms
 const uint32_t    gDefaultAesKey[4]                = {0x4AA5CC60, 0x0312CC5F, 0xFFD2DABB, 0x6BBA7F92};
 
 const uint8_t     gMicGain_dB2[5]                  = {3, 8, 16, 24, 31};
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 bool              gSetting_KILLED;
 #endif
 
@@ -97,7 +97,10 @@ bool              gSetting_ScrambleEnable;
 
 uint8_t           gSetting_backlight_on_tx_rx;
 
+#ifdef ENABLE_DTMF
 bool              gSetting_live_DTMF_decoder;
+#endif
+
 uint8_t           gSetting_battery_text;
 
 bool              gMonitor = false;           // true opens the squelch

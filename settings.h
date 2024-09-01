@@ -205,7 +205,7 @@ typedef struct {
 	uint8_t               MIC_SENSITIVITY;
 	uint8_t               MIC_SENSITIVITY_TUNING;
 	uint8_t               CHAN_1_CALL;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	char                  ANI_DTMF_ID[8];
 	char                  KILL_CODE[8];
 	char                  REVIVE_CODE[8];
@@ -220,7 +220,7 @@ typedef struct {
 	uint8_t               field60_0x7e;
 	uint8_t               field61_0x7f;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	char                  DTMF_SEPARATE_CODE;
 	char                  DTMF_GROUP_CALL_CODE;
 	uint8_t               DTMF_DECODE_RESPONSE;
@@ -232,7 +232,7 @@ typedef struct {
 	uint16_t              DTMF_CODE_PERSIST_TIME;
 	uint16_t              DTMF_CODE_INTERVAL_TIME;
 	bool                  DTMF_SIDE_TONE;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	bool                  PERMIT_REMOTE_KILL;
 #endif
 	int16_t               BK4819_XTAL_FREQ_LOW;

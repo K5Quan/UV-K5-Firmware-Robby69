@@ -55,46 +55,20 @@ const t_menu_item MenuList[] =
 	{"TxODir", VOICE_ID_TX_OFFSET_FREQUENCY_DIRECTION, MENU_SFT_D         }, // was "SFT_D"
 	{"TxOffs", VOICE_ID_TX_OFFSET_FREQUENCY,           MENU_OFFSET        }, // was "OFFSET"
 	{"RxOffs", VOICE_ID_INVALID,                       MENU_RX_OFFSET     },
-	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
+	
 	{"BusyCL", VOICE_ID_BUSY_LOCKOUT,                  MENU_BCL           }, // was "BCL"
-	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
+
 	{"Demodu", VOICE_ID_INVALID,                       MENU_AM            }, // was "AM"
 	{"RxAGC",  VOICE_ID_INVALID,                       MENU_RX_AGC        }, // RX Auto Gain Control
 	{"ScList", VOICE_ID_INVALID,					   MENU_S_LIST        },
 	{"ChSave", VOICE_ID_MEMORY_CHANNEL,                MENU_MEM_CH        }, // was "MEM-CH"
-	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
-	{"ChName", VOICE_ID_INVALID,                       MENU_MEM_NAME      },	
-	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
-#ifdef ENABLE_NOAA
-	{"NOAA-S", VOICE_ID_INVALID,                       MENU_NOAA_S        },
-#endif
-	{"F1Shrt",    VOICE_ID_INVALID,                    MENU_F1SHRT        },
-	{"F1Long",    VOICE_ID_INVALID,                    MENU_F1LONG        },
-	{"F2Shrt",    VOICE_ID_INVALID,                    MENU_F2SHRT        },
-	{"F2Long",    VOICE_ID_INVALID,                    MENU_F2LONG        },
-	{"M Long",    VOICE_ID_INVALID,                    MENU_MLONG         },
-	{"KeyLck", VOICE_ID_INVALID,                       MENU_AUTOLK        }, // was "AUTOLk"
-	{"TxTOut", VOICE_ID_TRANSMIT_OVER_TIME,            MENU_TOT           }, // was "TOT"
-	{"BatSav", VOICE_ID_SAVE_MODE,                     MENU_SAVE          }, // was "SAVE"
-	{"Mic",    VOICE_ID_INVALID,                       MENU_MIC           },	
-	{"ChDisp", VOICE_ID_INVALID,                       MENU_MDF           }, // was "MDF"
-	{"POnMsg", VOICE_ID_INVALID,                       MENU_PONMSG        },
-	{"BatTxt", VOICE_ID_INVALID,                       MENU_BAT_TXT       },	
-	{"BackLt", VOICE_ID_INVALID,                       MENU_ABR           }, // was "ABR"
-	{"BLMin",  VOICE_ID_INVALID,                       MENU_ABR_MIN       },
-	{"BLMax",  VOICE_ID_INVALID,                       MENU_ABR_MAX       },
-	{"BltTRX", VOICE_ID_INVALID,                       MENU_ABR_ON_TX_RX  },
-	{"Beep",   VOICE_ID_BEEP_PROMPT,                   MENU_BEEP          },
-#ifdef ENABLE_VOICE
-	{"Voice",  VOICE_ID_VOICE_PROMPT,                  MENU_VOICE         },
-#endif
+
 	{"Roger",  VOICE_ID_INVALID,                       MENU_ROGER         },
-	{"SqTone", VOICE_ID_INVALID,                       MENU_SQL_TONE      }, // squelch tail tone used for RX/TX
-	{"1 Call", VOICE_ID_INVALID,                       MENU_1_CALL        },
+	
 #ifdef ENABLE_ALARM
 	{"AlarmT", VOICE_ID_INVALID,                       MENU_AL_MOD        },
 #endif
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	{"ANI ID", VOICE_ID_ANI_CODE,                      MENU_ANI_ID        },
 	{"UPCode", VOICE_ID_INVALID,                       MENU_UPCODE        },
 	{"DWCode", VOICE_ID_INVALID,                       MENU_DWCODE        },
@@ -106,7 +80,7 @@ const t_menu_item MenuList[] =
 	{"D Decd", VOICE_ID_INVALID,                       MENU_D_DCD         },
 	{"D List", VOICE_ID_INVALID,                       MENU_D_LIST        },
 #endif
-	{"D Live", VOICE_ID_INVALID,                       MENU_D_LIVE_DEC    }, // live DTMF decoder
+
 #ifdef ENABLE_VOX
 	{"VOXSen", VOICE_ID_VOX,                           MENU_VOX           }, // VOX Sensibility or OFF
 	{"VOXDel", VOICE_ID_VOX,                           MENU_VOX_DELAY     }, // VOX delay
@@ -135,7 +109,41 @@ const t_menu_item MenuList[] =
 	{"Tx 500", VOICE_ID_INVALID,                       MENU_500TX         }, // was "500TX"
 	{"350 En", VOICE_ID_INVALID,                       MENU_350EN         }, // was "350EN"
 #endif
-	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN"
+	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" //Robby69 hidden menu start
+	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
+	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
+	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
+	{"ChName", VOICE_ID_INVALID,                       MENU_MEM_NAME      },	
+	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
+#ifdef ENABLE_NOAA
+	{"NOAA-S", VOICE_ID_INVALID,                       MENU_NOAA_S        },
+#endif
+	{"F1Shrt",    VOICE_ID_INVALID,                    MENU_F1SHRT        },
+	{"F1Long",    VOICE_ID_INVALID,                    MENU_F1LONG        },
+	{"F2Shrt",    VOICE_ID_INVALID,                    MENU_F2SHRT        },
+	{"F2Long",    VOICE_ID_INVALID,                    MENU_F2LONG        },
+	{"M Long",    VOICE_ID_INVALID,                    MENU_MLONG         },
+	{"KeyLck", VOICE_ID_INVALID,                       MENU_AUTOLK        }, // was "AUTOLk"
+	{"TxTOut", VOICE_ID_TRANSMIT_OVER_TIME,            MENU_TOT           }, // was "TOT"
+	{"BatSav", VOICE_ID_SAVE_MODE,                     MENU_SAVE          }, // was "SAVE"
+	{"Mic",    VOICE_ID_INVALID,                       MENU_MIC           },	
+	{"ChDisp", VOICE_ID_INVALID,                       MENU_MDF           }, // was "MDF"
+	{"POnMsg", VOICE_ID_INVALID,                       MENU_PONMSG        },
+	{"BatTxt", VOICE_ID_INVALID,                       MENU_BAT_TXT       },	
+	{"BackLt", VOICE_ID_INVALID,                       MENU_ABR           }, // was "ABR"
+	{"BLMin",  VOICE_ID_INVALID,                       MENU_ABR_MIN       },
+	{"BLMax",  VOICE_ID_INVALID,                       MENU_ABR_MAX       },
+	{"BltTRX", VOICE_ID_INVALID,                       MENU_ABR_ON_TX_RX  },
+	{"Beep",   VOICE_ID_BEEP_PROMPT,                   MENU_BEEP          },
+#ifdef ENABLE_VOICE
+	{"Voice",  VOICE_ID_VOICE_PROMPT,                  MENU_VOICE         },
+#endif	
+#ifdef ENABLE_DTMF
+	{"D Live", VOICE_ID_INVALID,                       MENU_D_LIVE_DEC    }, // live DTMF decoder
+#endif
+	{"SqTone", VOICE_ID_INVALID,                       MENU_SQL_TONE      }, // squelch tail tone used for RX/TX
+	{"1 Call", VOICE_ID_INVALID,                       MENU_1_CALL        },
+	
 #ifdef ENABLE_F_CAL_MENU
 	{"FrCali", VOICE_ID_INVALID,                       MENU_F_CALI        }, // reference xtal calibration
 #endif
@@ -264,7 +272,7 @@ const char* const gSubMenu_MDF[] =
 	};
 #endif
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 const char gSubMenu_D_RSP[][11] =
 {
 	"DO\nNOTHING",
@@ -432,7 +440,7 @@ void UI_DisplayMenu(void)
 	unsigned int       i;
 	char               String[64];  // bigger cuz we can now do multi-line in one string (use '\n' char)
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	char               Contact[16];
 #endif
 
@@ -679,20 +687,27 @@ void UI_DisplayMenu(void)
 				break;
 
 			case MENU_D_ST:
-	#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			case MENU_D_DCD:
-	#endif
+#endif
+
+#ifdef ENABLE_DTMF
 			case MENU_D_LIVE_DEC:
-			#ifdef ENABLE_NOAA
+#endif
+
+#ifdef ENABLE_NOAA
 				case MENU_NOAA_S:
-			#endif
-			#ifdef ENABLE_ENCRYPTION
+#endif
+
+#ifdef ENABLE_ENCRYPTION
 				case MENU_MSG_ENC:
-			#endif
-			#ifdef ENABLE_MESSENGER
+#endif
+
+#ifdef ENABLE_MESSENGER
 				case MENU_MSG_RX:
 				case MENU_MSG_ACK:
-			#endif
+#endif
+
 #ifdef ENABLE_FREQ_LOCKING
 			case MENU_350TX:
 			case MENU_200TX:
@@ -829,7 +844,7 @@ void UI_DisplayMenu(void)
 					break;
 			#endif
 
-	#ifdef ENABLE_DTMF_CALLING
+	#ifdef ENABLE_DTMF
 			case MENU_ANI_ID:
 				strcpy(String, gEeprom.ANI_DTMF_ID);
 				break;
@@ -842,7 +857,7 @@ void UI_DisplayMenu(void)
 				strcpy(String, gEeprom.DTMF_DOWN_CODE);
 				break;
 
-	#ifdef ENABLE_DTMF_CALLING
+	#ifdef ENABLE_DTMF
 			case MENU_D_RSP:
 				strcpy(String, gSubMenu_D_RSP[gSubMenuSelection]);
 				break;
@@ -863,7 +878,7 @@ void UI_DisplayMenu(void)
 				strcpy(String, gSubMenu_BAT_TXT[gSubMenuSelection]);
 				break;
 
-	#ifdef ENABLE_DTMF_CALLING
+	#ifdef ENABLE_DTMF
 			case MENU_D_LIST:
 				gIsDtmfContactValid = DTMF_GetContact((int)gSubMenuSelection - 1, Contact);
 				if (!gIsDtmfContactValid)
@@ -999,7 +1014,7 @@ void UI_DisplayMenu(void)
 		if (strlen(gEeprom.DTMF_DOWN_CODE) > 8)
 			UI_PrintString(gEeprom.DTMF_DOWN_CODE + 8, menu_item_x1, menu_item_x2, 4, 8);
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	if (UI_MENU_GetCurrentMenuId() == MENU_D_LIST && gIsDtmfContactValid)
 	{
 		Contact[11] = 0;
@@ -1014,7 +1029,7 @@ void UI_DisplayMenu(void)
 	    UI_MENU_GetCurrentMenuId() == MENU_R_DCS  ||
 	    UI_MENU_GetCurrentMenuId() == MENU_T_DCS  ||
 		UI_MENU_GetCurrentMenuId() == MENU_SQL_TONE
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	    || UI_MENU_GetCurrentMenuId() == MENU_D_LIST
 #endif		
 		)

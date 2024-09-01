@@ -107,7 +107,7 @@ void UI_DisplayAudioBar(void)
 
 	if (gCurrentFunction != FUNCTION_TRANSMIT ||
 		gScreenToDisplay != DISPLAY_MAIN
-	#ifdef ENABLE_DTMF_CALLING
+	#ifdef ENABLE_DTMF
 		|| gDTMF_CallState != DTMF_CALL_STATE_NONE
 	#endif
 		)
@@ -165,7 +165,7 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT ||
 			gScreenToDisplay != DISPLAY_MAIN
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			|| gDTMF_CallState != DTMF_CALL_STATE_NONE
 #endif
 			)
@@ -288,12 +288,12 @@ void UI_DisplayMain(void)
 
 
 			if (
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				gDTMF_CallState != DTMF_CALL_STATE_NONE || gDTMF_IsTx || 
 #endif				
 				gDTMF_InputMode)
 			{	// show DTMF stuff
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				char Contact[16];
 
 				if (!gDTMF_InputMode)
@@ -315,7 +315,7 @@ void UI_DisplayMain(void)
 					sprintf(String, ">%s", gDTMF_InputBox);
 				}
 				UI_PrintString(String, 2, 0, 0 + (vfo_num * 3), 8);
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				memset(String,  0, sizeof(String));
 				if (!gDTMF_InputMode) {
 					memset(Contact, 0, sizeof(Contact));
@@ -631,7 +631,7 @@ void UI_DisplayMain(void)
 			UI_PrintStringSmall(bwNames[gEeprom.VfoInfo[vfo_num].CHANNEL_BANDWIDTH], LCD_WIDTH + 70, 0, line + 1);
 		}
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		// show the DTMF decoding symbol
 		if (gEeprom.VfoInfo[vfo_num].DTMF_DECODING_ENABLE || gSetting_KILLED)
 			UI_PrintStringSmall("DTMF", LCD_WIDTH + 78, 0, line + 1);
@@ -654,7 +654,7 @@ void UI_DisplayMain(void)
 			center_line = CENTER_LINE_AUDIO_BAR;
 			UI_DisplayAudioBar();
 		}
-		else
+		//else
 #endif
 
 #ifdef ENABLE_RSSI_BAR
@@ -662,20 +662,20 @@ void UI_DisplayMain(void)
 			center_line = CENTER_LINE_RSSI;
 			DisplayRSSIBar(gCurrentRSSI[gEeprom.RX_VFO], false);
 		}
-		else
+		//else
 #endif
+#ifdef ENABLE_DTMF
 		if (rx || gCurrentFunction == FUNCTION_FOREGROUND || gCurrentFunction == FUNCTION_POWER_SAVE)
 		{
-			#if 1
+
 				if (gSetting_live_DTMF_decoder && gDTMF_RX_live[0] != 0)
 				{	// show live DTMF decode
 					const unsigned int len = strlen(gDTMF_RX_live);
 					const unsigned int idx = (len > (17 - 5)) ? len - (17 - 5) : 0;  // limit to last 'n' chars
 
+
 					if (gScreenToDisplay != DISPLAY_MAIN
-#ifdef ENABLE_DTMF_CALLING
 						|| gDTMF_CallState != DTMF_CALL_STATE_NONE
-#endif
 						)
 						return;
 						
@@ -685,7 +685,6 @@ void UI_DisplayMain(void)
 					strcat(String, gDTMF_RX_live + idx);
 					UI_PrintStringSmall(String, 2, 0, 3);
 				}
-			#else
 				if (gSetting_live_DTMF_decoder && gDTMF_RX_index > 0)
 				{	// show live DTMF decode
 					const unsigned int len = gDTMF_RX_index;
@@ -701,8 +700,9 @@ void UI_DisplayMain(void)
 					strcat(String, gDTMF_RX + idx);
 					UI_PrintStringSmall(String, 2, 0, 3);
 				}
-			#endif
+
 		}
+#endif
 	}
 
 	ST7565_BlitFullScreen();

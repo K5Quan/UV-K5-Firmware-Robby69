@@ -61,7 +61,7 @@ void FUNCTION_Init(void)
 		gCurrentCodeType = CODE_TYPE_CONTINUOUS_TONE;
 #endif
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	DTMF_clear_RX();
 #endif
 
@@ -107,7 +107,7 @@ void FUNCTION_Select(FUNCTION_Type_t Function)
 	switch (Function)
 	{
 		case FUNCTION_FOREGROUND:
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			if (gDTMF_ReplyState != DTMF_REPLY_NONE)
 				RADIO_PrepareCssTX();
 #endif
@@ -126,7 +126,7 @@ void FUNCTION_Select(FUNCTION_Type_t Function)
 					gFM_RestoreCountdown_10ms = fm_restore_countdown_10ms;
 			#endif
 			
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			if (gDTMF_CallState == DTMF_CALL_STATE_CALL_OUT ||
 			    gDTMF_CallState == DTMF_CALL_STATE_RECEIVED ||
 				gDTMF_CallState == DTMF_CALL_STATE_RECEIVED_STAY)
@@ -173,7 +173,7 @@ void FUNCTION_Select(FUNCTION_Type_t Function)
 			// if DTMF is enabled when TX'ing, it changes the TX audio filtering !! .. 1of11
 			BK4819_DisableDTMF();
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			// clear the DTMF RX buffer
 			DTMF_clear_RX();
 #endif

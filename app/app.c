@@ -182,7 +182,7 @@ static void HandleIncoming(void)
 	bool bFlag;
 
 	if (!g_SquelchLost) {	// squelch is closed
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		if (gDTMF_RX_index > 0)
 			DTMF_clear_RX();
 #endif
@@ -213,7 +213,7 @@ static void HandleIncoming(void)
 	else if (!bFlag)
 		return;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	if (gScanStateDir == SCAN_OFF) { // not scanning
 		if (gRxVfo->DTMF_DECODING_ENABLE || gSetting_KILLED) { // DTMF DCD is enabled
 
@@ -434,7 +434,7 @@ void APP_StartListening(FUNCTION_Type_t Function)
 	const unsigned int chan = gEeprom.RX_VFO;
 //	const unsigned int chan = gRxVfo->CHANNEL_SAVE;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	if (gSetting_KILLED)
 		return;
 #endif
@@ -617,6 +617,7 @@ static void CheckRadioInterrupts(void)
 			{
 				if (gCurrentFunction != FUNCTION_TRANSMIT)
 				{
+#ifdef ENABLE_DTMF
 					if (gSetting_live_DTMF_decoder)
 					{
 						size_t len = strlen(gDTMF_RX_live);
@@ -630,8 +631,9 @@ static void CheckRadioInterrupts(void)
 						gDTMF_RX_live_timeout = DTMF_RX_live_timeout_500ms;  // time till we delete it
 						gUpdateDisplay        = true;
 					}
+#endif
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 					if (gRxVfo->DTMF_DECODING_ENABLE || gSetting_KILLED)
 					{
 						if (gDTMF_RX_index >= (sizeof(gDTMF_RX) - 1))
@@ -747,7 +749,7 @@ void APP_EndTransmission(bool playRoger)
 #ifdef ENABLE_VOX
 	static void HandleVox(void)
 	{
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		if (gSetting_KILLED)
 			return;
 #endif
@@ -811,7 +813,7 @@ void APP_EndTransmission(bool playRoger)
 	
 			if (gCurrentFunction != FUNCTION_TRANSMIT && gSerialConfigCountDown_500ms == 0)
 			{
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				gDTMF_ReplyState = DTMF_REPLY_NONE;
 #endif
 				RADIO_PrepareTX();
@@ -895,7 +897,7 @@ void APP_Update(void)
 #ifdef ENABLE_FMRADIO
 					!gFmRadioMode &&
 #endif
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				    gDTMF_CallState == DTMF_CALL_STATE_NONE &&
 #endif
 				    gCurrentFunction != FUNCTION_POWER_SAVE)
@@ -932,7 +934,7 @@ void APP_Update(void)
 		    gScanStateDir != SCAN_OFF         ||
 		    gCssBackgroundScan                      ||
 		    gScreenToDisplay != DISPLAY_MAIN  
-#ifdef ENABLE_DTMF_CALLING			
+#ifdef ENABLE_DTMF			
 			|| gDTMF_CallState != DTMF_CALL_STATE_NONE
 #endif
 			)
@@ -1023,7 +1025,7 @@ static void CheckKeys(void)
 {
 
 	if (0 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	|| gSetting_KILLED 
 #endif	
 #ifdef ENABLE_AIRCOPY	
@@ -1367,7 +1369,7 @@ void APP_TimeSlice500ms(void)
 		if (--gMenuCountdown == 0)
 			exit_menu = (gScreenToDisplay == DISPLAY_MENU);	// exit menu mode
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	if (gDTMF_RX_timeout > 0)
 		if (--gDTMF_RX_timeout == 0)
 			DTMF_clear_RX();
@@ -1542,7 +1544,7 @@ void APP_TimeSlice500ms(void)
 	BATTERY_TimeSlice500ms();
 	SCANNER_TimeSlice500ms();
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	if (gCurrentFunction != FUNCTION_TRANSMIT)
 	{
 		if (gDTMF_DecodeRingCountdown_500ms > 0)
@@ -1689,7 +1691,7 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		if (gScreenToDisplay == DISPLAY_MENU)       // 1of11
 			gMenuCountdown = menu_timeout_500ms;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		if (gDTMF_DecodeRingCountdown_500ms > 0)
 		{	// cancel the ringing
 			gDTMF_DecodeRingCountdown_500ms = 0;
@@ -1999,7 +2001,7 @@ Skip:
 
 		RADIO_SetupRegisters(true);
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		gDTMF_auto_reset_time_500ms = 0;
 		gDTMF_CallState             = DTMF_CALL_STATE_NONE;
 		gDTMF_TxStopCountdown_500ms = 0;

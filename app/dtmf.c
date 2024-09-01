@@ -47,7 +47,7 @@ uint8_t           gDTMF_PreviousIndex  = 0;
 char              gDTMF_RX_live[20];
 uint8_t           gDTMF_RX_live_timeout = 0;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 char              gDTMF_RX[17];
 uint8_t           gDTMF_RX_index   = 0;
 uint8_t           gDTMF_RX_timeout = 0;
@@ -71,7 +71,7 @@ bool              gDTMF_IsGroupCall;
 #endif
 DTMF_ReplyState_t gDTMF_ReplyState;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 void DTMF_clear_RX(void)
 {
 	gDTMF_RX_timeout = 0;
@@ -103,7 +103,7 @@ bool DTMF_ValidateCodes(char *pCode, const unsigned int size)
 	return true;
 }
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 bool DTMF_GetContact(const int Index, char *pContact)
 {
 	int i = -1;
@@ -167,7 +167,7 @@ char DTMF_GetCharacter(const unsigned int code)
 		default:       return 0xff;
 	}
 }
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 static bool CompareMessage(const char *pMsg, const char *pTemplate, const unsigned int size, const bool bCheckGroup)
 {
 	unsigned int i;
@@ -214,7 +214,7 @@ void DTMF_Append(const char code)
 		gDTMF_InputBox[gDTMF_InputBox_Index++] = code;
 }
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 void DTMF_HandleRequest(void)
 {	// proccess the RX'ed DTMF characters
 
@@ -399,7 +399,7 @@ void DTMF_HandleRequest(void)
 void DTMF_Reply(void)
 {
 	uint16_t    Delay;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	char        String[23];
 #endif
 	const char *pString = NULL;
@@ -407,7 +407,7 @@ void DTMF_Reply(void)
 	switch (gDTMF_ReplyState)
 	{
 		case DTMF_REPLY_ANI:
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 			if (gDTMF_CallMode != DTMF_CALL_MODE_DTMF)
 			{	// append our ID code onto the end of the DTMF code to send
 				sprintf(String, "%s%c%s", gDTMF_String, gEeprom.DTMF_SEPARATE_CODE, gEeprom.ANI_DTMF_ID);
@@ -420,7 +420,7 @@ void DTMF_Reply(void)
 			}
 
 			break;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 		case DTMF_REPLY_AB:
 			pString = "AB";
 			break;
@@ -433,7 +433,7 @@ void DTMF_Reply(void)
 		default:
 		case DTMF_REPLY_NONE:
 			if (
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				gDTMF_CallState != DTMF_CALL_STATE_NONE           ||
 #endif
 			    gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO ||

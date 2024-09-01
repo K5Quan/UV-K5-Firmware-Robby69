@@ -136,7 +136,7 @@ void SETTINGS_SaveSettings(void)
 	EEPROM_WriteBuffer(0x0EA8, State, true);
 
 	State[0] = gEeprom.DTMF_SIDE_TONE;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	State[1] = gEeprom.DTMF_SEPARATE_CODE;
 	State[2] = gEeprom.DTMF_GROUP_CALL_CODE;
 	State[3] = gEeprom.DTMF_DECODE_RESPONSE;
@@ -150,7 +150,7 @@ void SETTINGS_SaveSettings(void)
 	memset(State, 0xFF, sizeof(State));
 	State[0] = gEeprom.DTMF_CODE_PERSIST_TIME / 10U;
 	State[1] = gEeprom.DTMF_CODE_INTERVAL_TIME / 10U;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	State[2] = gEeprom.PERMIT_REMOTE_KILL;
 #endif
 	EEPROM_WriteBuffer(0x0ED8, State, true);
@@ -166,7 +166,7 @@ void SETTINGS_SaveSettings(void)
 	EEPROM_WriteBuffer(0x0F18, State, true);
 
 	memset(State, 0xFF, sizeof(State));
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	State[2]  = gSetting_KILLED;
 #endif
 
@@ -179,7 +179,10 @@ void SETTINGS_SaveSettings(void)
 #endif
 	State[6]  = gSetting_ScrambleEnable;
 	//if (!gSetting_TX_EN)             State[7] &= ~(1u << 0);
+#ifdef ENABLE_DTMF
 	if (!gSetting_live_DTMF_decoder) State[7] &= ~(1u << 1);
+#endif
+	
 	State[7] = (State[7] & ~(3u << 2)) | ((gSetting_battery_text & 3u) << 2);
 	State[7] = (State[7] & ~(3u << 6)) | ((gSetting_backlight_on_tx_rx & 3u) << 6);
 
@@ -232,7 +235,7 @@ void SETTINGS_SaveChannel(uint8_t Channel, uint8_t VFO, const VFO_Info_t *pVFO, 
 			if(pVFO->CHANNEL_BANDWIDTH != BK4819_FILTER_BW_WIDE)
 				State[4] |= ((pVFO->CHANNEL_BANDWIDTH - 1) << 5);
 			State[5] = ((pVFO->DTMF_PTT_ID_TX_MODE & 7u) << 1)
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 				| ((pVFO->DTMF_DECODING_ENABLE & 1u) << 0)
 #endif
 			;

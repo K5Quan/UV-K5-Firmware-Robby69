@@ -124,7 +124,7 @@ typedef struct VFO_Info_t
 	uint8_t        SCANLIST;
 
 	uint8_t        Band;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	uint8_t        DTMF_DECODING_ENABLE;
 #endif
 	PTT_ID_t       DTMF_PTT_ID_TX_MODE;

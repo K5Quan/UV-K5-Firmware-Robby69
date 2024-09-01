@@ -81,7 +81,7 @@ extern uint8_t           gDTMF_PreviousIndex;
 extern char              gDTMF_RX_live[20];
 extern uint8_t           gDTMF_RX_live_timeout;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 extern char              gDTMF_RX[17];
 extern uint8_t           gDTMF_RX_index;
 extern uint8_t           gDTMF_RX_timeout;
@@ -109,7 +109,7 @@ void DTMF_clear_input_box(void);
 void DTMF_Append(const char vode);
 void DTMF_Reply(void);
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 void DTMF_clear_RX(void);
 DTMF_CallMode_t DTMF_CheckGroupCall(const char *pDTMF, const unsigned int size);
 bool DTMF_GetContact(const int Index, char *pContact);

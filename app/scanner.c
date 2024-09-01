@@ -350,7 +350,7 @@ void SCANNER_Start(bool singleFreq)
 		gUpdateStatus = true;
 	}
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	DTMF_clear_RX();
 #endif
 

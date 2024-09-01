@@ -614,7 +614,7 @@ void BOARD_EEPROM_Init(void)
 	EEPROM_ReadBuffer(0x0ED0, Data, 8);
 	gEeprom.DTMF_SIDE_TONE               = (Data[0] <   2) ? Data[0] : true;
 
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	gEeprom.DTMF_SEPARATE_CODE           = DTMF_ValidateCodes((char *)(Data + 1), 1) ? Data[1] : '*';
 	gEeprom.DTMF_GROUP_CALL_CODE         = DTMF_ValidateCodes((char *)(Data + 2), 1) ? Data[2] : '#';
 	gEeprom.DTMF_DECODE_RESPONSE         = (Data[3] <   4) ? Data[3] : 0;
@@ -628,7 +628,7 @@ void BOARD_EEPROM_Init(void)
 	EEPROM_ReadBuffer(0x0ED8, Data, 8);
 	gEeprom.DTMF_CODE_PERSIST_TIME  = (Data[0] < 101) ? Data[0] * 10 : 100;
 	gEeprom.DTMF_CODE_INTERVAL_TIME = (Data[1] < 101) ? Data[1] * 10 : 100;
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	gEeprom.PERMIT_REMOTE_KILL      = (Data[2] <   2) ? Data[2] : true;
 
 	// 0EE0..0EE7
@@ -698,7 +698,7 @@ void BOARD_EEPROM_Init(void)
 
 	// 0F40..0F47
 	EEPROM_ReadBuffer(0x0F40, Data, 8);
-#ifdef ENABLE_DTMF_CALLING
+#ifdef ENABLE_DTMF
 	gSetting_KILLED            = (Data[2] < 2) ? Data[2] : false;
 #endif
 
@@ -711,7 +711,9 @@ void BOARD_EEPROM_Init(void)
 #endif
 	gSetting_ScrambleEnable    = (Data[6] < 2) ? Data[6] : true;
 	//gSetting_TX_EN             = (Data[7] & (1u << 0)) ? true : false;
+#ifdef ENABLE_DTMF
 	gSetting_live_DTMF_decoder = (Data[7] & (1u << 1)) ? true : false;
+#endif
 	gSetting_battery_text      = (((Data[7] >> 2) & 3u) <= 2) ? (Data[7] >> 2) & 3 : 2;
 	gSetting_backlight_on_tx_rx = (Data[7] >> 6) & 3u;
 	// Read RxOffset setting
