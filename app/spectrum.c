@@ -40,6 +40,9 @@ bool isBlacklistApplied;
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
+#define Bottom_print 15 //Robby69
+
+
 #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   Mode appMode;
   //Idea - make this user adjustable to compensate for different antennas, frontends, conditions
@@ -977,35 +980,35 @@ static void DrawNums() {
   if (appMode==CHANNEL_MODE) 
   {
     sprintf(String, "M:%d", scanChannel[0]+1);
-    GUI_DisplaySmallest(String, 0, 49, false, true);
+    GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
 
     sprintf(String, "M:%d", scanChannel[GetStepsCount()-1]+1);
-    GUI_DisplaySmallest(String, 108, 49, false, true);
+    GUI_DisplaySmallest(String, 108, Bottom_print, false, true);
   }
   if(appMode==FREQUENCY_MODE){ 
     sprintf(String, "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
-    GUI_DisplaySmallest(String, 0, 49, false, true);
+    GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
 
     sprintf(String, "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
-    GUI_DisplaySmallest(String, 93, 49, false, true);
+    GUI_DisplaySmallest(String, 93, Bottom_print, false, true);
   }
 
   if(appMode==SCAN_RANGE_MODE){
     sprintf(String, "%u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
-    GUI_DisplaySmallest(String, 0, 49, false, true);
+    GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
 
     sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
-    GUI_DisplaySmallest(String, 93, 49, false, true);
+    GUI_DisplaySmallest(String, 93, Bottom_print, false, true);
   }
   
   if(isAttenuationApplied){
     sprintf(String, "ATT");
-    GUI_DisplaySmallest(String, 52, 49, false, true);
+    GUI_DisplaySmallest(String, 52, Bottom_print, false, true);
   }
 
   if(isBlacklistApplied){
     sprintf(String, "BL");
-    GUI_DisplaySmallest(String, 67, 49, false, true);
+    GUI_DisplaySmallest(String, 67, Bottom_print, false, true);
   }
 }
 
@@ -1323,11 +1326,11 @@ static void RenderSpectrum() {
     DrawArrow(128u * peak.i / GetStepsCount());
   }
   #endif
-
+  DrawNums();
   DrawSpectrum();
   DrawRssiTriggerLevel();
   DrawF(peak.f);
-  DrawNums();
+  //DrawNums();
 }
 
 static void RenderStill() {
