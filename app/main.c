@@ -83,7 +83,7 @@ void toggle_chan_scanlist(void)
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
-	uint8_t Band;
+	//uint8_t Band;
 	uint8_t Vfo = gEeprom.TX_VFO;
 
 	if (gScreenToDisplay == DISPLAY_MENU)
@@ -158,14 +158,16 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			}
 
 #ifdef ENABLE_WIDE_RX
-			if(gTxVfo->Band == 6 && gTxVfo->pRX->Frequency < 100000000) {
+			if(gTxVfo->pRX->Frequency < 100000000) { //Robby69 directly go to 1Ghz
+			//if(gTxVfo->Band == 6 && gTxVfo->pRX->Frequency < 100000000) {
+					gTxVfo->Band = 7;
 					gTxVfo->pRX->Frequency = 100000000;
 					return;
 			}
-			else 
+//			else 
 #endif			
 
-			{
+/*			{
 				Band = gTxVfo->Band + 1;
 				#ifdef ENABLE_FREQ_LOCKING
 				if (gSetting_350EN || Band != BAND5_350MHz) {
@@ -179,7 +181,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 				gEeprom.ScreenChannel[Vfo] = FREQ_CHANNEL_FIRST + Band;
 				gEeprom.FreqChannel[Vfo]   = FREQ_CHANNEL_FIRST + Band;
-			}
+			}*/
 
 
 			gRequestSaveVFO            = true;

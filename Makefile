@@ -1,5 +1,5 @@
 AUTHOR_STRING := R69.Y31
-VERSION_STRING := V4.9.1
+VERSION_STRING := V4.9.2
 
 # compile options (see README.md for descriptions)
 # 0 = disable

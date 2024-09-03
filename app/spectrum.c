@@ -40,7 +40,7 @@ bool isBlacklistApplied;
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
-#define Bottom_print 15 //Robby69
+#define Bottom_print 13 //Robby69
 
 
 #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
@@ -876,7 +876,7 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
-  sprintf(String, "%u.%05u", f / 100000, f % 100000);
+  sprintf(String, "%u.%01u", f / 100000, f % 100000);
   UI_PrintStringSmall(String, 1, 127, 1);
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
@@ -986,19 +986,19 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 108, Bottom_print, false, true);
   }
   if(appMode==FREQUENCY_MODE){ 
-    sprintf(String, "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
+    sprintf(String, "%u.%u", GetFStart() / 100000, GetFStart() % 100);
     GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
 
-    sprintf(String, "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
-    GUI_DisplaySmallest(String, 93, Bottom_print, false, true);
+    sprintf(String, "%u.%u", GetFEnd() / 100000, GetFEnd() % 100);
+    GUI_DisplaySmallest(String, 104, Bottom_print, false, true);
   }
 
   if(appMode==SCAN_RANGE_MODE){
-    sprintf(String, "%u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
+    sprintf(String, "%u.%u", gScanRangeStart / 100000, gScanRangeStart % 100); //Robby69 was %u.%05u
     GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
-
-    sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
-    GUI_DisplaySmallest(String, 93, Bottom_print, false, true);
+ 
+    sprintf(String, "%u.%u", gScanRangeStop / 100000, gScanRangeStop % 100); //Robby69 was %u.%05u
+    GUI_DisplaySmallest(String, 104, Bottom_print, false, true);
   }
   
   if(isAttenuationApplied){

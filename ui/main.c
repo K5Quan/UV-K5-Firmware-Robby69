@@ -393,14 +393,15 @@ void UI_DisplayMain(void)
 				sprintf(String, "M%.3s", INPUTBOX_GetAscii());  // show the input text
 			UI_PrintStringSmall(String, x, 0, line + 1);
 		}
-		else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
+		//Robby69 removed
+		/*else if (IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
 		{	// frequency mode
-			// show the frequency band number
+			// show the frequency band number //Robby69 removed
 			const unsigned int x = 2;
 			char * buf = gEeprom.VfoInfo[vfo_num].pRX->Frequency < 100000000 ? "" : "+";
 			sprintf(String, "F%u%s", 1 + gEeprom.ScreenChannel[vfo_num] - FREQ_CHANNEL_FIRST, buf);
 			UI_PrintStringSmall(String, x, 0, line + 1);
-		}
+		}*/
 #ifdef ENABLE_NOAA
 		else
 		{
