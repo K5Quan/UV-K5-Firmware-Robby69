@@ -876,8 +876,13 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
+  uint32_t cdcssFreq;
+	uint16_t ctcssFreq;
   sprintf(String, "%u.%01u", f / 100000, f % 100000);
   UI_PrintStringSmall(String, 1, 127, 1);
+  BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq); //Robby try to show CTCSS or DCS
+  sprintf(String, "%u %u", cdcssFreq, ctcssFreq);
+  UI_PrintStringSmall(String, 1, 127, 2);
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 	//if (rxChannelName[0] != '\0') { //Robby69
