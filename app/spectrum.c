@@ -37,11 +37,13 @@ struct FrequencyBandInfo {
 
 bool gTailFound;
 bool isBlacklistApplied;
+DCS_CodeType_t    gScanCssResultType2;
+uint32_t cdcssFreq;
+uint16_t ctcssFreq;
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
-#define Bottom_print 13 //Robby69
-
+#define Bottom_print 51 //Robby69 13
 
 #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   Mode appMode;
@@ -418,7 +420,6 @@ static void ToggleAudio(bool on) {
 
 static void ToggleRX(bool on) {
   isListening = on;
-
   BACKLIGHT_TurnOn();
 
 #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
@@ -591,7 +592,7 @@ static void UpdateRssiTriggerLevel(bool inc) {
 }
 
 static void UpdateDBMax(bool inc) {
-  if (inc && settings.dbMax < 100) { //Robby69
+  if (inc && settings.dbMax <= 100) { //Robby69
     settings.dbMax += 10;
   } else if (!inc && settings.dbMax > settings.dbMin) {
     settings.dbMax -= 10;
@@ -876,43 +877,44 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
-  uint32_t cdcssFreq;
-  uint16_t ctcssFreq;
-  uint8_t Code = 0xFF;
-  if (f > 0)
-  {sprintf(String, "%u.%01u", f / 100000, f % 100000);
-  UI_PrintStringSmall(String, 1, 127, 1);}
-  //Robby try to show CTCSS or DCS
-  BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-  	if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+  uint8_t Code;
+  if (f > 0){
+		sprintf(String, "%u.%05u", f / 100000, f % 100000);
+		UI_PrintStringSmall(String, 1, 127, 1);}
+	
+  //Robby show CTCSS or DCS
+/*	BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+	if ((scanResult == BK4819_CSS_RESULT_CTCSS)||(scanResult == BK4819_CSS_RESULT_CDCSS)){
 		Code = DCS_GetCtcssCode(ctcssFreq);
-		sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-		GUI_DisplaySmallest(String, 36, 16, false, true);}
-		
-	else if (scanResult == BK4819_CSS_RESULT_CDCSS) {
+		if (Code != 0xFF){
+			sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+			GUI_DisplaySmallest(String, 27, 16, false, true);}
 		Code = DCS_GetCdcssCode(cdcssFreq);
-		sprintf(String, "D%03oN", DCS_Options[Code]);
-		GUI_DisplaySmallest(String, 36, 16, false, true);}
-
+		if (Code != 0xFF){
+			sprintf(String, "D%03oN", DCS_Options[Code]);
+			GUI_DisplaySmallest(String, 68, 16, false, true);}}*/
+  	
+	
+  	BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+		
+	if (scanResult == BK4819_CSS_RESULT_CDCSS){
+		Code = DCS_GetCdcssCode(cdcssFreq);
+		if (Code != 0xFF){
+			sprintf(String, "D%03oN", DCS_Options[Code]);
+			GUI_DisplaySmallest(String, 68, 16, false, true);}}
+		else {
+			Code = DCS_GetCtcssCode(ctcssFreq);
+			if (Code != 0xFF){
+				sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+				GUI_DisplaySmallest(String, 27, 16, false, true);}}
+				
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-	//if (rxChannelName[0] != '\0') { //Robby69
 	
 	if (isKnownChannel) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);
 	} 
-  /*else {
-		sprintf(String, "%s", rxChannelName);
-		UI_PrintStringSmallBold(String, 1, 127, 0);}*/
-	
-	/*if (rxChannelName[0] != '\0') {
-		sprintf(String, "%s", rxChannelName);
-		UI_PrintStringSmallBold(String, 1, 127, 0);
-	} else if (isKnownChannel) {
-		sprintf(String, "%s", channelName);
-		UI_PrintStringSmall(String, 1, 127, 0);
-	}
-  }*/
+ 
 #endif
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
@@ -1349,7 +1351,7 @@ static void RenderSpectrum() {
 }
 
 static void RenderStill() {
-  DrawF(fMeasure);
+  DrawF(fMeasure); 
 
   const uint8_t METER_PAD_LEFT = 3;
 
