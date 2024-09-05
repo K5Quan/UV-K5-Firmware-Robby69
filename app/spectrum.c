@@ -122,7 +122,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -10, //Robby69 -50
+                             dbMax: 10, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -591,7 +591,7 @@ static void UpdateRssiTriggerLevel(bool inc) {
 }
 
 static void UpdateDBMax(bool inc) {
-  if (inc && settings.dbMax < 10) {
+  if (inc && settings.dbMax < 100) { //Robby69
     settings.dbMax += 10;
   } else if (!inc && settings.dbMax > settings.dbMin) {
     settings.dbMax -= 10;
@@ -877,12 +877,22 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
   uint32_t cdcssFreq;
-	uint16_t ctcssFreq;
-  sprintf(String, "%u.%01u", f / 100000, f % 100000);
-  UI_PrintStringSmall(String, 1, 127, 1);
-  BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq); //Robby try to show CTCSS or DCS
-  sprintf(String, "%u %u", cdcssFreq, ctcssFreq);
-  UI_PrintStringSmall(String, 1, 127, 2);
+  uint16_t ctcssFreq;
+  uint8_t Code = 0xFF;
+  if (f > 0)
+  {sprintf(String, "%u.%01u", f / 100000, f % 100000);
+  UI_PrintStringSmall(String, 1, 127, 1);}
+  //Robby try to show CTCSS or DCS
+  BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+  	if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+		Code = DCS_GetCtcssCode(ctcssFreq);
+		sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+		GUI_DisplaySmallest(String, 36, 16, false, true);}
+		
+	else if (scanResult == BK4819_CSS_RESULT_CDCSS) {
+		Code = DCS_GetCdcssCode(cdcssFreq);
+		sprintf(String, "D%03oN", DCS_Options[Code]);
+		GUI_DisplaySmallest(String, 36, 16, false, true);}
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 	//if (rxChannelName[0] != '\0') { //Robby69
