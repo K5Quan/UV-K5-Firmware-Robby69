@@ -1438,18 +1438,18 @@ bool BK4819_GetFrequencyScanResult(uint32_t *pFrequency)
 BK4819_CssScanResult_t BK4819_GetCxCSSScanResult(uint32_t *pCdcssFreq, uint16_t *pCtcssFreq)
 {
 	uint16_t Low;
-	uint16_t High = BK4819_ReadRegister(BK4819_REG_69);
+	uint16_t High = BK4819_ReadRegister(BK4819_REG_69); //Read CDCSS REG
 
-	if ((High & 0x8000) == 0)
+	if ((High & 0x8000) == 0) //CDCSS Scan Indicator 1=Busy; 0=Found.
 	{
 		Low         = BK4819_ReadRegister(BK4819_REG_6A);
 		*pCdcssFreq = ((High & 0xFFF) << 12) | (Low & 0xFFF);
 		return BK4819_CSS_RESULT_CDCSS;
 	}
 
-	Low = BK4819_ReadRegister(BK4819_REG_68);
+	Low = BK4819_ReadRegister(BK4819_REG_68); //Read CTCSS reg
 
-	if ((Low & 0x8000) == 0)
+	if ((Low & 0x8000) == 0) //CTCSS Scan Indicator 1=Busy; 0=Found.
 	{
 		*pCtcssFreq = ((Low & 0x1FFF) * 4843) / 10000;
 		return BK4819_CSS_RESULT_CTCSS;

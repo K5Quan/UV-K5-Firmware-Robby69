@@ -1,0 +1,5 @@
+SCANNER_Start(true)
+gScanCssResultCode
+BK4819_PickRXFilterPathBasedOnFrequency(gScanFrequency);
+BK4819_SetScanFrequency
+BK4819_CssScanResult_t
