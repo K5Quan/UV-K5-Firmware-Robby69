@@ -71,6 +71,7 @@ const uint16_t RSSI_MAX_VALUE = 65535;
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[32];
+static char StringC[10];
 
 #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   uint32_t lastPeakFrequency;
@@ -490,6 +491,7 @@ static void InitScan() {
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
   //squelch_level_mod=10;
+  	sprintf(StringC, "");
   for (int i = 0; i < 128; ++i) {
     if (rssiHistory[i] == RSSI_MAX_VALUE)
       rssiHistory[i] = 0;
@@ -883,42 +885,23 @@ static void DrawF(uint32_t f) {
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
 	
-	if (refresh > 100) refresh = 0;
+	if (refresh > 10) {refresh = 0;}
 //Robby show CTCSS or DCS
 	if (refresh == 0){
-		
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-		
+		sprintf(StringC, "");
 		if (scanResult == BK4819_CSS_RESULT_CDCSS){
 			Code = DCS_GetCdcssCode(cdcssFreq);
-			if (Code != 0xFF){
-				sprintf(String, "D%03oN", DCS_Options[Code]);
-				GUI_DisplaySmallest(String, 68, 16, false, true);}}
-			
-		if (scanResult == BK4819_CSS_RESULT_CTCSS){
+			if (Code != 0xFF) {sprintf(StringC, "D%03oN", DCS_Options[Code]);}}
+	
+		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
-			if (Code != 0xFF){
-				sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-				GUI_DisplaySmallest(String, 27, 16, false, true);}}
-	}
+			if (Code != 0xFF) {sprintf(StringC, "%u: %u.%u Hz",Code, CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
+			
+	GUI_DisplaySmallest(StringC, 35, 16, false, true);
 	refresh++;
 
 
-
- /* V4.9.3	
-  	BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-		
-	if (scanResult == BK4819_CSS_RESULT_CDCSS){
-		Code = DCS_GetCdcssCode(cdcssFreq);
-		if (Code != 0xFF){
-			sprintf(String, "D%03oN", DCS_Options[Code]);
-			GUI_DisplaySmallest(String, 68, 16, false, true);}}
-		else {
-			Code = DCS_GetCtcssCode(ctcssFreq);
-			if (Code != 0xFF){
-				sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-				GUI_DisplaySmallest(String, 27, 16, false, true);}}
-*/
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 	
