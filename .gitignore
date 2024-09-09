@@ -1,3 +1,5 @@
 *.d
 *.o
 /.vscode/*
+.session
+.session.inCaseOfCorruption.bak

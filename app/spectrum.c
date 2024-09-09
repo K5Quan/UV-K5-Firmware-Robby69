@@ -40,6 +40,7 @@ bool isBlacklistApplied;
 DCS_CodeType_t    gScanCssResultType2;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
+uint8_t refresh = 0;
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
@@ -878,23 +879,33 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
   uint8_t Code;
-  if (f > 0){
+	if (f > 0){
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
 	
-  //Robby show CTCSS or DCS
-/*	BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-	if ((scanResult == BK4819_CSS_RESULT_CTCSS)||(scanResult == BK4819_CSS_RESULT_CDCSS)){
-		Code = DCS_GetCtcssCode(ctcssFreq);
-		if (Code != 0xFF){
-			sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-			GUI_DisplaySmallest(String, 27, 16, false, true);}
-		Code = DCS_GetCdcssCode(cdcssFreq);
-		if (Code != 0xFF){
-			sprintf(String, "D%03oN", DCS_Options[Code]);
-			GUI_DisplaySmallest(String, 68, 16, false, true);}}*/
-  	
-	
+	if (refresh > 100) refresh = 0;
+//Robby show CTCSS or DCS
+	if (refresh == 0){
+		
+		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+		
+		if (scanResult == BK4819_CSS_RESULT_CDCSS){
+			Code = DCS_GetCdcssCode(cdcssFreq);
+			if (Code != 0xFF){
+				sprintf(String, "D%03oN", DCS_Options[Code]);
+				GUI_DisplaySmallest(String, 68, 16, false, true);}}
+			
+		if (scanResult == BK4819_CSS_RESULT_CTCSS){
+			Code = DCS_GetCtcssCode(ctcssFreq);
+			if (Code != 0xFF){
+				sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+				GUI_DisplaySmallest(String, 27, 16, false, true);}}
+	}
+	refresh++;
+
+
+
+ /* V4.9.3	
   	BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
 		
 	if (scanResult == BK4819_CSS_RESULT_CDCSS){
@@ -907,7 +918,8 @@ static void DrawF(uint32_t f) {
 			if (Code != 0xFF){
 				sprintf(String, "%u.%u Hz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
 				GUI_DisplaySmallest(String, 27, 16, false, true);}}
-				
+*/
+
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 	
 	if (isKnownChannel) {
@@ -1351,8 +1363,8 @@ static void RenderSpectrum() {
 }
 
 static void RenderStill() {
-  DrawF(fMeasure); 
-
+  DrawF(fMeasure);
+  
   const uint8_t METER_PAD_LEFT = 3;
 
   for (int i = 0; i < 121; i++) {
