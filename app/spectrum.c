@@ -885,21 +885,22 @@ static void DrawF(uint32_t f) {
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
 	
-	if (refresh > 10) {refresh = 0;}
 //Robby show CTCSS or DCS
 	if (refresh == 0){
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
 		sprintf(StringC, "");
 		if (scanResult == BK4819_CSS_RESULT_CDCSS){
 			Code = DCS_GetCdcssCode(cdcssFreq);
+			refresh = 100;
 			if (Code != 0xFF) {sprintf(StringC, "D%03oN", DCS_Options[Code]);}}
 	
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
+			refresh = 100;
 			if (Code != 0xFF) {sprintf(StringC, "%u: %u.%u Hz",Code, CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
 			
 	GUI_DisplaySmallest(StringC, 35, 16, false, true);
-	refresh++;
+	refresh--;
 
 
 
