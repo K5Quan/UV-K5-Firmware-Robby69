@@ -37,7 +37,7 @@ struct FrequencyBandInfo {
 
 bool gTailFound;
 bool isBlacklistApplied;
-DCS_CodeType_t    gScanCssResultType2;
+//DCS_CodeType_t    gScanCssResultType2;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
