@@ -126,7 +126,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: 10, //Robby69 -50
+                             dbMax: -20, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -155,7 +155,7 @@ RegisterSpec registerSpecs[] = {
 uint16_t statuslineUpdateTimer = 0;
 
 static void RelaunchScan();
-static void CheckIfTailFound();
+//static void CheckIfTailFound();//Robby69
 static void ResetInterrupts();
 
 static uint16_t GetRegMenuValue(uint8_t st) {
@@ -261,7 +261,7 @@ static void SetF(uint32_t f) {
 
 bool IsPeakOverLevel() { return peak.rssi >= settings.rssiTriggerLevel; }
 
-void CheckIfTailFound()
+/*void CheckIfTailFound() //Robby69 removed
 {
   uint16_t interrupt_status_bits;
   // if interrupt waiting to be handled
@@ -279,7 +279,7 @@ void CheckIfTailFound()
         ResetInterrupts();
     }
   }
-}
+}*/
 
 static void ResetInterrupts()
 {
@@ -538,7 +538,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax + 20, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
   }
 }
 
@@ -886,9 +886,11 @@ static void DrawF(uint32_t f) {
 		UI_PrintStringSmall(String, 1, 127, 1);}
 	
 //Robby show CTCSS or DCS
+	//sprintf(StringC, "%u",refresh);
 	if (refresh == 0){
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
 		sprintf(StringC, "");
+		refresh = 1;
 		if (scanResult == BK4819_CSS_RESULT_CDCSS){
 			Code = DCS_GetCdcssCode(cdcssFreq);
 			refresh = 100;
@@ -897,9 +899,9 @@ static void DrawF(uint32_t f) {
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
 			refresh = 100;
-			if (Code != 0xFF) {sprintf(StringC, "%u: %u.%u Hz",Code, CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
+			if (Code != 0xFF) {sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
 			
-	GUI_DisplaySmallest(StringC, 35, 16, false, true);
+	GUI_DisplaySmallest(StringC, 0, 16, false, true);
 	refresh--;
 
 
@@ -1559,7 +1561,7 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-  CheckIfTailFound();
+  //CheckIfTailFound();//Robby69
 
   if ((IsPeakOverLevel() || monitorMode) && !gTailFound) {
     listenT = SQUELCH_OFF_DELAY;

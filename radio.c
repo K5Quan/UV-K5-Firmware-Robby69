@@ -489,9 +489,9 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 #ifdef ENABLE_REDUCE_LOW_POWER
 	// Robby69 reduced power
 	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW) {
-		Txp[0] /= 50;
-		Txp[1] /= 50;
-		Txp[2] /= 50;
+		Txp[0] /= 100;
+		Txp[1] /= 100;
+		Txp[2] /= 100;
 	}
 	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID) {
 		Txp[0] /= 5;
