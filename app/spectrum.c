@@ -35,7 +35,7 @@ struct FrequencyBandInfo {
     uint32_t middle;
 };
 
-bool gTailFound;
+//bool gTailFound;
 bool isBlacklistApplied;
 //DCS_CodeType_t    gScanCssResultType2;
 uint32_t cdcssFreq;
@@ -121,6 +121,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 150,
+							 rssiTriggerLevelH: 110,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
@@ -133,6 +134,11 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
+const uint8_t FMaxNumb = 50;
+uint32_t freqHistory[50]; //Robby69
+uint8_t indexFd = 1;
+uint8_t indexFs = 1;
+
 
 uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
@@ -260,8 +266,9 @@ static void SetF(uint32_t f) {
 // Spectrum related
 
 bool IsPeakOverLevel() { return peak.rssi >= settings.rssiTriggerLevel; }
+bool IsPeakOverLevelH() { return peak.rssi >= settings.rssiTriggerLevelH; }
 
-/*void CheckIfTailFound() //Robby69 removed
+/*void CheckIfTailFound()
 {
   uint16_t interrupt_status_bits;
   // if interrupt waiting to be handled
@@ -352,7 +359,8 @@ static void ExitAndCopyToVfo() {
     gTxVfo->Modulation = settings.modulationType;
     gTxVfo->CHANNEL_BANDWIDTH = settings.listenBw;
 
-    SETTINGS_SetVfoFrequency(peak.f);
+    //SETTINGS_SetVfoFrequency(peak.f);
+	SETTINGS_SetVfoFrequency(freqHistory[indexFd]); //Robby69
   
     gRequestSaveChannel = 1;
   }
@@ -449,7 +457,7 @@ static void ToggleRX(bool on) {
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
-    gTailFound=false;
+    //gTailFound=false;
 
     // turn on CSS tail found interrupt
     BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
@@ -539,8 +547,9 @@ static void UpdateScanInfo() {
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
     settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel-40; //Robby69
   }
-}
+} 
 
 
 static void UpdatePeakInfoForce() {
@@ -587,8 +596,10 @@ static void ClampRssiTriggerLevel()
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-  if (inc){settings.rssiTriggerLevel += 5;} //robby69 2
-  else {settings.rssiTriggerLevel -= 5;} //robby69 2
+  if (inc){	settings.rssiTriggerLevel += 2;
+			settings.rssiTriggerLevelH +=2;} //robby69 2
+  else {	settings.rssiTriggerLevel -= 2;
+			settings.rssiTriggerLevelH -=2;} //robby69 2
   ClampRssiTriggerLevel();
   redrawScreen = true;
   redrawStatus = true;
@@ -880,10 +891,19 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
-  uint8_t Code;
+	uint8_t Code;
 	if (f > 0){
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
+	
+	f= freqHistory[indexFd];
+	int channelFd = BOARD_gMR_fetchChannel(f);
+    isKnownChannel = channelFd == -1 ? false : true;
+	if (f > 0){
+		if(	isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
+		else sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
+		GUI_DisplaySmallest(String, 80, 16, false, true);}
+	
 	
 //Robby show CTCSS or DCS
 	//sprintf(StringC, "%u",refresh);
@@ -899,7 +919,8 @@ static void DrawF(uint32_t f) {
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
 			refresh = 100;
-			if (Code != 0xFF) {sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
+			//if (CodeC != 0xFF) {sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
+			sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
 			
 	GUI_DisplaySmallest(StringC, 0, 16, false, true);
 	refresh--;
@@ -1034,6 +1055,10 @@ static void DrawRssiTriggerLevel() {
   for (uint8_t x = 0; x < 128; x += 2) {
     PutPixel(x, y, true);
   }
+  y = Rssi2Y(settings.rssiTriggerLevelH);
+  for (uint8_t x = 0; x < 128; x += 4) {
+    PutPixel(x, y, true);
+  }
 }
 
 #ifdef ENABLE_SPECTRUM_ARROW
@@ -1122,27 +1147,27 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_UP:
 #ifdef ENABLE_SCAN_RANGES
+	indexFd++;
+	if(freqHistory[indexFd]==0)indexFd--;
+	if (indexFd > FMaxNumb) indexFd = 1;
+	
     if(appMode==FREQUENCY_MODE)
     {
 #endif
       UpdateCurrentFreq(true);
     }
-    else
-    {
-      ResetModifiers();
-    }
+    //else {ResetModifiers();}
     break;
   case KEY_DOWN:
+  	indexFd--;
+	if (indexFd < 1) indexFd = 1;
 #ifdef ENABLE_SCAN_RANGES
     if(appMode==FREQUENCY_MODE)
     {
 #endif
       UpdateCurrentFreq(false);
     }
-    else
-    {
-      ResetModifiers();
-    }
+    //else {ResetModifiers();}
     break;
   case KEY_SIDE1:
     Blacklist();
@@ -1182,7 +1207,8 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_SIDE2:
-    Attenuate(ATTENUATE_STEP);
+    //Attenuate(ATTENUATE_STEP);
+	ResetModifiers(); //Robby69
     break;
   case KEY_PTT:
     #ifdef ENABLE_SPECTRUM_COPY_VFO
@@ -1329,6 +1355,16 @@ static void RenderStatus() {
   ST7565_BlitStatusLine();
 }
 
+void FillfreqHistory(){ //Robby69
+uint8_t i;
+bool found = 0;
+for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
+if (!found) {
+	freqHistory[indexFs] = peak.f;
+	indexFd = indexFs;
+	indexFs++;}
+if (indexFs > FMaxNumb) indexFs = 1;
+}
 static void RenderSpectrum() {
   #ifdef ENABLE_SPECTRUM_ARROW
 	DrawTicks();
@@ -1347,6 +1383,8 @@ static void RenderSpectrum() {
   DrawF(peak.f);
   //DrawNums();
 }
+
+
 
 static void RenderStill() {
   DrawF(fMeasure);
@@ -1519,10 +1557,12 @@ static void UpdateScan() {
   preventKeypress = false;
 
   UpdatePeakInfo();
+  if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
+    
   if (IsPeakOverLevel()) {
     ToggleRX(true);
     TuneToPeak();
-    return;
+	return;
   }
 
   newScanStart = true;
@@ -1561,9 +1601,9 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-  //CheckIfTailFound();//Robby69
-
-  if ((IsPeakOverLevel() || monitorMode) && !gTailFound) {
+ // CheckIfTailFound();
+  //if ((IsPeakOverLevel() || monitorMode) && !gTailFound) {
+  if ((IsPeakOverLevel() || monitorMode) ) {
     listenT = SQUELCH_OFF_DELAY;
     return;
   }
@@ -1595,6 +1635,7 @@ static void Tick() {
       if (IsPeakOverLevel()) {
         ToggleRX(true);
         TuneToPeak();
+		FillfreqHistory();//Robby69
         return;
       }
       redrawScreen = true;

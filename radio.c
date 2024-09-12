@@ -498,6 +498,11 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 		Txp[1] /= 5;
 		Txp[2] /= 5;
 	}
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH) { //Robby69 copy from Armel, higher power
+		Txp[0] += 30;
+		Txp[1] += 30;
+		Txp[2] += 30;
+	}
 #endif
 
 	pInfo->TXP_CalculatedSetting = FREQUENCY_CalculateOutputPower(
