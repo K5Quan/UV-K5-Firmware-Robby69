@@ -41,6 +41,7 @@ bool isBlacklistApplied;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
+bool SquelchBarKeyMode = 0; //Robby69 change keys between audio and history squelch
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
@@ -547,7 +548,7 @@ static void UpdateScanInfo() {
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
     settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel-40; //Robby69
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+40; //Robby69
   }
 } 
 
@@ -596,10 +597,12 @@ static void ClampRssiTriggerLevel()
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-  if (inc){	settings.rssiTriggerLevel += 2;
-			settings.rssiTriggerLevelH +=2;} //robby69 2
-  else {	settings.rssiTriggerLevel -= 2;
-			settings.rssiTriggerLevelH -=2;} //robby69 2
+	if (inc){	
+		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH +=2;}
+		else {settings.rssiTriggerLevel += 2;}} //robby69 2
+	else {
+		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH -=2;}
+		else {settings.rssiTriggerLevel -= 2;}} //robby69 2
   ClampRssiTriggerLevel();
   redrawScreen = true;
   redrawStatus = true;
@@ -1173,7 +1176,7 @@ static void OnKeyDown(uint8_t key) {
     Blacklist();
     break;
   case KEY_STAR:
-    UpdateRssiTriggerLevel(true);
+	UpdateRssiTriggerLevel(true);
     break;
   case KEY_F:
     UpdateRssiTriggerLevel(false);
@@ -1206,9 +1209,9 @@ static void OnKeyDown(uint8_t key) {
       ToggleStepsCount();
     }
     break;
-  case KEY_SIDE2:
+  case KEY_SIDE2: //Robby69
     //Attenuate(ATTENUATE_STEP);
-	ResetModifiers(); //Robby69
+	SquelchBarKeyMode= !SquelchBarKeyMode; //Robby69
     break;
   case KEY_PTT:
     #ifdef ENABLE_SPECTRUM_COPY_VFO
