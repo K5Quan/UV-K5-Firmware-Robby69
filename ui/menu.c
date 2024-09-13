@@ -64,6 +64,7 @@ const t_menu_item MenuList[] =
 	{"ChSave", VOICE_ID_MEMORY_CHANNEL,                MENU_MEM_CH        }, // was "MEM-CH"
 
 	{"Roger",  VOICE_ID_INVALID,                       MENU_ROGER         },
+	{"TestRg", VOICE_ID_INVALID,                       MENU_TEST_RANGE    },  //Robby69 New menu
 	
 #ifdef ENABLE_ALARM
 	{"AlarmT", VOICE_ID_INVALID,                       MENU_AL_MOD        },
@@ -304,6 +305,12 @@ const char gSubMenu_ROGER[][6] =
 	"OFF",
 	"ROGER",
 	"MDC"
+};
+
+const char gSubMenu_MENU_TEST_RANGE[][6] =
+{
+	"OFF",
+	"ON"
 };
 
 const char gSubMenu_RESET[][4] =
@@ -896,6 +903,10 @@ void UI_DisplayMenu(void)
 				strcpy(String, gSubMenu_ROGER[gSubMenuSelection]);
 				break;
 
+			case MENU_TEST_RANGE:
+				strcpy(String, gSubMenu_MENU_TEST_RANGE[gSubMenuSelection]);
+				break;
+				
 			case MENU_VOL:
 				sprintf(String, "%u.%02uV\n%u%%",
 					gBatteryVoltageAverage / 100, gBatteryVoltageAverage % 100,

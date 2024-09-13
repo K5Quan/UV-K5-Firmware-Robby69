@@ -184,7 +184,11 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_ROGER) - 1;
 			break;
-
+	
+		case MENU_TEST_RANGE:
+			*pMin = 0;
+			*pMax = ARRAY_SIZE(gSubMenu_MENU_TEST_RANGE) - 1;
+			break;
 		case MENU_PONMSG:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_PONMSG) - 1;
