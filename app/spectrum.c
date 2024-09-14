@@ -122,7 +122,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 150,
-							 rssiTriggerLevelH: 200,
+							 rssiTriggerLevelH: 150,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
@@ -135,8 +135,8 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
-const uint8_t FMaxNumb = 50;
-uint32_t freqHistory[50]; //Robby69
+const uint8_t FMaxNumb = 100;
+uint32_t freqHistory[100]; //Robby69
 uint8_t indexFd = 1;
 uint8_t indexFs = 1;
 
@@ -547,7 +547,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +40, 0, RSSI_MAX_VALUE); //Robby69 +8
 //	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+40; //Robby69
   }
 }
@@ -910,26 +910,15 @@ static void DrawF(uint32_t f) {
 	if (f > 0){
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
-
-#if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-	if (isKnownChannel) {
-		sprintf(String, "%s", channelName);
-		UI_PrintStringSmall(String, 1, 127, 0);}
-	else {	sprintf(String, "MotherFucker");
-			UI_PrintStringSmall(String, 1, 127, 0);}
-#endif
-	
 	f= freqHistory[indexFd];
 	int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
 	if (f > 0){
 		if(isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
-		else sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
-		GUI_DisplaySmallest(String, 70, 16, false, true);}
-	
+		else 	sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
+				GUI_DisplaySmallest(String, 0, 16, false, true);}
 	
 //Robby show CTCSS or DCS
-	//sprintf(StringC, "%u",refresh);
 	if (refresh == 0){
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
 		sprintf(StringC, "");
@@ -942,13 +931,16 @@ static void DrawF(uint32_t f) {
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
 			refresh = 100;
-			//if (CodeC != 0xFF) {sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}}
-			sprintf(StringC, "%u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
+			sprintf(StringC, " Code %u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
 			
-	GUI_DisplaySmallest(StringC, 0, 16, false, true);
+	GUI_DisplaySmallest(StringC, 70, 16, false, true);
 	refresh--;
 
-
+#if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
+	if (isKnownChannel) {
+		sprintf(String, "%s", channelName);
+		UI_PrintStringSmall(String, 1, 127, 0);}
+#endif
 
 
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
@@ -1159,6 +1151,10 @@ static void OnKeyDown(uint8_t key) {
     ToggleNormalizeRssi(!isNormalizationApplied);
     break;
   case KEY_8:
+	uint8_t i;
+	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Resest History table
+	indexFd = 1;
+	indexFs = 1;
     ToggleBacklight();
     break;
   case KEY_UP:
@@ -1830,8 +1826,10 @@ void APP_RunSpectrum() {
   void ToggleNormalizeRssi(bool on)
   {
     // we don't want to normalize when there is already active signal RX
-    if(IsPeakOverLevel() && on)
-      return;
+    if(IsPeakOverLevel() && on){
+		UpdateScan();//Robby69 Force scan continue
+		UpdateScan();
+		return;}
 
     if(on) {
       for(uint8_t i = 0; i < ARRAY_SIZE(rssiHistory); i++)
