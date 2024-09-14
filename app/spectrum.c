@@ -122,7 +122,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 150,
-							 rssiTriggerLevelH: 110,
+							 rssiTriggerLevelH: 200,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
@@ -548,9 +548,9 @@ static void UpdateScanInfo() {
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
     settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+40; //Robby69
+//	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+40; //Robby69
   }
-} 
+}
 
 
 static void UpdatePeakInfoForce() {
@@ -563,6 +563,16 @@ static void UpdatePeakInfoForce() {
   #endif
   AutoTriggerLevel(); //Robby69
 }
+void FillfreqHistory(){ //Robby69
+uint8_t i;
+bool found = 0;
+for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
+if (!found) {
+	freqHistory[indexFs] = peak.f;
+	indexFd = indexFs;
+	indexFs++;}
+if (indexFs > FMaxNumb) indexFs = 1;
+}
 
 static void UpdatePeakInfo() {
   if (peak.f == 0 || peak.t >= 1024 || peak.rssi < scanInfo.rssiMax)
@@ -572,6 +582,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
+  if (rssi > settings.rssiTriggerLevelH) FillfreqHistory();
   #ifdef ENABLE_SCAN_RANGES  
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
@@ -594,15 +605,16 @@ static uint16_t dbm2rssi(int dBm)
 static void ClampRssiTriggerLevel()
 {
   settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
+  settings.rssiTriggerLevelH = clamp(settings.rssiTriggerLevelH, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
 	if (inc){	
-		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH +=2;}
-		else {settings.rssiTriggerLevel += 2;}} //robby69 2
+		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH +=5;}
+		else {settings.rssiTriggerLevel += 5;}} //robby69 2
 	else {
-		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH -=2;}
-		else {settings.rssiTriggerLevel -= 2;}} //robby69 2
+		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH -=5;}
+		else {settings.rssiTriggerLevel -= 5;}} //robby69 2
   ClampRssiTriggerLevel();
   redrawScreen = true;
   redrawStatus = true;
@@ -898,14 +910,22 @@ static void DrawF(uint32_t f) {
 	if (f > 0){
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
+
+#if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
+	if (isKnownChannel) {
+		sprintf(String, "%s", channelName);
+		UI_PrintStringSmall(String, 1, 127, 0);}
+	else {	sprintf(String, "MotherFucker");
+			UI_PrintStringSmall(String, 1, 127, 0);}
+#endif
 	
 	f= freqHistory[indexFd];
 	int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
 	if (f > 0){
-		if(	isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
+		if(isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
 		else sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
-		GUI_DisplaySmallest(String, 80, 16, false, true);}
+		GUI_DisplaySmallest(String, 70, 16, false, true);}
 	
 	
 //Robby show CTCSS or DCS
@@ -930,14 +950,7 @@ static void DrawF(uint32_t f) {
 
 
 
-#if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-	
-	if (isKnownChannel) {
-		sprintf(String, "%s", channelName);
-		UI_PrintStringSmall(String, 1, 127, 0);
-	} 
- 
-#endif
+
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
   sprintf(String, "%s", bwNames[settings.listenBw]);
@@ -1059,7 +1072,7 @@ static void DrawRssiTriggerLevel() {
     PutPixel(x, y, true);
   }
   y = Rssi2Y(settings.rssiTriggerLevelH);
-  for (uint8_t x = 0; x < 128; x += 4) {
+  for (uint8_t x = 0; x < 128; x += 6) {
     PutPixel(x, y, true);
   }
 }
@@ -1358,16 +1371,7 @@ static void RenderStatus() {
   ST7565_BlitStatusLine();
 }
 
-void FillfreqHistory(){ //Robby69
-uint8_t i;
-bool found = 0;
-for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
-if (!found) {
-	freqHistory[indexFs] = peak.f;
-	indexFd = indexFs;
-	indexFs++;}
-if (indexFs > FMaxNumb) indexFs = 1;
-}
+
 static void RenderSpectrum() {
   #ifdef ENABLE_SPECTRUM_ARROW
 	DrawTicks();
@@ -1560,7 +1564,7 @@ static void UpdateScan() {
   preventKeypress = false;
 
   UpdatePeakInfo();
-  if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
+  //if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
     
   if (IsPeakOverLevel()) {
     ToggleRX(true);
@@ -1635,11 +1639,11 @@ static void Tick() {
     // listening has it's own timer
     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
+	 // if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
       if (IsPeakOverLevel()) {
         ToggleRX(true);
         TuneToPeak();
-		FillfreqHistory();//Robby69
-        return;
+		return;
       }
       redrawScreen = true;
       preventKeypress = false;
