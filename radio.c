@@ -61,7 +61,7 @@ const char gModulationStr[][4] =
 #endif
 };
 
-const char *bwNames[5] = {"  25k", "12.5k", "8.33k", "6.25k", "   5k"};
+const char *bwNames[6] = {"  MAX","  25k", "12.5k", "8.33k", "6.25k", "   5k"};
 
 bool RADIO_CheckValidChannel(uint16_t Channel, bool bCheckScanList, uint8_t VFO)
 {	// return true if the channel appears valid

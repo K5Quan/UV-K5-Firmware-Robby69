@@ -75,7 +75,7 @@ typedef enum {
 
 extern const char gModulationStr[MODULATION_UKNOWN][4];
 
-extern const char *bwNames[5];
+extern const char *bwNames[6];
 
 typedef struct
 {

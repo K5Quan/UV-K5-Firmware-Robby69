@@ -41,7 +41,7 @@ bool isBlacklistApplied;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
-bool SquelchBarKeyMode = 0; //Robby69 change keys between audio and history squelch
+uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history squelch
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
@@ -54,7 +54,7 @@ bool SquelchBarKeyMode = 0; //Robby69 change keys between audio and history sque
   #define MAX_ATTENUATION 160
   #define ATTENUATE_STEP  10
   bool    isNormalizationApplied;
-  bool    isAttenuationApplied;
+  //bool    isAttenuationApplied;
   uint8_t  gainOffset[129];
   uint8_t  attenuationOffset[129];
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
@@ -62,7 +62,7 @@ bool SquelchBarKeyMode = 0; //Robby69 change keys between audio and history sque
   void ToggleScanList();
   void AutoAdjustResolution();
   void ToggleNormalizeRssi(bool on);
-  void Attenuate(uint8_t amount);
+  //void Attenuate(uint8_t amount);
 #endif
 
 const uint16_t RSSI_MAX_VALUE = 65535;
@@ -516,7 +516,7 @@ static void ResetModifiers() {
   AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  isAttenuationApplied = false;
+  //isAttenuationApplied = false;
   isBlacklistApplied = false;
   RelaunchScan();
 }
@@ -548,7 +548,7 @@ static void UpdateScanInfo() {
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
     settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +40, 0, RSSI_MAX_VALUE); //Robby69 +8
-//	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+40; //Robby69
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
 
@@ -610,11 +610,17 @@ static void ClampRssiTriggerLevel()
 
 static void UpdateRssiTriggerLevel(bool inc) {
 	if (inc){	
-		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH +=5;}
-		else {settings.rssiTriggerLevel += 5;}} //robby69 2
+		if (SquelchBarKeyMode == 0) {settings.rssiTriggerLevelH +=5;}
+		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel +=5;}
+		if (SquelchBarKeyMode == 2) {
+			settings.rssiTriggerLevelH +=5;
+			settings.rssiTriggerLevel = settings.rssiTriggerLevelH;}}
 	else {
-		if (SquelchBarKeyMode) {settings.rssiTriggerLevelH -=5;}
-		else {settings.rssiTriggerLevel -= 5;}} //robby69 2
+		if (SquelchBarKeyMode == 0) {settings.rssiTriggerLevelH -=5;}
+		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel -=5;}
+		if (SquelchBarKeyMode == 2) {
+			settings.rssiTriggerLevelH -=5;
+		settings.rssiTriggerLevel = settings.rssiTriggerLevelH;}}
   ClampRssiTriggerLevel();
   redrawScreen = true;
   redrawStatus = true;
@@ -1045,10 +1051,10 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 104, Bottom_print, false, true);
   }
   
-  if(isAttenuationApplied){
+ /* if(isAttenuationApplied){
     sprintf(String, "ATT");
     GUI_DisplaySmallest(String, 52, Bottom_print, false, true);
-  }
+  }*/
 
   if(isBlacklistApplied){
     sprintf(String, "BL");
@@ -1152,7 +1158,7 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_8:
 	uint8_t i;
-	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Resest History table
+	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Reset History table
 	indexFd = 1;
 	indexFs = 1;
     ToggleBacklight();
@@ -1220,7 +1226,8 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_SIDE2: //Robby69
     //Attenuate(ATTENUATE_STEP);
-	SquelchBarKeyMode= !SquelchBarKeyMode; //Robby69
+	SquelchBarKeyMode += 1; //Robby69
+	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
     break;
   case KEY_PTT:
     #ifdef ENABLE_SPECTRUM_COPY_VFO
@@ -1845,7 +1852,7 @@ void APP_RunSpectrum() {
     RelaunchScan();
   }
 
-  void Attenuate(uint8_t amount)
+ /* void Attenuate(uint8_t amount)
   {
     // attenuate doesn't work with more than 128 samples,
     // since we select max rssi in such mode ignoring attenuation
@@ -1861,5 +1868,5 @@ void APP_RunSpectrum() {
       ResetScanStats();
     }
     
-  }
+  }*/
 #endif
