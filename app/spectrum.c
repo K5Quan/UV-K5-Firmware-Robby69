@@ -1036,19 +1036,19 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 108, Bottom_print, false, true);
   }
   if(appMode==FREQUENCY_MODE){ 
-    sprintf(String, "%u.%u", GetFStart() / 100000, GetFStart() % 100);
+    sprintf(String, "%u.%05u", GetFStart() / 100000, GetFStart() % 100000);
     GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
 
-    sprintf(String, "%u.%u", GetFEnd() / 100000, GetFEnd() % 100);
-    GUI_DisplaySmallest(String, 104, Bottom_print, false, true);
+    sprintf(String, "%u.%05u", GetFEnd() / 100000, GetFEnd() % 100000);
+    GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
 
   if(appMode==SCAN_RANGE_MODE){
-    sprintf(String, "%u.%u", gScanRangeStart / 100000, gScanRangeStart % 100); //Robby69 was %u.%05u
+    sprintf(String, "%u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000); //Robby69 was %u.%05u
     GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
  
-    sprintf(String, "%u.%u", gScanRangeStop / 100000, gScanRangeStop % 100); //Robby69 was %u.%05u
-    GUI_DisplaySmallest(String, 104, Bottom_print, false, true);
+    sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000); //Robby69 was %u.%05u
+    GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
   
  /* if(isAttenuationApplied){
