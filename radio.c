@@ -117,7 +117,7 @@ void RADIO_InitInfo(VFO_Info_t *pInfo, const uint8_t ChannelSave, const uint32_t
 	pInfo->StepFrequency            = gStepFrequencyTable[pInfo->STEP_SETTING];
 	pInfo->CHANNEL_SAVE             = ChannelSave;
 	pInfo->FrequencyReverse         = false;
-	pInfo->OUTPUT_POWER             = OUTPUT_POWER_LOW;
+	pInfo->OUTPUT_POWER             = OUTPUT_POWER_1;
 	pInfo->freq_config_RX.Frequency = Frequency;
 	pInfo->freq_config_TX.Frequency = Frequency;
 	pInfo->pRX                      = &pInfo->freq_config_RX;
@@ -289,7 +289,7 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 		{
 			pVfo->FrequencyReverse  = false;
 			pVfo->CHANNEL_BANDWIDTH = BK4819_FILTER_BW_WIDE;
-			pVfo->OUTPUT_POWER      = OUTPUT_POWER_LOW;
+			pVfo->OUTPUT_POWER      = OUTPUT_POWER_1;
 			pVfo->BUSY_CHANNEL_LOCK = false;
 		}
 		else
@@ -488,17 +488,33 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 
 #ifdef ENABLE_REDUCE_LOW_POWER
 	// Robby69 reduced power
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW) {
-		Txp[0] /= 100;
-		Txp[1] /= 100;
-		Txp[2] /= 100;
+	
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_1) {
+		Txp[0] /= 20;
+		Txp[1] /= 20;
+		Txp[2] /= 20;
 	}
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID) {
-		Txp[0] /= 5;
-		Txp[1] /= 5;
-		Txp[2] /= 5;
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_2) {
+		Txp[0] /= 15;
+		Txp[1] /= 15;
+		Txp[2] /= 15;
 	}
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH) { //Robby69 copy from Armel, higher power
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_3) {
+		Txp[0] /= 10;
+		Txp[1] /= 10;
+		Txp[2] /= 10;
+	}
+	/*if (pInfo->OUTPUT_POWER == OUTPUT_POWER_4) {
+		Txp[0] /= 1;
+		Txp[1] /= 1;
+		Txp[2] /= 1;
+	}*/
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_5) { //Robby69 copy from Armel, higher power
+		Txp[0] += 10;
+		Txp[1] += 10;
+		Txp[2] += 10;
+	}
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_6) {
 		Txp[0] += 30;
 		Txp[1] += 30;
 		Txp[2] += 30;

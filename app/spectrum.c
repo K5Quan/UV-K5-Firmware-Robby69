@@ -67,7 +67,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
-#define SQUELCH_OFF_DELAY 10
+#define SQUELCH_OFF_DELAY 100 //Robby69
 
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
@@ -586,7 +586,7 @@ static void Measure()
   #ifdef ENABLE_SCAN_RANGES  
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
-      if(rssiHistory[idx] < rssi || isListening) 
+      if(rssiHistory[idx] < rssi || isListening)
         rssiHistory[idx] = rssi;
       rssiHistory[(idx+1)%128] = 0;
       return;
@@ -614,16 +614,16 @@ static void UpdateRssiTriggerLevel(bool inc) {
 		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel +=5;}
 		if (SquelchBarKeyMode == 2) {
 			settings.rssiTriggerLevelH +=5;
-			settings.rssiTriggerLevel = settings.rssiTriggerLevelH;}}
+			settings.rssiTriggerLevel +=5;}}
 	else {
 		if (SquelchBarKeyMode == 0) {settings.rssiTriggerLevelH -=5;}
 		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel -=5;}
 		if (SquelchBarKeyMode == 2) {
 			settings.rssiTriggerLevelH -=5;
-		settings.rssiTriggerLevel = settings.rssiTriggerLevelH;}}
+		settings.rssiTriggerLevel  -=5;}}
   ClampRssiTriggerLevel();
-  redrawScreen = true;
-  redrawStatus = true;
+  //redrawScreen = true;
+  //redrawStatus = true;
 }
 
 static void UpdateDBMax(bool inc) {

@@ -101,6 +101,7 @@ const t_menu_item MenuList[] =
 	{"MsgMod", VOICE_ID_INVALID,                       MENU_MSG_MODULATION}, // messenger modulation
 #endif
 	{"Sql",    VOICE_ID_SQUELCH,                       MENU_SQL           },
+	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
 #ifdef ENABLE_FREQ_LOCKING
@@ -115,7 +116,7 @@ const t_menu_item MenuList[] =
 	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
 	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
 	{"ChName", VOICE_ID_INVALID,                       MENU_MEM_NAME      },	
-	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
+	
 #ifdef ENABLE_NOAA
 	{"NOAA-S", VOICE_ID_INVALID,                       MENU_NOAA_S        },
 #endif
@@ -176,6 +177,7 @@ const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_SCREN;
 const char gSubMenu_TXP[][5] =
 {
 	"LOW",
+	"LOW2",
 	"MID",
 	"HIGH"
 };
