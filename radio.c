@@ -486,40 +486,38 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 	EEPROM_ReadBuffer(0x1ED0 + (Band * 16) + (pInfo->OUTPUT_POWER * 3), Txp, 3);
 
 
-#ifdef ENABLE_REDUCE_LOW_POWER
 	// Robby69 reduced power
 	
 	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_1) {
-		Txp[0] /= 20;
-		Txp[1] /= 20;
-		Txp[2] /= 20;
+		Txp[0] /= 100;
+		Txp[1] /= 100;
+		Txp[2] /= 100;
 	}
 	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_2) {
-		Txp[0] /= 15;
-		Txp[1] /= 15;
-		Txp[2] /= 15;
+		Txp[0] /= 70;
+		Txp[1] /= 70;
+		Txp[2] /= 70;
 	}
 	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_3) {
+		Txp[0] /= 50;
+		Txp[1] /= 50;
+		Txp[2] /= 50;
+	}
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_4) {
+		Txp[0] /= 30;
+		Txp[1] /= 30;
+		Txp[2] /= 30;
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_5) { //Robby69 copy from Armel, higher power
 		Txp[0] /= 10;
 		Txp[1] /= 10;
 		Txp[2] /= 10;
 	}
-	/*if (pInfo->OUTPUT_POWER == OUTPUT_POWER_4) {
+	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_6) {
 		Txp[0] /= 1;
 		Txp[1] /= 1;
 		Txp[2] /= 1;
-	}*/
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_5) { //Robby69 copy from Armel, higher power
-		Txp[0] += 10;
-		Txp[1] += 10;
-		Txp[2] += 10;
 	}
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_6) {
-		Txp[0] += 30;
-		Txp[1] += 30;
-		Txp[2] += 30;
-	}
-#endif
+
 
 	pInfo->TXP_CalculatedSetting = FREQUENCY_CalculateOutputPower(
 		Txp[0],
@@ -530,8 +528,8 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 		 frequencyBandTable[Band].upper,
 		pInfo->pTX->Frequency);
 
-	// *******************************
-}
+	
+}}
 
 void RADIO_ApplyTxOffset(VFO_Info_t *pInfo)
 {

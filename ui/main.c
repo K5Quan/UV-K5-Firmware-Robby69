@@ -615,7 +615,7 @@ void UI_DisplayMain(void)
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
 			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
 			String[1] = '\0';
-			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1);
+			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1); 
 		}
 
 		if (gEeprom.VfoInfo[vfo_num].freq_config_RX.Frequency != gEeprom.VfoInfo[vfo_num].freq_config_TX.Frequency)
