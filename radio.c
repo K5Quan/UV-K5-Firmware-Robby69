@@ -486,22 +486,40 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 	EEPROM_ReadBuffer(0x1ED0 + (Band * 16) + (pInfo->OUTPUT_POWER * 3), Txp, 3);
 
 
-	// Robby69 reduced power
-	
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW) {
-		Txp[0] /= 10;
-		Txp[1] /= 10;
-		Txp[2] /= 10;
+	// Robby69 reduced power with bool Low_power
+	if (Low_power){
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW) {
+			Txp[0] /= 20;
+			Txp[1] /= 20;
+			Txp[2] /= 20;
+		}
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID) {
+			Txp[0] /= 4;
+			Txp[1] /= 4;
+			Txp[2] /= 4;
+		}
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH) {
+			Txp[0] += 30;
+			Txp[1] += 30;
+			Txp[2] += 30;
+		}
 	}
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID) {
-		Txp[0] /= 2;
-		Txp[1] /= 2;
-		Txp[2] /= 2;
-	}
-	if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH) {
-		Txp[0] += 30;
-		Txp[1] += 30;
-		Txp[2] += 30;
+	else {
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW) {
+			Txp[0] /= 10;
+			Txp[1] /= 10;
+			Txp[2] /= 10;
+		}
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID) {
+			Txp[0] /= 2;
+			Txp[1] /= 2;
+			Txp[2] /= 2;
+		}
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH) {
+			Txp[0] += 40;
+			Txp[1] += 40;
+			Txp[2] += 40;
+		}
 	}
 
 	pInfo->TXP_CalculatedSetting = FREQUENCY_CalculateOutputPower(

@@ -38,6 +38,7 @@
 #include "ui/ui.h"
 
 center_line_t center_line = CENTER_LINE_NONE;
+bool Low_power=0;
 
 // ***************************************************************************
 
@@ -564,11 +565,18 @@ void UI_DisplayMain(void)
 
 			if (mode == 1)
 			{	// TX power level
-				switch (gRxVfo->OUTPUT_POWER)
-				{
-					case OUTPUT_POWER_LOW:  Level = 2; break;
-					case OUTPUT_POWER_MID:  Level = 4; break;
-					case OUTPUT_POWER_HIGH: Level = 6; break;
+				if(Low_power){ //Robby69
+					switch (gRxVfo->OUTPUT_POWER)
+					{
+						case OUTPUT_POWER_LOW:  Level = 1; break;
+						case OUTPUT_POWER_MID:  Level = 3; break;
+						case OUTPUT_POWER_HIGH: Level = 5; break;
+					}
+				}
+				else {
+						case OUTPUT_POWER_LOW:  Level = 2; break;
+						case OUTPUT_POWER_MID:  Level = 4; break;
+						case OUTPUT_POWER_HIGH: Level = 6; break;
 				}
 			}
 			else
@@ -608,8 +616,9 @@ void UI_DisplayMain(void)
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
-			const char pwr_list[] = "LMH";
+			const char pwr_list[] = "123456";	//Robby69
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
+			if (!Low_power)i+=3;	//Robby69
 			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
 			String[1] = '\0';
 			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1); 
