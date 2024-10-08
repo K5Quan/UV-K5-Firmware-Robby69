@@ -177,7 +177,6 @@ const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_SCREN;
 const char gSubMenu_TXP[][5] =
 {
 	"LOW",
-	"LOW2",
 	"MID",
 	"HIGH"
 };

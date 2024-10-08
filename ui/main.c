@@ -566,12 +566,9 @@ void UI_DisplayMain(void)
 			{	// TX power level
 				switch (gRxVfo->OUTPUT_POWER)
 				{
-					case OUTPUT_POWER_1: Level = 1; break;//Robby69
-					case OUTPUT_POWER_2: Level = 2; break;
-					case OUTPUT_POWER_3: Level = 3; break;
-					case OUTPUT_POWER_4: Level = 4; break;
-					case OUTPUT_POWER_5: Level = 5; break;
-					case OUTPUT_POWER_6: Level = 6; break;
+					case OUTPUT_POWER_LOW:  Level = 2; break;
+					case OUTPUT_POWER_MID:  Level = 4; break;
+					case OUTPUT_POWER_HIGH: Level = 6; break;
 				}
 			}
 			else
@@ -611,7 +608,7 @@ void UI_DisplayMain(void)
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
-			const char pwr_list[] = "123456";//Robby69
+			const char pwr_list[] = "LMH";
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
 			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
 			String[1] = '\0';
