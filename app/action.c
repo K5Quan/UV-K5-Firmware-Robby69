@@ -42,7 +42,7 @@
 #include "ui/inputbox.h"
 #include "ui/ui.h"
 #include "spectrum.h"
-
+extern uint8_t Lpower;
 static void ACTION_FlashLight(void)
 {
 	switch (gFlashLightState)
@@ -63,8 +63,11 @@ static void ACTION_FlashLight(void)
 
 void ACTION_Power(void)
 {
-	if (++gTxVfo->OUTPUT_POWER > OUTPUT_POWER_HIGH)
-		gTxVfo->OUTPUT_POWER = OUTPUT_POWER_LOW;
+	//if (++gTxVfo->OUTPUT_POWER > OUTPUT_POWER_HIGH)gTxVfo->OUTPUT_POWER = OUTPUT_POWER_LOW;
+	if(++Lpower > 6) Lpower = 1;
+	if((Lpower ==1) || (Lpower ==2)) gTxVfo->OUTPUT_POWER = OUTPUT_POWER_LOW;
+	if((Lpower ==3) || (Lpower ==4)) gTxVfo->OUTPUT_POWER = OUTPUT_POWER_MID;
+	if((Lpower ==5) || (Lpower ==6)) gTxVfo->OUTPUT_POWER = OUTPUT_POWER_HIGH;
 
 	gRequestSaveChannel = 1;
 
