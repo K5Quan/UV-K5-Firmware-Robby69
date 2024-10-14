@@ -42,8 +42,6 @@
 	#include "app/messenger.h"
 #endif
 
-uint8_t Lpower=6;
-
 VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gRxVfo;
 VFO_Info_t    *gCurrentVfo;
@@ -486,21 +484,17 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 	Band = FREQUENCY_GetBand(pInfo->pTX->Frequency);
 
 	EEPROM_ReadBuffer(0x1ED0 + (Band * 16) + (pInfo->OUTPUT_POWER * 3), Txp, 3);
-const uint8_t p1 = 100; 	// 2
-const uint8_t p2 = 20;	// 9	
-const uint8_t p3 = 10;	// 50
-const uint8_t p4 = 5;	// 100
-const uint8_t p5 = 3;	// 130
-const uint8_t p6 = 1;	// 150
+	const uint8_t p1 = 100;
+	const uint8_t p2 = 20;
+	const uint8_t p3 = 10;
 
-	// Robby69 reduced power with Lpower
-		if (Lpower == 1) {Txp[0] /= p1;Txp[1] /= p1;Txp[2] /= p1;} 
-		if (Lpower == 2) {Txp[0] /= p2;Txp[1] /= p2;Txp[2] /= p2;}
-		if (Lpower == 3) {Txp[0] /= p3;Txp[1] /= p3;Txp[2] /= p3;}
-		if (Lpower == 4) {Txp[0] /= p4;Txp[1] /= p4;Txp[2] /= p4;}
-		if (Lpower == 5) {Txp[0] /= p5;Txp[1] /= p5;Txp[2] /= p5;}
-		if (Lpower == 6) {Txp[0] /= p6;Txp[1] /= p6;Txp[2] /= p6;}
-	
+	// Robby69 reduced power
+	for(uint8_t p = 0; p < 3; p++)
+    {
+		Txp[p] /= p1; 
+		Txp[p] /= p2;
+		Txp[p] /= p3;
+	}
 
 	pInfo->TXP_CalculatedSetting = FREQUENCY_CalculateOutputPower(
 		Txp[0],

@@ -36,7 +36,6 @@
 #include "ui/inputbox.h"
 #include "ui/main.h"
 #include "ui/ui.h"
-extern uint8_t Lpower;
 center_line_t center_line = CENTER_LINE_NONE;
 
 // ***************************************************************************
@@ -560,23 +559,13 @@ void UI_DisplayMain(void)
 		// ************
 
 		// show the TX/RX level
-			uint8_t Level = 0;
-			if (mode == 1)Level = Lpower;
+
 			// TX power level
-			/*{
-				if(Lpower){ //Robby69
-					switch (gRxVfo->OUTPUT_POWER)
+			{
+				switch (gRxVfo->OUTPUT_POWER)
 					{
 						case OUTPUT_POWER_LOW:  Level = 1; break;
 						case OUTPUT_POWER_MID:  Level = 3; break;
-						case OUTPUT_POWER_HIGH: Level = 5; break;
-					}
-				}
-				else {
-					switch (gRxVfo->OUTPUT_POWER)
-					{
-						case OUTPUT_POWER_LOW:  Level = 2; break;
-						case OUTPUT_POWER_MID:  Level = 4; break;
 						case OUTPUT_POWER_HIGH: Level = 6; break;
 					}
 				}
@@ -617,8 +606,8 @@ void UI_DisplayMain(void)
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
-			//const char pwr_list[] = "123456";	//Robby69
-			sprintf(String,"%u",Lpower);
+			const char pwr_list[] = "LMH";	//Robby69
+			
 			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1); 
 		}
 
