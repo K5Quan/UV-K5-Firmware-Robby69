@@ -485,16 +485,15 @@ void RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo)
 
 	EEPROM_ReadBuffer(0x1ED0 + (Band * 16) + (pInfo->OUTPUT_POWER * 3), Txp, 3);
 	const uint8_t p1 = 100;
-	const uint8_t p2 = 20;
-	const uint8_t p3 = 10;
-
+	const uint8_t p2 = 5;
+	const uint8_t p3 = 40;	
 	// Robby69 reduced power
-	for(uint8_t p = 0; p < 3; p++)
-    {
-		Txp[p] /= p1; 
-		Txp[p] /= p2;
-		Txp[p] /= p3;
-	}
+	    for(uint8_t p = 0; p < 3; p++)
+		{
+        if (pInfo->OUTPUT_POWER == OUTPUT_POWER_LOW)Txp[p] /= p1;
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_MID)Txp[p] /= p2;
+		if (pInfo->OUTPUT_POWER == OUTPUT_POWER_HIGH)Txp[p] += p3;
+        }
 
 	pInfo->TXP_CalculatedSetting = FREQUENCY_CalculateOutputPower(
 		Txp[0],

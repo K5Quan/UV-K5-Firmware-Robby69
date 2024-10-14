@@ -558,19 +558,21 @@ void UI_DisplayMain(void)
 
 		// ************
 
-		// show the TX/RX level
+		{	// show the TX/RX level
+			uint8_t Level = 0;
 
-			// TX power level
-			{
+			if (mode == 1)
+			{	// TX power level
+	
 				switch (gRxVfo->OUTPUT_POWER)
-					{
-						case OUTPUT_POWER_LOW:  Level = 1; break;
-						case OUTPUT_POWER_MID:  Level = 3; break;
-						case OUTPUT_POWER_HIGH: Level = 6; break;
-					}
+				{
+					case OUTPUT_POWER_LOW:  Level = 2; break;
+					case OUTPUT_POWER_MID:  Level = 4; break;
+					case OUTPUT_POWER_HIGH: Level = 6; break;
+	  
 				}
 			}
-			else */
+			else 
 			if (mode == 2)
 			{	// RX signal level
 				#ifndef ENABLE_RSSI_BAR
@@ -581,7 +583,7 @@ void UI_DisplayMain(void)
 			}
 			if(Level)
 				DrawSmallAntennaAndBars(p_line1 + LCD_WIDTH, Level);
-		
+		}
 		// ************
 
 		String[0] = '\0';
@@ -606,9 +608,11 @@ void UI_DisplayMain(void)
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
-			const char pwr_list[] = "LMH";	//Robby69
-			
-			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1); 
+			const char pwr_list[] = "LMH";
+			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
+			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
+			String[1] = '\0';
+			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1);
 		}
 
 		if (gEeprom.VfoInfo[vfo_num].freq_config_RX.Frequency != gEeprom.VfoInfo[vfo_num].freq_config_TX.Frequency)
