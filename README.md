@@ -32,10 +32,10 @@ Evolutions made in my firmware compared to NTOIVOLA's NUNU firmware:
 *	The selected frequency is copied to VFO when exit.
 *	a frequency found in memory is shown with it's name.
 *	2 squelch bars squelch for history level and squelch for audio trigger
-	select bars with II button (below PTT)
-	default: 2 bars stick together
-	press once history bar alone
-	press again audio bar alone
+*	select bars with II button (below PTT)
+*		default: 2 bars stick together
+*		press once history bar alone
+*		press again audio bar alone
 
 
 ## SCAN RANGE with offset - START STOP Frequency memory save.
@@ -51,7 +51,7 @@ Evolutions made in my firmware compared to NTOIVOLA's NUNU firmware:
 
 
 
-<credits>
+<details>
 
 ## License
 
@@ -75,4 +75,4 @@ You may obtain a copy of the License at
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-</credits>
+</details>
