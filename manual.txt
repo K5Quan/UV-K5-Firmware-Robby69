@@ -1,0 +1,41 @@
+The manual is available at 
+https://github.com/ntoivola/uv-k5-firmware-custom-nunu
+
+here are the evolutions made in my firmware:
+
+Spectrum behaviour change, faster to unlock : SQUELCH_OFF_DELAY 100ms
+MENU_TEST_RANGE added not implemented yet
+
+DTMF use removed, possible to activate ask me.
+
+menu elements hidden:
+F1Shrt, F1Long, F2Shrt, F2Long, M Long, KeyLck, TxTOut, BatSav, Mic, ChDisp, POnMsg, BatTxt, BackLt, BLMin, BLMax, BltTRX, Beep, Voice, D Live, SqTone, 1 Call, FrCali, BatCal, BatTyp
+
+*********************************
+Spectrum:
+*********************************
+
+Display CTCSS and DCS on spectrum
+Added frequency history feature:
+when a signal is detected above the history bar, it is recorded in a table.
+use up down keys to look at the table.
+The selected frequency is copied to VFO when exit.
+a frequency found in memory is shown with it's name.
+
+2 squelch bars squelch for history level and squelch for audio trigger
+	select bars with II button (below PTT)
+	default: 2 bars stick together
+	press once history bar alone
+	press again audio bar alone
+
+*********************************
+SCAN RANGE with offset - START STOP Frequency memory save.
+*********************************
+in VFO mode, press long 5 will display scnrng and the 2 frequencies.
+in memory mode press long 5 will display scnrng and 
+	the frequency in memory first as start frequency 
+	and this frequency + offset value as stop frequency
+
+
+    
+

@@ -1,3 +1,59 @@
+commit 7c02d4003c1c6752ecb9bac87b77df762138c121
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Tue Oct 15 00:31:11 2024 +0200
+
+    V4.9.13
+
+commit 9fac556843a70b7418aa1e5ded3e4b1f1ad0aed1
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Mon Oct 14 09:00:10 2024 +0200
+
+    4.9.13
+
+commit d6bb387879144b3df1a7b58f18a57aa2c3a9ebce
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Wed Oct 9 10:13:10 2024 +0200
+
+    V4.9.12
+    6 powers
+
+commit 9f61a41a28a250bfbbb400be3d68b485c0a7dd3d
+Author: Robby69 <dcroitoru@centumtns.com>
+Date:   Tue Oct 8 17:41:30 2024 +0200
+
+    V4.9.12
+
+commit 4f458c74d91c03cb46a4cc1723da0a57f2e8989c
+Author: Robby69 <dcroitoru@centumtns.com>
+Date:   Tue Oct 8 15:25:59 2024 +0200
+
+    V4.9.11
+
+commit 488be4e4297bffe8b87ac90746780000edddd6f6
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Tue Oct 8 08:02:07 2024 +0200
+
+    V4.9.12
+    3 Powers
+    Spectrum behaviour change
+
+commit 990cb4456cacd42844c5520876b999a55908a70d
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Mon Oct 7 08:43:11 2024 +0200
+
+    V4.9.11
+    6 power
+
+commit c3753f4cd4a76c94d1e2db4ce8d76c30b8c1f115
+Author: robby69400 <david.croitoru@gmail.com>
+Date:   Sun Oct 6 00:37:37 2024 +0200
+
+    V4.9.11
+    Puissances de 1 à 6
+    SQUELCH_OFF_DELAY 100
+    comportement spectre modifié
+    MENU_SC_REV non caché
+
 commit 53bf2caee874a8beb5343de707cd1512bd83cdc4
 Author: robby69400 <david.croitoru@gmail.com>
 Date:   Thu Oct 3 09:48:24 2024 +0200
