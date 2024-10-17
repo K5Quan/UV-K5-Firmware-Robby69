@@ -1,5 +1,6 @@
 *.d
 *.o
 /.vscode/*
-.session
-.session.inCaseOfCorruption.bak
+*.session
+*.session.inCaseOfCorruption.bak
+/compiled-firmware
