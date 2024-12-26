@@ -410,8 +410,8 @@ uint16_t GetRssi() {
       rssi+=UHF_NOISE_FLOOR;
     }
 
-    rssi+=gainOffset[CurrentScanIndex()];
-    rssi-=attenuationOffset[CurrentScanIndex()];
+    //rssi+=gainOffset[CurrentScanIndex()];
+    //rssi-=attenuationOffset[CurrentScanIndex()];
 
   #endif
   return rssi;
@@ -489,10 +489,8 @@ static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
   scanInfo.f = GetFStart();
-
   scanInfo.scanStep = GetScanStep();
   scanInfo.measurementsCount = GetStepsCount();
-  // prevents phantom channel bar
   if(appMode==CHANNEL_MODE)
     scanInfo.measurementsCount++;
 }
@@ -505,7 +503,7 @@ static void ResetModifiers() {
     if (rssiHistory[i] == RSSI_MAX_VALUE)
       rssiHistory[i] = 0;
   }
-#ifdef ENABLE_SCAN_RANGES
+#ifdef ENABLE_SCAN_RANGES 
   memset(blacklistFreqs, 0, sizeof(blacklistFreqs));
   blacklistFreqsIdx = 0;
 #endif
@@ -547,7 +545,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +40, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +30, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
@@ -1154,7 +1152,7 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_2:
-    ToggleNormalizeRssi(!isNormalizationApplied);
+   ToggleNormalizeRssi(!isNormalizationApplied);
     break;
   case KEY_8:
 	uint8_t i;
@@ -1584,7 +1582,6 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
-  //AutoTriggerLevel(); //Robby69
   ToggleRX(IsPeakOverLevel() || monitorMode);
 }
 
@@ -1830,7 +1827,7 @@ void APP_RunSpectrum() {
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
-  void ToggleNormalizeRssi(bool on)
+ void ToggleNormalizeRssi(bool on)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel() && on){
@@ -1851,6 +1848,7 @@ void APP_RunSpectrum() {
     }
     RelaunchScan();
   }
+ 
 
  /* void Attenuate(uint8_t amount)
   {

@@ -135,7 +135,7 @@ void ACTION_Scan(bool bRestart)
 				{	// channel mode
 
 					// keep scanning but toggle between scan lists
-					if (++gEeprom.SCAN_LIST_DEFAULT > 15)
+					if (++gEeprom.SCAN_LIST_DEFAULT > 5) //Robby69 Yves mod reduce scanlist was > 15
 						gEeprom.SCAN_LIST_DEFAULT = 0;
 
 					// jump to the next channel
