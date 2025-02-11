@@ -128,7 +128,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -20, //Robby69 -50
+                             dbMax: -40, //Robby69 -50
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -545,8 +545,8 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +30, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +8, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+60; //Robby69
   }
 }
 
