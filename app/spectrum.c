@@ -398,8 +398,9 @@ uint16_t GetRssi() {
   // testing autodelay based on Glitch value
 
   // testing resolution to sticky squelch issue
-  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
-    SYSTICK_DelayUs(100);
+  uint8_t retry = 50;  // Limite le nombre de tentatives
+  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255 && retry--) { //Robby69 test fast scan
+    //SYSTICK_DelayUs(10);
   }
   rssi = BK4819_GetRSSI();
  
