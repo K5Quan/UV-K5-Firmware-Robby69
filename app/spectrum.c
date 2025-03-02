@@ -12,7 +12,6 @@
  *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *     See the License for the specific language governing permissions and
  *     limitations under the License.
- * 	   Test
  */
 #include "app/spectrum.h"
 
@@ -35,9 +34,7 @@ struct FrequencyBandInfo {
     uint32_t middle;
 };
 
-//bool gTailFound;
 bool isBlacklistApplied;
-//DCS_CodeType_t    gScanCssResultType2;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
@@ -47,7 +44,6 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 
 #define Bottom_print 51 //Robby69 13
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   Mode appMode;
   //Idea - make this user adjustable to compensate for different antennas, frontends, conditions
   #define UHF_NOISE_FLOOR 40
@@ -60,10 +56,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
-  void AutoAdjustResolution();
   void ToggleNormalizeRssi(bool on);
-  //void Attenuate(uint8_t amount);
-#endif
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
@@ -118,7 +111,7 @@ const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6",
 const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
 
-SpectrumSettings settings = {stepsCount: STEPS_128,
+SpectrumSettings settings = {stepsCount: STEPS_64, //Robby69 was 128
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 150,
@@ -161,6 +154,42 @@ RegisterSpec registerSpecs[] = {
 
 uint16_t statuslineUpdateTimer = 0;
 
+
+
+
+#ifdef ENABLE_FEAT_RESUME
+static void LoadSettings()
+{
+    uint8_t Data[8] = {0};
+    // 1FF0..0x1FF7
+    EEPROM_ReadBuffer(0x1FF0, Data, 8);
+	mode = (Data[4] & 0xF0) >> 8;
+    settings.scanStepIndex = ((Data[3] & 0xF0) >> 4);
+    if (settings.scanStepIndex > 14)
+    {
+        settings.scanStepIndex = S_STEP_25_0kHz;
+    }
+    settings.stepsCount = ((Data[3] & 0x0F) & 0b1100) >> 2;
+    if (settings.stepsCount > 3)
+    {
+        settings.stepsCount = STEPS_64;
+    }
+    settings.listenBw = ((Data[3] & 0x0F) & 0b0011);
+    if (settings.listenBw > 2)
+    {
+        settings.listenBw = BK4819_FILTER_BW_WIDE;
+    }
+}
+
+static void SaveSettings()
+{
+    uint8_t Data[8] = {0};
+    // 1FF0..0x1FF7
+    EEPROM_ReadBuffer(0x1FF0, Data, 8);
+    Data[4] = (mode << 8) | (settings.scanStepIndex << 4) | (settings.stepsCount << 2) | settings.listenBw;
+    EEPROM_WriteBuffer(0x1FF0, Data);
+}
+#endif
 static void RelaunchScan();
 //static void CheckIfTailFound();//Robby69
 static void ResetInterrupts();
@@ -269,26 +298,6 @@ static void SetF(uint32_t f) {
 bool IsPeakOverLevel() { return peak.rssi >= settings.rssiTriggerLevel; }
 bool IsPeakOverLevelH() { return peak.rssi >= settings.rssiTriggerLevelH; }
 
-/*void CheckIfTailFound()
-{
-  uint16_t interrupt_status_bits;
-  // if interrupt waiting to be handled
-  if(BK4819_ReadRegister(BK4819_REG_0C) & 1u) {
-    // reset the interrupt
-    BK4819_WriteRegister(BK4819_REG_02, 0);
-    // fetch the interrupt status bits
-    interrupt_status_bits = BK4819_ReadRegister(BK4819_REG_02);
-    // if tail found interrupt
-    //if (interrupt_status_bits & BK4819_REG_02_CxCSS_TAIL)
-	if (interrupt_status_bits || BK4819_REG_02_CxCSS_TAIL) //Robby69 
-    {
-        gTailFound = true;
-        listenT = 0;
-        ResetInterrupts();
-    }
-  }
-}*/
-
 static void ResetInterrupts()
 {
   // disable interupts
@@ -302,24 +311,20 @@ static void ResetPeak() {
   peak.rssi = 0;
 }
 
-//bool IsCenterMode() { return settings.scanStepIndex < S_STEP_2_5kHz; }
-
-//bool IsCenterMode() { return 1; } //Robby69
-
 // scan step in 0.01khz
 uint16_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
 uint16_t GetStepsCount() 
 { 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+
   if (appMode==CHANNEL_MODE)
   {
     return scanChannelsCount;
   }
-#endif
+
 #ifdef ENABLE_SCAN_RANGES
   if(appMode==SCAN_RANGE_MODE) {
-    return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
+    return (gScanRangeStop - gScanRangeStart) / GetScanStep(); //Robby69
   }
 #endif
   return 128 >> settings.stepsCount;
@@ -398,23 +403,16 @@ uint16_t GetRssi() {
   // testing autodelay based on Glitch value
 
   // testing resolution to sticky squelch issue
-  uint8_t retry = 50;  // Limite le nombre de tentatives
-  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255 && retry--) { //Robby69 test fast scan
-    //SYSTICK_DelayUs(10);
-  }
+  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {}
   rssi = BK4819_GetRSSI();
  
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+  
     if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
     }
-
-    //rssi+=gainOffset[CurrentScanIndex()];
-    //rssi-=attenuationOffset[CurrentScanIndex()];
-
-  #endif
+  
   return rssi;
 }
 
@@ -458,8 +456,6 @@ static void ToggleRX(bool on) {
   {
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
-
-    //gTailFound=false;
 
     // turn on CSS tail found interrupt
     BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
@@ -510,12 +506,9 @@ static void ResetModifiers() {
 #endif
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
-      //AutoAdjustResolution();//Robby69
   }
-  AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  //isAttenuationApplied = false;
   isBlacklistApplied = false;
   RelaunchScan();
 }
@@ -713,7 +706,6 @@ static void ToggleStepsCount() {
   } else {
     settings.stepsCount--;
   }
-  AutoAdjustResolution();//Robby69 added
   AutoAdjustFreqChangeStep();
   ResetModifiers();
   redrawScreen = true;
@@ -835,20 +827,31 @@ uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
 uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
-//Robby69 16 and 32 added
-void AutoAdjustResolution(){
-	if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
-	if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
-	if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
-	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}
-}
 
-static void DrawSpectrum() {//Robby69 V4.8.8
-	uint16_t rssi;
-	for (uint8_t x = 0; x < 127; ++x) { //Robby69 127 to remove vertical bar
-		rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
-		if (rssi != RSSI_MAX_VALUE) 
-			DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);}}
+static void DrawSpectrum()
+    {
+        uint16_t steps = GetStepsCount()*2;
+        // max bars at 128 to correctly draw larger numbers of samples
+        uint8_t bars = (steps > 128) ? 128 : steps;
+        // shift to center bar on freq marker
+        uint8_t shift_graph = 128 / steps; 
+        uint8_t ox = 0;
+        for (uint8_t i = 0; i < 128; ++i)
+        {
+            uint16_t rssi = rssiHistory[1+ (i >> settings.stepsCount)];//Robby69 first bar display
+            if (rssi != RSSI_MAX_VALUE)
+            {
+                // stretch bars to fill the screen width
+                uint8_t x = i * 128 / bars + shift_graph;
+                for (uint8_t xx = ox; xx < x; xx++)
+                {
+                    DrawVLine(Rssi2Y(rssi), DrawingEndY, xx, true);
+                }
+                ox = x;
+            }
+        }
+    }
+
 
 static void DrawStatus() {
 #ifdef SPECTRUM_EXTRA_VALUES
@@ -1073,38 +1076,6 @@ static void DrawRssiTriggerLevel() {
     PutPixel(x, y, true);
   }
 }
-
-#ifdef ENABLE_SPECTRUM_ARROW
-static void DrawTicks() {
-  uint32_t f = GetFStart();
-  uint32_t span = GetFEnd() - GetFStart();
-  uint32_t step = span / 128;
-  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {
-    f = GetFStart() + span * i / 128;
-    uint8_t barValue = 0b00000001;
-    (f % 10000) < step && (barValue |= 0b00000010);
-    (f % 50000) < step && (barValue |= 0b00000100);
-    (f % 100000) < step && (barValue |= 0b00011000);
-    gFrameBuffer[5][i] |= barValue;
-  }
-  memset(gFrameBuffer[5] + 1, 0x80, 3);
-  memset(gFrameBuffer[5] + 124, 0x80, 3);
-
-  gFrameBuffer[5][0] = 0xff;
-  gFrameBuffer[5][127] = 0xff;
-}
-#endif
-
-#ifdef ENABLE_SPECTRUM_ARROW
-static void DrawArrow(uint8_t x) {
-  for (signed i = -2; i <= 2; ++i) {
-    signed v = x + i;
-    if (!(v & 128)) {
-      gFrameBuffer[5][v] |= (0b01111000 << my_abs(i)) & 0b01111000;
-    }
-  }
-}
-#endif
 
 static void OnKeyDown(uint8_t key) {
   if (!isListening)
@@ -1528,7 +1499,7 @@ static void Scan() {
 
 static void NextScanStep() {
   ++peak.t;
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+  
     // channel mode
     if (appMode==CHANNEL_MODE)
     {
@@ -1542,12 +1513,6 @@ static void NextScanStep() {
       ++scanInfo.i; 
       scanInfo.f += scanInfo.scanStep;
     }
-    
-  #elif
-    ++scanInfo.i;
-    scanInfo.f += scanInfo.scanStep;
-  #endif
-
 }
 
 static void UpdateScan() {
@@ -1680,24 +1645,16 @@ static void Tick() {
   }
 }
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   if(appMode!=mode){
     ResetModifiers();
   }
 appMode = mode;
-#elif
-void APP_RunSpectrum() {
-#endif
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
     if (appMode==CHANNEL_MODE)
     {
       LoadValidMemoryChannels(255);
-      AutoAdjustResolution();
     }
-  #endif
-  #ifdef ENABLE_SCAN_RANGES
     if(mode==SCAN_RANGE_MODE) {
       currentFreq = initialFreq = gScanRangeStart;
       for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
@@ -1706,17 +1663,13 @@ void APP_RunSpectrum() {
           break;
         }
       }
-      AutoAdjustResolution(); //Robby69
+    
     }
     else
-  #endif
-
+  
   currentFreq = initialFreq = gTxVfo->pRX->Frequency;
-
   BackupRegisters();
-
   ResetInterrupts();
-
   // turn of GREEN LED if spectrum was started during active RX
   BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, false);
 
@@ -1751,7 +1704,6 @@ void APP_RunSpectrum() {
   }
 }
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   void LoadValidMemoryChannels(int latestScanListNumber)
   {
     memset(scanChannel,0,sizeof(scanChannel));
@@ -1823,7 +1775,6 @@ void APP_RunSpectrum() {
       latest = scanListNumber;
     LoadValidMemoryChannels(latest);
     ResetModifiers();
-    AutoAdjustResolution();
   }
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
@@ -1849,23 +1800,4 @@ void APP_RunSpectrum() {
     }
     RelaunchScan();
   }
- 
 
- /* void Attenuate(uint8_t amount)
-  {
-    // attenuate doesn't work with more than 128 samples,
-    // since we select max rssi in such mode ignoring attenuation
-     if(scanInfo.measurementsCount > 128)
-      return;
-
-    // idea: consider amount to be 10% of rssiMax-rssiMin
-    if(attenuationOffset[peak.i] < MAX_ATTENUATION){
-      attenuationOffset[peak.i] += amount;
-      isAttenuationApplied = true;
-
-      ResetPeak();
-      ResetScanStats();
-    }
-    
-  }*/
-#endif

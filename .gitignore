@@ -3,4 +3,4 @@
 /.vscode/*
 *.session
 *.session.inCaseOfCorruption.bak
-/compiled-firmware
+
