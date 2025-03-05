@@ -13,26 +13,26 @@
 > [!warning]
 > Toutes les fréquences sont ouvertes à la transmission (FM seulement), vous êtes responsable de l'utilisation.
     
-- `Forte réduction de l'utilisation de la mémoire`, il reste 13% disponible.
--  `Réduction des puissances MID et LOW` – Tests en cours… Objectif : 100mW, 500mW et 5W.
+- Forte réduction de l'utilisation de la mémoire, il reste 13% disponible.
+-  Réduction des puissances MID et LOW – Tests en cours… Objectif : 100mW, 500mW et 5W.
 	- Si vous faites des mesures je suis intéressé
-- `Gestion de plages de spectre` pour accepter les fréquences en mémoire :
+- Gestion de plages de spectre pour accepter les fréquences en mémoire :
 	- exemple d'utilisation: spectre de la plage CiBie
  	- La fréquence START correspond à la fréquence en mémoire, CH1 par exemple 26,965 MHz
         - La fréquence STOP est la fréquence START + l’offset défini en mémoire. si on veut régler STOP sur le CH40 (27,405 MHz) on met un offset de 440kHz
         - Le STEP est celui indiqué en mémoire.
         	- Sélectionnez la mémoire, faites un appui long sur 5,
         	- SCNRNG s’affiche avec les fréquences START/STOP (26965 et 27405 dans l'exemple), un appui sur F+5 lance le scan sur cette plage.
-- `Modification du comportement du spectre`, déverrouillage plus rapide : SQUELCH_OFF_DELAY 100ms.
-- `Suppression de l'utilisation DTMF` pour gagner de la place.
-- `Simplification du menu`: éléments du menu masqués :
+- Modification du comportement du spectre, déverrouillage plus rapide : SQUELCH_OFF_DELAY 100ms.
+- Suppression de l'utilisation DTMF pour gagner de la place.
+- Simplification du menu: éléments du menu masqués :
 	- F1Shrt, F1Long, F2Shrt, F2Long, M Long, KeyLck, TxTOut, BatSav, Mic, ChDisp, POnMsg, BatTxt, BackLt, BLMin, BLMax, BltTRX, Beep, Voice, D Live, SqTone, 1 Call, FrCali, BatCal, BatTyp.
- 	- Pour les retrouver, allumer le K5 en appuyant `PTT` et `bouton I sous le PTT`
-- Affichage des `codes CTCSS et DCS sur le spectre` (fonctionnement pour la première moitié des codes CTSS).
-- La fréquence sélectionnée est `copiée dans le VFO` lors de la sortie du spectre.
+ 	- Pour les retrouver, allumer le K5 en appuyant PTT et bouton I sous le PTT
+- Affichage des codes CTCSS et DCS sur le spectre (fonctionnement pour la première moitié des codes CTSS).
+- La fréquence sélectionnée est copiée dans le VFO lors de la sortie du spectre.
 - Une fréquence enregistrée en mémoire s’affiche avec son nom sur le spectre.
-- `15 SCANLIST` utilisables dans le spectre. Limite à 5 dans le scanner, fonctionnement décrit par NUNU. 
-- Ajout de l’`historique des fréquences` :
+- 15 SCANLIST utilisables dans le spectre. Limite à 5 dans le scanner, fonctionnement décrit par NUNU. 
+- Ajout de l’historique des fréquences :
 	- Lorsqu’un signal est détecté au-dessus de la barre d’historique (en pointillés), il est enregistré dans un tableau.
         	- Utilisez les touches haut/bas pour naviguer dans le tableau.
 	- Deux barres de squelch :
