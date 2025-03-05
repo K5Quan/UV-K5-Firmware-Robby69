@@ -1,5 +1,5 @@
 # Firmware Quansheng UV-K5 - Robby69 
-## EN COURS DE REDACTION
+<h1><a href="https://github-com.translate.goog/Robby69400/UV-K5-Firmware-Robby69/blob/master/README.md?_x_tr_sl=fr&_x_tr_tl=en&_x_tr_hl=fr&_x_tr_pto=wapp" rel="nofollow">ENGLISH HERE</a></h1>
 
 <h1><a href="https://kamilsss655.github.io/uvtools/?firmwareURL=https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/download/V4.12/Robby69_V4.12.bin" rel="nofollow">🗲FLASHER AVEC CHROME🗲</a></h1>
 
