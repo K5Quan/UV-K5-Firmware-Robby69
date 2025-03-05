@@ -539,8 +539,8 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +8, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+60; //Robby69
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +20, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+70; //Robby69
   }
 }
 
