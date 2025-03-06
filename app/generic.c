@@ -131,7 +131,7 @@ void GENERIC_Key_PTT(bool bKeyPressed)
 
 	// PTT pressed
 
-
+#ifdef ENABLE_SCANNER
 	if (SCANNER_IsScanning())
 	{	// CTCSS/CDCSS scanning .. stop
 		SCANNER_Stop();
@@ -143,7 +143,7 @@ void GENERIC_Key_PTT(bool bKeyPressed)
 		CHFRSCANNER_Stop();
 		goto cancel_tx;
 	}
-
+#endif
 	// set maximum squelch to protect the screen from glitching
 	BK4819_SetupSquelch(255, 255, 127, 127, 255, 255);
 

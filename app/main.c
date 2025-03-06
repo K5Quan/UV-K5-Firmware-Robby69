@@ -482,7 +482,9 @@ static void MAIN_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 			else
 			{
 				gScanKeepResult = false;
+				#ifdef ENABLE_SCANNER
 				CHFRSCANNER_Stop();
+				#endif
 
 				#ifdef ENABLE_VOICE
 					gAnotherVoiceID = VOICE_ID_SCANNING_STOP;
@@ -563,7 +565,9 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 		if (bFlag)
 		{
 			if (gScanStateDir != SCAN_OFF) {
+				#ifdef ENABLE_SCANNER
 				CHFRSCANNER_Stop();
+				#endif
 				return;
 			}
 
@@ -580,6 +584,7 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 	}
 }
 
+
 static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
 {
 	if (gCurrentFunction == FUNCTION_TRANSMIT)
@@ -591,6 +596,7 @@ static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
 			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 		return;
 	}
+#ifdef ENABLE_SCANNER
 
 	if (bKeyHeld && !gWasFKeyPressed) // long press
 	{	 
@@ -633,8 +639,12 @@ static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
 		else
 			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 	}
+
 	else
-	{	// with the F-key
+	
+	{
+#endif
+		// with the F-key
 		gWasFKeyPressed = false;
 
 #ifdef ENABLE_NOAA
@@ -643,17 +653,18 @@ static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
 			return;
 		}				
 #endif
-
 		// scan the CTCSS/DCS code
 		gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
 		gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
 		SCANNER_Start(true);
 		gRequestDisplayScreen = DISPLAY_SCANNER;
+#ifdef ENABLE_SCANNER
 	}
-	
 	gPttWasReleased = true;
 	gUpdateStatus   = true;
+#endif
 }
+
 
 static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 {
@@ -749,10 +760,13 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 	}
 
 	// jump to the next channel
+	
+	#ifdef ENABLE_SCANNER
 	CHFRSCANNER_Start(false, Direction);
 	gScanPauseDelayIn_10ms = 1;
 	gScheduleScanListen    = false;
-
+	#endif
+	
 	gPttWasReleased = true;
 }
 

@@ -1480,6 +1480,7 @@ void BK4819_DisableFrequencyScan(void)
 		(  0u <<  0));          // 0 frequency scan enable
 }
 
+#ifdef ENABLE_SCANNER
 void BK4819_EnableFrequencyScan(void)
 {
 	// REG_32
@@ -1501,6 +1502,7 @@ void BK4819_EnableFrequencyScan(void)
 		(290u <<  1) |          // ???
 		(  1u <<  0));          // 1 frequency scan enable
 }
+#endif
 
 void BK4819_SetScanFrequency(uint32_t Frequency)
 {
