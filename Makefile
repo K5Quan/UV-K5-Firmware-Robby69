@@ -19,7 +19,7 @@ ENABLE_NOAA                   := 0
 ENABLE_VOICE                  := 0
 ENABLE_VOX                    := 0
 ENABLE_ALARM                  := 0
-ENABLE_TX1750                 := 1
+ENABLE_TX1750                 := 0
 ENABLE_PWRON_PASSWORD         := 0
 ENABLE_DTMF			          := 0
 
@@ -373,6 +373,9 @@ ifeq ($(ENABLE_MESSENGER_UART),1)
 endif
 ifeq ($(ENABLE_ENCRYPTION),1)
 	CFLAGS  += -DENABLE_ENCRYPTION
+endif
+ifeq ($(ENABLE_FEAT_RESUME),1)
+	CFLAGS  += -DENABLE_FEAT_RESUME
 endif
 ifeq ($(ENABLE_SCANNER),1)
 	CFLAGS  += -DENABLE_SCANNER

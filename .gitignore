@@ -4,3 +4,9 @@
 *.session
 *.session.inCaseOfCorruption.bak
 
+app/spectrumreborn.c
+compiled-firmware/firmware
+compiled-firmware/firmware.bin
+compiled-firmware/firmware.ld
+compiled-firmware/firmware.packed.bin
+app/spectrumreborn.c
