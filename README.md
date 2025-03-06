@@ -25,6 +25,7 @@
         	- SCNRNG s’affiche avec les fréquences START/STOP (26965 et 27405 dans l'exemple), un appui sur F+5 lance le scan sur cette plage.
 - Modification du comportement du spectre, déverrouillage plus rapide : SQUELCH_OFF_DELAY 100ms.
 - Suppression de l'utilisation DTMF pour gagner de la place.
+- - Suppression du scanner pour gagner de la place et spectre 5x plus rapide.
 - Simplification du menu: éléments du menu masqués :
 	- F1Shrt, F1Long, F2Shrt, F2Long, M Long, KeyLck, TxTOut, BatSav, Mic, ChDisp, POnMsg, BatTxt, BackLt, BLMin, BLMax, BltTRX, Beep, Voice, D Live, SqTone, 1 Call, FrCali, BatCal, BatTyp.
  	- Pour les retrouver, allumer le K5 en appuyant PTT et bouton I sous le PTT
