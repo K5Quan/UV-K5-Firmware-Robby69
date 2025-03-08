@@ -5,6 +5,8 @@
 
 <h2><a href="https://github.com/ntoivola/uvk5-chirp-driver-nunu/" rel="nofollow"> Vous devez utiliser ce driver chirp : uvk5_nunu.py</a></h2>
 
+<h2><a href="https://www.youtube.com/watch?v=cFNw-ZEFIao"> Présentation en vidéo ici</a></h2>
+
 - Le développement de ce firmware est parti du firmware NUNU de NTOIVOLA. https://github.com/ntoivola/uv-k5-firmware-custom-nunu
 - Il est fourni tel quel, sans support ni garantie d'aucune sorte.
 - Le manuel est disponible à l'adresse : https://github.com/ntoivola/uv-k5-firmware-custom-nunu sauf mes évolutions décrites ci-dessous.
