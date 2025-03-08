@@ -539,8 +539,8 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +20, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel+70; //Robby69
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
 
@@ -1195,9 +1195,8 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_SIDE2: //Robby69
-    //Attenuate(ATTENUATE_STEP);
-	SquelchBarKeyMode += 1; //Robby69
-	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
+    	SquelchBarKeyMode += 1; //Robby69
+	if (SquelchBarKeyMode > 1) SquelchBarKeyMode =0;
     break;
   case KEY_PTT:
     #ifdef ENABLE_SPECTRUM_COPY_VFO

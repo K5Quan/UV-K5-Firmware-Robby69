@@ -595,7 +595,7 @@ void UI_DisplayMain(void)
 			case MODULATION_FM: {
 				const FREQ_Config_t *pConfig = (mode == 1) ? gEeprom.VfoInfo[vfo_num].pTX : gEeprom.VfoInfo[vfo_num].pRX;
 				const unsigned int code_type = pConfig->CodeType;
-				const char *code_list[] = {"", "CT", "DCS", "DCR"};
+				const char *code_list[] = {"FM", "CT", "DCS", "DCR"};
 				if (code_type < ARRAY_SIZE(code_list))
 					s = code_list[code_type];
 				break;
@@ -604,7 +604,7 @@ void UI_DisplayMain(void)
 				s = gModulationStr[mod];
 			break;
 		}		
-		UI_PrintStringSmall(s, LCD_WIDTH + 24, 0, line + 1);
+		UI_PrintStringSmall(s, LCD_WIDTH + 25, 0, line + 1);
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
@@ -612,7 +612,7 @@ void UI_DisplayMain(void)
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
 			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
 			String[1] = '\0';
-			UI_PrintStringSmall(String, LCD_WIDTH + 46, 0, line + 1);
+			UI_PrintStringSmall(String, LCD_WIDTH + 50, 0, line + 1);
 		}
 
 		if (gEeprom.VfoInfo[vfo_num].freq_config_RX.Frequency != gEeprom.VfoInfo[vfo_num].freq_config_TX.Frequency)
@@ -621,7 +621,7 @@ void UI_DisplayMain(void)
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].TX_OFFSET_FREQUENCY_DIRECTION;
 			String[0] = (i < sizeof(dir_list)) ? dir_list[i] : '?';
 			String[1] = '\0';
-			UI_PrintStringSmall(String, LCD_WIDTH + 54, 0, line + 1);
+			UI_PrintStringSmall(String, LCD_WIDTH + 60, 0, line + 1);
 		}
 
 		// show the TX/RX reverse symbol

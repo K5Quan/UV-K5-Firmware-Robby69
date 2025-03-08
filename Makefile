@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := 4.13
+VERSION_STRING := 4.14
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -19,7 +19,7 @@ ENABLE_NOAA                   := 0
 ENABLE_VOICE                  := 0
 ENABLE_VOX                    := 0
 ENABLE_ALARM                  := 0
-ENABLE_TX1750                 := 0
+ENABLE_TX1750                 := 1
 ENABLE_PWRON_PASSWORD         := 0
 ENABLE_DTMF			          := 0
 
