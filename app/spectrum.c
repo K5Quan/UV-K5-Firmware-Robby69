@@ -50,7 +50,6 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   #define MAX_ATTENUATION 160
   #define ATTENUATE_STEP  10
   bool    isNormalizationApplied;
-  //bool    isAttenuationApplied;
   uint8_t  gainOffset[129];
   uint8_t  attenuationOffset[129];
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
@@ -60,7 +59,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
-#define SQUELCH_OFF_DELAY 100 //Robby69
+#define SQUELCH_OFF_DELAY 10 //Robby69
 
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
@@ -128,8 +127,9 @@ SpectrumSettings settings = {stepsCount: STEPS_64, //Robby69 was 128
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
-const uint8_t FMaxNumb = 100;
-uint32_t freqHistory[100]; //Robby69
+#define History_SIZE 50
+const uint8_t FMaxNumb = History_SIZE;
+uint32_t freqHistory[History_SIZE]; //Robby69
 uint8_t indexFd = 1;
 uint8_t indexFs = 1;
 
@@ -191,7 +191,6 @@ static void SaveSettings()
 }
 #endif
 static void RelaunchScan();
-//static void CheckIfTailFound();//Robby69
 static void ResetInterrupts();
 
 static uint16_t GetRegMenuValue(uint8_t st) {
@@ -403,7 +402,7 @@ uint16_t GetRssi() {
   // testing autodelay based on Glitch value
 
   // testing resolution to sticky squelch issue
-  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {}
+  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {SYSTICK_DelayUs(100);}
   rssi = BK4819_GetRSSI();
  
   
@@ -413,6 +412,8 @@ uint16_t GetRssi() {
       rssi+=UHF_NOISE_FLOOR;
     }
   
+    rssi+=gainOffset[CurrentScanIndex()];
+    rssi-=attenuationOffset[CurrentScanIndex()];
   return rssi;
 }
 
@@ -423,14 +424,22 @@ static void ToggleAudio(bool on) {
   audioState = on;
   if (on) {
     AUDIO_AudioPathOn();
-  } else {
+  } /*else {
     AUDIO_AudioPathOff();
+	}*/
+}
+
+static void AutoTriggerLevel() {
+  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
 
 static void ToggleRX(bool on) {
   isListening = on;
   BACKLIGHT_TurnOn();
+  //settings.rssiTriggerLevel=settings.rssiTriggerLevel+20; //Robby69 test squelch
 
 #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   // automatically switch modulation & bw if known channel
@@ -536,14 +545,6 @@ static void UpdateScanInfo() {
     redrawStatus = true;
   }
 }
-
-static void AutoTriggerLevel() {
-  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
-  }
-}
-
 
 static void UpdatePeakInfoForce() {
   peak.t = 0;
@@ -1558,7 +1559,7 @@ static void UpdateListening() {
   if (listenT) {
     listenT--;
     SYSTEM_DelayMs(1);
-    return;
+	return;
   }
 
   if (currentState == SPECTRUM) {
@@ -1591,10 +1592,12 @@ static void Tick() {
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
 
-    if (rxChannelDisplayCountdown > 0)
+    // Robby69 test 08/03/25
+	
+	/*if (rxChannelDisplayCountdown > 0)
       if (--rxChannelDisplayCountdown == 0)
         if (!isListening)
-          rxChannelName[0] = '\0';
+          rxChannelName[0] = '\0';*/
 
     gNextTimeslice_500ms = false;
 
@@ -1602,17 +1605,16 @@ static void Tick() {
     // if a lot of steps then it takes long time
     // we don't want to wait for whole scan
     // listening has it's own timer
-    if(GetStepsCount()>128 && !isListening) {
+	if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
-	 // if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
-      if (IsPeakOverLevel()) {
+	  if (IsPeakOverLevel()) {
         ToggleRX(true);
         TuneToPeak();
 		return;
       }
       redrawScreen = true;
       preventKeypress = false;
-    }
+    } 
   }
 #endif
 
@@ -1620,7 +1622,7 @@ static void Tick() {
     HandleUserInput();
   }
   if (newScanStart) {
-    InitScan();
+	InitScan();
     newScanStart = false;
   }
   if (isListening && currentState != FREQ_INPUT) {
@@ -1740,13 +1742,15 @@ appMode = mode;
         {
           channelIndex = nextChannel;
           scanChannel[offset+i]=channelIndex;
-          if (sl == latestScanListNumber && i == 0) {
+		  //Robby69 test 08/03/25
+		  latestScanListNumber = latestScanListNumber;
+          /*if (sl == latestScanListNumber && i == 0) {
             // put the name of the first channel from the just-enabled list in rxChannelName
             // so it will show briefly on the screen
             memmove(rxChannelName, gMR_ChannelFrequencyAttributes[channelIndex].Name, sizeof(rxChannelName));
             rxChannelDisplayCountdown = 4;
             redrawScreen = true;
-          }
+          }*/
         }
       }
     }
@@ -1784,8 +1788,8 @@ appMode = mode;
     if(IsPeakOverLevel() && on){
 		UpdateScan();//Robby69 Force scan continue
 		UpdateScan();
-		return;}
-
+		return;
+		}
     if(on) {
       for(uint8_t i = 0; i < ARRAY_SIZE(rssiHistory); i++)
       {
