@@ -14,6 +14,7 @@
  *     limitations under the License.
  */
 #include "app/spectrum.h"
+#include "am_fix.h"
 
 #ifdef ENABLE_SCAN_RANGES
 #include "chFrScanner.h"
@@ -55,7 +56,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
-  void ToggleNormalizeRssi(bool on);
+  //void ToggleNormalizeRssi(bool on);
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
@@ -87,6 +88,7 @@ bool newScanStart = true;
 bool preventKeypress = true;
 bool audioState = true;
 uint8_t waitingForScanListNumber = 0;
+bool lockAGC = false; //New
 
 State currentState = SPECTRUM, previousState = SPECTRUM;
 
@@ -198,9 +200,45 @@ static uint16_t GetRegMenuValue(uint8_t st) {
   return (BK4819_ReadRegister(s.num) >> s.offset) & s.mask;
 }
 
+void RADIO_SetupAGC(bool listeningAM, bool disable)
+{
+    static uint8_t lastSettings;
+    uint8_t newSettings = (listeningAM << 1) | (disable << 1);
+    if(lastSettings == newSettings)
+        return;
+    lastSettings = newSettings;
+
+
+    if(!listeningAM) { // if not actively listening AM we don't need any AM specific regulation
+        BK4819_SetAGC(!disable);
+        BK4819_InitAGC(false);
+    }
+    else {
+#ifdef ENABLE_AM_FIX
+        if(gSetting_AM_fix) { // if AM fix active lock AGC so AM-fix can do it's job
+            BK4819_SetAGC(0);
+            AM_fix_enable(!disable);
+        }
+        else
+#endif
+        {
+            BK4819_SetAGC(!disable);
+            BK4819_InitAGC(true);
+        }
+    }
+}
+
+void LockAGC()
+{
+    RADIO_SetupAGC(settings.modulationType == MODULATION_AM, lockAGC);
+    lockAGC = true;
+}
+
 static void SetRegMenuValue(uint8_t st, bool add) {
-  uint16_t v = GetRegMenuValue(st);
-  RegisterSpec s = registerSpecs[st];
+	uint16_t v = GetRegMenuValue(st);
+	RegisterSpec s = registerSpecs[st];
+	if (s.num == BK4819_REG_13)
+        LockAGC();
 
   uint16_t reg = BK4819_ReadRegister(s.num);
   if (add && v <= s.mask - s.inc) {
@@ -404,17 +442,11 @@ uint16_t GetRssi() {
   // testing resolution to sticky squelch issue
   while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {SYSTICK_DelayUs(100);}
   rssi = BK4819_GetRSSI();
- 
-  
-    if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-    {
-      // Increase perceived RSSI for UHF bands to imitate radio squelch
-      rssi+=UHF_NOISE_FLOOR;
-    }
-  
-    rssi+=gainOffset[CurrentScanIndex()];
-    rssi-=attenuationOffset[CurrentScanIndex()];
-  return rssi;
+#ifdef ENABLE_AM_FIX
+    if (settings.modulationType == MODULATION_AM && gSetting_AM_fix)
+        rssi += AM_fix_get_gain_diff() * 2;
+#endif 
+	return rssi;
 }
 
 static void ToggleAudio(bool on) {
@@ -424,9 +456,9 @@ static void ToggleAudio(bool on) {
   audioState = on;
   if (on) {
     AUDIO_AudioPathOn();
-  } /*else {
+  } else {
     AUDIO_AudioPathOff();
-	}*/
+	}
 }
 
 static void AutoTriggerLevel() {
@@ -438,9 +470,9 @@ static void AutoTriggerLevel() {
 
 static void ToggleRX(bool on) {
   isListening = on;
+  RADIO_SetupAGC(on, lockAGC);
   BACKLIGHT_TurnOn();
-  //settings.rssiTriggerLevel=settings.rssiTriggerLevel+20; //Robby69 test squelch
-
+  
 #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   // automatically switch modulation & bw if known channel
   if (on && isKnownChannel) {
@@ -516,8 +548,8 @@ static void ResetModifiers() {
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
   }
-  ToggleNormalizeRssi(false);
-  memset(attenuationOffset, 0, sizeof(attenuationOffset));
+  //ToggleNormalizeRssi(false);
+  //memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
   RelaunchScan();
 }
@@ -539,7 +571,8 @@ static void UpdateScanInfo() {
   }
   // add attenuation offset to prevent noise floor lowering when attenuated rx is over
   // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin) {
+  if (scanInfo.rssi < scanInfo.rssiMin) {
+  //if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawStatus = true;
@@ -682,7 +715,7 @@ static void ToggleModulation() {
     settings.modulationType = MODULATION_FM;
   }
   RADIO_SetModulation(settings.modulationType);
-  BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+  //BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
   redrawScreen = true;
 }
 
@@ -1125,7 +1158,7 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_2:
-   ToggleNormalizeRssi(!isNormalizationApplied);
+   //ToggleNormalizeRssi(!isNormalizationApplied);
     break;
   case KEY_8:
 	uint8_t i;
@@ -1214,10 +1247,11 @@ static void OnKeyDown(uint8_t key) {
     #endif
     break;
   case KEY_EXIT:
-    if (menuState) {
-      menuState = 0;
-      break;
+    if (!menuState) {
+		lockAGC = false;
+		break;
     }
+	menuState = 0;
     DeInitSpectrum();
     break;
   default:
@@ -1591,15 +1625,11 @@ static void Tick() {
       if (--gBacklightCountdown == 0)
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
-
-    // Robby69 test 08/03/25
-	
-	/*if (rxChannelDisplayCountdown > 0)
-      if (--rxChannelDisplayCountdown == 0)
-        if (!isListening)
-          rxChannelName[0] = '\0';*/
-
     gNextTimeslice_500ms = false;
+	if (settings.modulationType == MODULATION_AM && !lockAGC)
+		{
+			AM_fix_10ms(vfo); // allow AM_Fix to apply its AGC action
+        }
 
 #ifdef ENABLE_SCAN_RANGES
     // if a lot of steps then it takes long time
@@ -1782,7 +1812,7 @@ appMode = mode;
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
- void ToggleNormalizeRssi(bool on)
+ /*void ToggleNormalizeRssi(bool on)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel() && on){
@@ -1802,5 +1832,5 @@ appMode = mode;
       isNormalizationApplied = false;
     }
     RelaunchScan();
-  }
+  }*/
 
