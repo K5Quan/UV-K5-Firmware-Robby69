@@ -50,9 +50,7 @@ static const uint8_t U8RssiMap[] = {
 };
 
 static const uint16_t scanStepValues[] = {
-    1,   10,  50,  100,
-
-    250, 500, 625, 833, 1000, 1250, 2500, 10000,
+    1,   10,  50,  100, 250, 500, 625, 833, 1000, 1250, 2500, 5000, 10000,
 };
 
 static const uint16_t scanStepBWRegValues[] = {

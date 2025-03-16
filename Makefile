@@ -54,7 +54,7 @@ ENABLE_ENCRYPTION                       := 0
 ENABLE_FREQ_LOCKING						:= 0 
 #Robby69 0 to remove all frequency lock
 ENABLE_FEAT_RESUME						:= 0
-ENABLE_SCANNER							:= 0
+ENABLE_SCANNER							:= 1
 
 
 #############################################################
