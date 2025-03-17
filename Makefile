@@ -45,6 +45,7 @@ ENABLE_BLMIN_TMP_OFF                    := 0
 ENABLE_SCAN_RANGES                      := 1
 ENABLE_SPECTRUM_COPY_VFO                := 1
 ENABLE_SPECTRUM_SHOW_CHANNEL_NAME       := 1
+ENABLE_SPECTRUM_CHANNEL_SCAN            := 1
 ENABLE_MESSENGER                        := 0
 ENABLE_MESSENGER_DELIVERY_NOTIFICATION  := 0
 ENABLE_MESSENGER_FSK_MUTE               := 0
@@ -53,8 +54,8 @@ ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_FREQ_LOCKING						:= 0 
 #Robby69 0 to remove all frequency lock
-ENABLE_FEAT_RESUME						:= 0
-ENABLE_SCANNER							:= 1
+ENABLE_SPECTRUM_ARROW					:= 0
+#Robby69 0 to remove the spectrum arrow
 
 
 #############################################################
@@ -356,6 +357,9 @@ endif
 ifeq ($(ENABLE_DTMF),1)
 	CFLAGS  += -DENABLE_DTMF
 endif
+ifeq ($(ENABLE_SPECTRUM_CHANNEL_SCAN),1)
+	CFLAGS  += -DENABLE_SPECTRUM_CHANNEL_SCAN
+endif
 ifeq ($(ENABLE_MESSENGER),1)
 	CFLAGS  += -DENABLE_MESSENGER
 endif
@@ -373,12 +377,6 @@ ifeq ($(ENABLE_MESSENGER_UART),1)
 endif
 ifeq ($(ENABLE_ENCRYPTION),1)
 	CFLAGS  += -DENABLE_ENCRYPTION
-endif
-ifeq ($(ENABLE_FEAT_RESUME),1)
-	CFLAGS  += -DENABLE_FEAT_RESUME
-endif
-ifeq ($(ENABLE_SCANNER),1)
-	CFLAGS  += -DENABLE_SCANNER
 endif
 
 LDFLAGS =

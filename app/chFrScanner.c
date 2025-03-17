@@ -19,7 +19,6 @@ uint32_t            initialFrqOrChan;
 uint8_t           	initialCROSS_BAND_RX_TX;
 uint32_t            lastFoundFrqOrChan;
 
-#ifdef ENABLE_SCANNER
 static void NextFreqChannel(void);
 static void NextMemChannel(void);
 
@@ -200,4 +199,3 @@ static void NextMemChannel(void)
 	gScanPauseDelayIn_10ms = scan_pause_delay_in_3_10ms;
 #endif
 }
-#endif

@@ -377,11 +377,10 @@ Skip:
 						gScanPauseDelayIn_10ms = scan_pause_delay_in_7_10ms;
 						gScheduleScanListen    = false;
 						break;
-#ifdef ENABLE_SCANNER
+
 					case SCAN_RESUME_SE:
 						CHFRSCANNER_Stop();
 						break;
-#endif
 				}
 			}
 
@@ -453,10 +452,9 @@ void APP_StartListening(FUNCTION_Type_t Function)
 
 	if (gSetting_backlight_on_tx_rx >= BACKLIGHT_ON_TR_RX)
 		BACKLIGHT_TurnOn();
-#ifdef ENABLE_SCANNER
+
 	if (gScanStateDir != SCAN_OFF)
 		CHFRSCANNER_Found();
-#endif
 
 #ifdef ENABLE_NOAA
 	if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) && gIsNoaaMode) {
@@ -865,11 +863,10 @@ void APP_Update(void)
 #else
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed)
 #endif
-#ifdef ENABLE_SCANNER
 	{	// scanning
 		CHFRSCANNER_ContinueScanning();
 	}
-#endif
+
 #ifdef ENABLE_NOAA
 #ifdef ENABLE_VOICE
 		if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF && gIsNoaaMode && gScheduleNOAA && gVoiceWriteIndex == 0)

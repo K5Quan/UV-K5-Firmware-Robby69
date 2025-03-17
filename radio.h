@@ -177,5 +177,7 @@ void       RADIO_EnableCxCSS(void);
 void       RADIO_PrepareCssTX(void);
 void       RADIO_SendEndOfTransmission(bool playRoger);
 #endif
-uint8_t RADIO_ValidMemoryChannelsCount(bool bCheckScanList, uint8_t VFO);
 
+#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+	uint8_t RADIO_ValidMemoryChannelsCount(bool bCheckScanList, uint8_t VFO);
+#endif

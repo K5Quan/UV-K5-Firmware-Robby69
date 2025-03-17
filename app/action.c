@@ -105,8 +105,6 @@ void ACTION_Monitor(void)
 	gRequestDisplayScreen = gScreenToDisplay;
 }
 
-#ifdef ENABLE_SCANNER
-
 void ACTION_Scan(bool bRestart)
 {
 	(void)bRestart;
@@ -177,7 +175,6 @@ void ACTION_Scan(bool bRestart)
 		}
 	}
 }
-#endif
 
 #ifdef ENABLE_VOX
 	void ACTION_Vox(void)
@@ -251,6 +248,8 @@ void ACTION_Scan(bool bRestart)
 
 void ACTION_RunSpectrum(void)
 {
+	#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+				
 		if(gScanRangeStart){
 			// if scanRangeStart then we enter in scan range mode
 			APP_RunSpectrum(SCAN_RANGE_MODE);
@@ -260,6 +259,9 @@ void ACTION_RunSpectrum(void)
 			// otherwise enter spectrum in frequency mode
 			APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
 		}
+	#elif
+		APP_RunSpectrum();
+	#endif
 }
 
 void ACTION_SwitchDemodul(void)
@@ -385,11 +387,9 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		case ACTION_OPT_MONITOR:
 			ACTION_Monitor();
 			break;
-#ifdef ENABLE_SCANNER
 		case ACTION_OPT_SCAN:
 			ACTION_Scan(true);
 			break;
-#endif
 		case ACTION_OPT_VOX:
 #ifdef ENABLE_VOX
 			ACTION_Vox();

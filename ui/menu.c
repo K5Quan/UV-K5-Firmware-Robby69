@@ -60,13 +60,11 @@ const t_menu_item MenuList[] =
 
 	{"Demodu", VOICE_ID_INVALID,                       MENU_AM            }, // was "AM"
 	{"RxAGC",  VOICE_ID_INVALID,                       MENU_RX_AGC        }, // RX Auto Gain Control
-#ifdef ENABLE_SCANNER	
 	{"ScList", VOICE_ID_INVALID,					   MENU_S_LIST        },
-#endif	
 	{"ChSave", VOICE_ID_MEMORY_CHANNEL,                MENU_MEM_CH        }, // was "MEM-CH"
 
 	{"Roger",  VOICE_ID_INVALID,                       MENU_ROGER         },
-	//{"TestRg", VOICE_ID_INVALID,                       MENU_TEST_RANGE    },  //Robby69 New menu
+	{"TestRg", VOICE_ID_INVALID,                       MENU_TEST_RANGE    },  //Robby69 New menu
 	
 #ifdef ENABLE_ALARM
 	{"AlarmT", VOICE_ID_INVALID,                       MENU_AL_MOD        },
@@ -103,9 +101,7 @@ const t_menu_item MenuList[] =
 	{"MsgMod", VOICE_ID_INVALID,                       MENU_MSG_MODULATION}, // messenger modulation
 #endif
 	{"Sql",    VOICE_ID_SQUELCH,                       MENU_SQL           },
-	#ifdef ENABLE_SCANNER
 	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
-	#endif
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
 #ifdef ENABLE_FREQ_LOCKING

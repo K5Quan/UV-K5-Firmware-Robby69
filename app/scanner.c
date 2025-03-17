@@ -340,8 +340,6 @@ void SCANNER_Start(bool singleFreq)
 
 		gUpdateStatus = true;
 	}
-	#ifdef ENABLE_SCANNER
-
 	else {
 		gScanCssState  = SCAN_CSS_STATE_OFF;
 		gScanFrequency = 0xFFFFFFFF;
@@ -351,7 +349,6 @@ void SCANNER_Start(bool singleFreq)
 
 		gUpdateStatus = true;
 	}
-	#endif	
 
 #ifdef ENABLE_DTMF
 	DTMF_clear_RX();
@@ -430,7 +427,7 @@ void SCANNER_TimeSlice10ms(void)
 				scanHitCount = 0;
 
 			BK4819_DisableFrequencyScan();
-#ifdef ENABLE_SCANNER
+
 			if (scanHitCount < 3) {
 				BK4819_EnableFrequencyScan();
 			}
@@ -448,7 +445,6 @@ void SCANNER_TimeSlice10ms(void)
 
 				gUpdateStatus          = true;
 			}
-#endif
 
 			gScanDelay_10ms = scan_delay_10ms;
 			//gScanDelay_10ms = 1;   // 10ms
