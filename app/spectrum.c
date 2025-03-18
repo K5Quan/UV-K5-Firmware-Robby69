@@ -60,7 +60,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
-  void AutoAdjustResolution();
+  //void AutoAdjustResolution();
   void ToggleNormalizeRssi(bool on);
   //void Attenuate(uint8_t amount);
 #endif
@@ -488,9 +488,8 @@ static void ResetModifiers() {
 #endif
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
-      //AutoAdjustResolution();//Robby69
   }
-  AutoAdjustResolution(); //Robby69
+  //AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   //isAttenuationApplied = false;
@@ -691,7 +690,7 @@ static void ToggleStepsCount() {
   } else {
     settings.stepsCount--;
   }
-  AutoAdjustResolution();//Robby69 added
+  //AutoAdjustResolution();//Robby69 added
   AutoAdjustFreqChangeStep();
   ResetModifiers();
   redrawScreen = true;
@@ -814,20 +813,44 @@ uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
 //Robby69 16 and 32 added
-void AutoAdjustResolution(){
+/*void AutoAdjustResolution(){
 	if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
 	if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
 	if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
 	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}
-}
+}*/
 
-static void DrawSpectrum() {//Robby69 V4.15
+
+static void DrawSpectrum()
+    {//Robby69 V4.16
+        // max bars at 128 to correctly draw larger numbers of samples
+        uint8_t bars = (settings.stepsCount > 128) ? 128 : settings.stepsCount;
+        // shift to center bar on freq marker
+        uint8_t shift_graph = 128 / settings.stepsCount; 
+        uint8_t ox = 0;
+        for (uint8_t i = 0; i < 127; ++i)
+        {
+            uint16_t rssi = rssiHistory[1+ (i >> settings.stepsCount)];//Robby69 first bar display
+            if (rssi != RSSI_MAX_VALUE)
+            {
+                // stretch bars to fill the screen width
+                uint8_t x = i * 128 / bars + shift_graph;
+                for (uint8_t xx = ox; xx < x; xx++)
+                {
+                    DrawVLine(Rssi2Y(rssi), DrawingEndY, xx, true);
+                }
+                ox = x;
+            }
+        }
+    }
+
+/*static void DrawSpectrum() {//Robby69 V4.15
 	uint16_t rssi;
 	for (uint8_t x = 0; x < 127; ++x) { //Robby69 127 to remove vertical bar
 		rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
 		if (rssi != RSSI_MAX_VALUE) 
 			DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);}
-}
+}*/
 
 static void DrawStatus() {
 #ifdef SPECTRUM_EXTRA_VALUES
@@ -1052,38 +1075,6 @@ static void DrawRssiTriggerLevel() {
     PutPixel(x, y, true);
   }
 }
-
-#ifdef ENABLE_SPECTRUM_ARROW
-static void DrawTicks() {
-  uint32_t f = GetFStart();
-  uint32_t span = GetFEnd() - GetFStart();
-  uint32_t step = span / 128;
-  for (uint8_t i = 0; i < 128; i += (1 << settings.stepsCount)) {
-    f = GetFStart() + span * i / 128;
-    uint8_t barValue = 0b00000001;
-    (f % 10000) < step && (barValue |= 0b00000010);
-    (f % 50000) < step && (barValue |= 0b00000100);
-    (f % 100000) < step && (barValue |= 0b00011000);
-    gFrameBuffer[5][i] |= barValue;
-  }
-  memset(gFrameBuffer[5] + 1, 0x80, 3);
-  memset(gFrameBuffer[5] + 124, 0x80, 3);
-
-  gFrameBuffer[5][0] = 0xff;
-  gFrameBuffer[5][127] = 0xff;
-}
-#endif
-
-#ifdef ENABLE_SPECTRUM_ARROW
-static void DrawArrow(uint8_t x) {
-  for (signed i = -2; i <= 2; ++i) {
-    signed v = x + i;
-    if (!(v & 128)) {
-      gFrameBuffer[5][v] |= (0b01111000 << my_abs(i)) & 0b01111000;
-    }
-  }
-}
-#endif
 
 static void OnKeyDown(uint8_t key) {
   if (!isListening)
@@ -1354,22 +1345,10 @@ static void RenderStatus() {
 
 
 static void RenderSpectrum() {
-  #ifdef ENABLE_SPECTRUM_ARROW
-	DrawTicks();
-  if((appMode==CHANNEL_MODE)&&(GetStepsCount()<128u))
-  {
-    DrawArrow(peak.i * (settings.stepsCount + 1));
-  }
-  else
-  {
-    DrawArrow(128u * peak.i / GetStepsCount());
-  }
-  #endif
   DrawNums();
   DrawSpectrum();
   DrawRssiTriggerLevel();
-  DrawF(peak.f);
-  //DrawNums();
+  DrawF(peak.f); 
 }
 
 
@@ -1671,7 +1650,7 @@ void APP_RunSpectrum() {
     if (appMode==CHANNEL_MODE)
     {
       LoadValidMemoryChannels(255);
-      AutoAdjustResolution();
+      //AutoAdjustResolution();
     }
   #endif
   #ifdef ENABLE_SCAN_RANGES
@@ -1683,7 +1662,7 @@ void APP_RunSpectrum() {
           break;
         }
       }
-      AutoAdjustResolution(); //Robby69
+      //AutoAdjustResolution(); //Robby69
     }
     else
   #endif
@@ -1802,7 +1781,7 @@ void APP_RunSpectrum() {
       latest = scanListNumber;
     LoadValidMemoryChannels(latest);
     ResetModifiers();
-    AutoAdjustResolution();
+    //AutoAdjustResolution();
   }
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
