@@ -60,7 +60,7 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
-  //void AutoAdjustResolution();
+  void AutoAdjustResolution();
   void ToggleNormalizeRssi(bool on);
   //void Attenuate(uint8_t amount);
 #endif
@@ -489,7 +489,7 @@ static void ResetModifiers() {
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels(255);
   }
-  //AutoAdjustResolution(); //Robby69
+  AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   //isAttenuationApplied = false;
@@ -690,7 +690,7 @@ static void ToggleStepsCount() {
   } else {
     settings.stepsCount--;
   }
-  //AutoAdjustResolution();//Robby69 added
+  AutoAdjustResolution();//Robby69 added
   AutoAdjustFreqChangeStep();
   ResetModifiers();
   redrawScreen = true;
@@ -813,20 +813,23 @@ uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
 //Robby69 16 and 32 added
-/*void AutoAdjustResolution(){
-	if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
+void AutoAdjustResolution(){
+  settings.stepsCount = settings.stepsCount ;
+	/*if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
 	if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
 	if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
-	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}
-}*/
+	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}*/
+}
 
 
 static void DrawSpectrum()
     {//Robby69 V4.16
-        // max bars at 128 to correctly draw larger numbers of samples
-        uint8_t bars = (settings.stepsCount > 128) ? 128 : settings.stepsCount;
-        // shift to center bar on freq marker
-        uint8_t shift_graph = 128 / settings.stepsCount; 
+      uint16_t steps = GetStepsCount();
+      // max bars at 128 to correctly draw larger numbers of samples
+      uint8_t bars = (steps > 128) ? 128 : steps;
+      // shift to center bar on freq marker
+      uint8_t shift_graph = 64 / steps + 1;
+
         uint8_t ox = 0;
         for (uint8_t i = 0; i < 127; ++i)
         {
@@ -1650,7 +1653,7 @@ void APP_RunSpectrum() {
     if (appMode==CHANNEL_MODE)
     {
       LoadValidMemoryChannels(255);
-      //AutoAdjustResolution();
+      AutoAdjustResolution();
     }
   #endif
   #ifdef ENABLE_SCAN_RANGES
@@ -1662,7 +1665,7 @@ void APP_RunSpectrum() {
           break;
         }
       }
-      //AutoAdjustResolution(); //Robby69
+      AutoAdjustResolution(); //Robby69
     }
     else
   #endif
@@ -1781,7 +1784,7 @@ void APP_RunSpectrum() {
       latest = scanListNumber;
     LoadValidMemoryChannels(latest);
     ResetModifiers();
-    //AutoAdjustResolution();
+    AutoAdjustResolution();
   }
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
