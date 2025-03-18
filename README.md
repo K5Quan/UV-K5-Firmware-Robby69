@@ -4,6 +4,8 @@
 <h1><a href="https://kamilsss655.github.io/uvtools/?firmwareURL=https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/download/V4.16/Robby69_V4.16.bin" rel="nofollow">🗲FLASHER AVEC CHROME🗲</a></h1>
 
 <h2><a href="https://github.com/ntoivola/uvk5-chirp-driver-nunu/" rel="nofollow"> Vous devez utiliser ce driver chirp : uvk5_nunu.py</a></h2>
+<h2><a href="https://www.youtube.com/@robby_69400" rel="nofollow"> Quelques présentations et news sur ma chaine Youtube.</a></h2>
+<h2><a href="https://t.me/k5robby69"> Ce canal Telegram pour discuter.</a></h2>
 
 - Le développement de ce firmware est parti du firmware NUNU de NTOIVOLA. https://github.com/ntoivola/uv-k5-firmware-custom-nunu
 - Il est fourni tel quel, sans support ni garantie d'aucune sorte.
