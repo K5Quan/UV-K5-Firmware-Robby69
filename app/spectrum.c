@@ -389,7 +389,7 @@ uint16_t GetRssi() {
       rssi+=UHF_NOISE_FLOOR;
     }
 
-    //rssi+=gainOffset[CurrentScanIndex()];
+    rssi+=gainOffset[CurrentScanIndex()];
     //rssi-=attenuationOffset[CurrentScanIndex()];
 
   #endif
