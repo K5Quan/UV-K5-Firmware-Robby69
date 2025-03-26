@@ -313,10 +313,25 @@ void BK4819_InitAGC(const uint8_t agcType, ModulationMode_t modulation)
 		switch(agcType)
 		{	
 			case RX_AGC_SLOW:
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (1 << 0));
+				break;
+			case RX_AGC_MED1:
 				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (10 << 0));
 				break;
-			case RX_AGC_FAST:
+			case RX_AGC_MED2:
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (20 << 0));
+				break;
+			case RX_AGC_MED3:
 				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (30 << 0));
+				break;
+			case RX_AGC_MED4:
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (40<< 0));
+				break;
+			case RX_AGC_MED5:
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (50 << 0));
+				break;
+			case RX_AGC_FAST:
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (60 << 0));
 				break;
 			default:
 				return;
@@ -330,6 +345,21 @@ void BK4819_InitAGC(const uint8_t agcType, ModulationMode_t modulation)
 			case RX_AGC_SLOW:
 				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (56 << 0));
 				break;
+			case RX_AGC_MED1
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (58 << 0));
+				break;
+			case RX_AGC_MED2
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (60<< 0));
+				break;
+			case RX_AGC_MED3
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (62<< 0));
+				break;
+			case RX_AGC_MED4
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (64<< 0));
+				break;
+			case RX_AGC_MED5
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (65<< 0));
+				break;
 			case RX_AGC_FAST:
 				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (66 << 0));
 				break;
@@ -337,9 +367,7 @@ void BK4819_InitAGC(const uint8_t agcType, ModulationMode_t modulation)
 				return;
 		}
 	}
-	
-  
-	
+		
 	// switched values to ones from 1o11 am_fix:
 	BK4819_WriteRegister(BK4819_REG_7B, 0x8420); //Test 4.15
 	BK4819_WriteRegister(BK4819_REG_12, 0x0393);  // 0x037B / 000000 11 011 11 011 / -24dB
