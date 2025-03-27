@@ -171,7 +171,7 @@ extern const char        gSubMenu_RX_TX[4][6];
 extern const char        gSubMenu_BAT_TXT[3][8];
 extern const char 		 gSubMenu_BATTYP[2][9];
 extern const char        gSubMenu_SCRAMBLER[11][7];
-extern const char        gSubMenu_RX_AGC[3][6];
+extern const char        gSubMenu_RX_AGC[2][6];
 #ifdef ENABLE_MESSENGER
 extern const char        gSubMenu_MSG_MODULATION[3][10];
 #endif

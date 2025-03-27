@@ -82,7 +82,6 @@ enum {
 };
 
 enum {
-	RX_AGC_OFF = 0,
 	RX_AGC_SLOW,
 	RX_AGC_FAST,
 	RX_AGC_LEN

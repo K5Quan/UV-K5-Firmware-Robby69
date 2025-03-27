@@ -214,7 +214,6 @@ const char gSubMenu_SAVE[][4] =
 
 const char gSubMenu_RX_AGC[][6] =
 {
-	"OFF",
 	"SLOW",
 	"FAST"
 };
