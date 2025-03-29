@@ -918,6 +918,13 @@ static void DrawStatus() {
 static void DrawF(uint32_t f) {
 	uint8_t Code;
 	if (f > 0){
+
+    if(GetScanStep() ==  833) {
+          uint32_t base = f/2500*2500;
+          int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+          f = base + (chno * 833) + (chno == 3);
+	      }
+    
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 1);}
 	f= freqHistory[indexFd];
@@ -925,7 +932,13 @@ static void DrawF(uint32_t f) {
     isKnownChannel = channelFd == -1 ? false : true;
 	if (f > 0){
 		if(isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
-		else 	sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
+		else 	
+    if(GetScanStep() ==  833) {
+      uint32_t base = f/2500*2500;
+      int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+      f = base + (chno * 833) + (chno == 3);
+    }
+    sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
 				GUI_DisplaySmallest(String, 0, 16, false, true);}
 	
 //Robby show CTCSS or DCS
