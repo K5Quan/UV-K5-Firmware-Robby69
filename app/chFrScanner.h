@@ -15,11 +15,12 @@ extern uint32_t          gScanRangeStart;
 extern uint32_t          gScanRangeStop;
 #endif
 
+#ifdef ENABLE_SCANNER
 void CHFRSCANNER_Found(void);
 void CHFRSCANNER_Stop(void);
 void CHFRSCANNER_Start(const bool storeBackupSettings, const int8_t scan_direction);
 void CHFRSCANNER_ContinueScanning(void);
-
+#endif
 #endif
 
 typedef enum {

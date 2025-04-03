@@ -365,7 +365,7 @@ Skip:
 			#endif
 
 			gUpdateDisplay = true;
-
+#ifdef ENABLE_SCANNER
 			if (gScanStateDir != SCAN_OFF)
 			{
 				switch (gEeprom.SCAN_RESUME_MODE)
@@ -383,7 +383,7 @@ Skip:
 						break;
 				}
 			}
-
+#endif
 			break;
 
 		case END_OF_RX_MODE_TTE:
@@ -452,10 +452,10 @@ void APP_StartListening(FUNCTION_Type_t Function)
 
 	if (gSetting_backlight_on_tx_rx >= BACKLIGHT_ON_TR_RX)
 		BACKLIGHT_TurnOn();
-
+#ifdef ENABLE_SCANNER
 	if (gScanStateDir != SCAN_OFF)
 		CHFRSCANNER_Found();
-
+#endif
 #ifdef ENABLE_NOAA
 	if (IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) && gIsNoaaMode) {
 		gRxVfo->CHANNEL_SAVE        = gNoaaChannel + NOAA_CHANNEL_FIRST;
@@ -863,10 +863,11 @@ void APP_Update(void)
 #else
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed)
 #endif
+#ifdef ENABLE_SCANNER
 	{	// scanning
 		CHFRSCANNER_ContinueScanning();
 	}
-
+#endif
 #ifdef ENABLE_NOAA
 #ifdef ENABLE_VOICE
 		if (gEeprom.DUAL_WATCH == DUAL_WATCH_OFF && gIsNoaaMode && gScheduleNOAA && gVoiceWriteIndex == 0)

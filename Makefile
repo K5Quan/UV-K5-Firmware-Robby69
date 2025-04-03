@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := 4.18
+VERSION_STRING := 4.19
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -56,7 +56,7 @@ ENABLE_FREQ_LOCKING						:= 0
 #Robby69 0 to remove all frequency lock
 ENABLE_SPECTRUM_ARROW					:= 0
 #Robby69 0 to remove the spectrum arrow
-
+ENABLE_SCANNER							:= 0
 
 #############################################################
 
@@ -288,6 +288,10 @@ endif
 ifeq ($(ENABLE_TX1750),1)
 	CFLAGS  += -DENABLE_TX1750
 endif
+ifeq ($(ENABLE_FREQ_LOCKING),1)
+	CFLAGS  += -ENABLE_FREQ_LOCKING
+endif
+
 ifeq ($(ENABLE_PWRON_PASSWORD),1)
 	CFLAGS  += -DENABLE_PWRON_PASSWORD
 endif
@@ -378,7 +382,9 @@ endif
 ifeq ($(ENABLE_ENCRYPTION),1)
 	CFLAGS  += -DENABLE_ENCRYPTION
 endif
-
+ifeq ($(ENABLE_SCANNER),1)
+	CFLAGS  += -DENABLE_SCANNER
+endif
 LDFLAGS =
 ifeq ($(ENABLE_CLANG),0)
 	LDFLAGS += -mcpu=cortex-m0 -nostartfiles -Wl,-T,firmware.ld
