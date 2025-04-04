@@ -702,13 +702,7 @@ void BOARD_EEPROM_Init(void)
 	gSetting_KILLED            = (Data[2] < 2) ? Data[2] : false;
 #endif
 
-#ifdef ENABLE_FREQ_LOCKING
 	gSetting_F_LOCK            = (Data[0] < F_LOCK_LEN) ? Data[0] : F_LOCK_DEF;
-	gSetting_350TX             = (Data[1] < 2) ? Data[1] : false;  // was true
-	gSetting_200TX             = (Data[3] < 2) ? Data[3] : false;
-	gSetting_500TX             = (Data[4] < 2) ? Data[4] : false;
-	gSetting_350EN             = (Data[5] < 2) ? Data[5] : true;
-#endif
 	gSetting_ScrambleEnable    = (Data[6] < 2) ? Data[6] : true;
 	//gSetting_TX_EN             = (Data[7] & (1u << 0)) ? true : false;
 #ifdef ENABLE_DTMF

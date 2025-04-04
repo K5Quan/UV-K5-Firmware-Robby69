@@ -108,14 +108,8 @@ const t_menu_item MenuList[] =
 #endif
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
-#ifdef ENABLE_FREQ_LOCKING
-	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        },
-	{"Tx 200", VOICE_ID_INVALID,                       MENU_200TX         }, // was "200TX"
-	{"Tx 350", VOICE_ID_INVALID,                       MENU_350TX         }, // was "350TX"
-	{"Tx 500", VOICE_ID_INVALID,                       MENU_500TX         }, // was "500TX"
-	{"350 En", VOICE_ID_INVALID,                       MENU_350EN         }, // was "350EN"
-#endif
-	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" //Robby69 hidden menu start
+	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        }, //Robby69 hidden menu start
+	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" 
 	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
 	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
 	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
@@ -169,14 +163,7 @@ const int CHANNEL_ONLY_SETTINGS[] = {
 
 const int VFO_ONLY_SETTINGS[] = {};
 
-#ifdef ENABLE_FREQ_LOCKING
 const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_F_LOCK;
-#endif
-
-#ifndef ENABLE_FREQ_LOCKING
-const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_SCREN;
-#endif
-
 
 const char gSubMenu_TXP[][5] =
 {
@@ -323,17 +310,10 @@ const char gSubMenu_RESET[][4] =
 	"ALL"
 };
 
-#ifdef ENABLE_FREQ_LOCKING
 const char * const gSubMenu_F_LOCK[] =
 {
-	"DEFAULT+\n137-174\n400-470",
-	"FCC HAM\n144-148\n420-450",
-	"CE HAM\n144-146\n430-440",
-	"GB HAM\n144-148\n430-440",
-	"137-174\n400-430",
-	"137-174\n400-438",
-	"PMR446",
-	"DISABLE\nALL"
+	"PMR446\nONLY",
+	"ENABLE\nALL"
 };
 #endif
 
@@ -719,12 +699,6 @@ void UI_DisplayMenu(void)
 				case MENU_MSG_ACK:
 #endif
 
-#ifdef ENABLE_FREQ_LOCKING
-			case MENU_350TX:
-			case MENU_200TX:
-			case MENU_500TX:
-			case MENU_350EN:
-#endif
 			case MENU_SCREN:
 				strcpy(String, gSubMenu_OFF_ON[gSubMenuSelection]);
 				break;
@@ -920,11 +894,10 @@ void UI_DisplayMenu(void)
 			case MENU_RESET:
 				strcpy(String, gSubMenu_RESET[gSubMenuSelection]);
 				break;
-#ifdef ENABLE_FREQ_LOCKING
+
 			case MENU_F_LOCK:
 				strcpy(String, gSubMenu_F_LOCK[gSubMenuSelection]);
 				break;
-#endif
 
 			#ifdef ENABLE_F_CAL_MENU
 				case MENU_F_CALI:

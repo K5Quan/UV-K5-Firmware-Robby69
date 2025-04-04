@@ -167,21 +167,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 //			else 
 #endif			
 
-/*			{
-				Band = gTxVfo->Band + 1;
-				#ifdef ENABLE_FREQ_LOCKING
-				if (gSetting_350EN || Band != BAND5_350MHz) {
-					if (Band > BAND7_470MHz)
-						Band = BAND1_50MHz;
-				}
-				else
-				Band = BAND6_400MHz; //Robby69
-				#endif
-				gTxVfo->Band = Band;
-
-				gEeprom.ScreenChannel[Vfo] = FREQ_CHANNEL_FIRST + Band;
-				gEeprom.FreqChannel[Vfo]   = FREQ_CHANNEL_FIRST + Band;
-			}*/
 
 
 			gRequestSaveVFO            = true;

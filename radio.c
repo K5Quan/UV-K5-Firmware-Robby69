@@ -135,16 +135,6 @@ void RADIO_InitInfo(VFO_Info_t *pInfo, const uint8_t ChannelSave, const uint32_t
 void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure)
 {
 	VFO_Info_t *pVfo = &gEeprom.VfoInfo[VFO];
-
-#ifdef ENABLE_FREQ_LOCKING
-	if (!gSetting_350EN) {
-		if (gEeprom.FreqChannel[VFO] == FREQ_CHANNEL_FIRST + BAND5_350MHz)
-			gEeprom.FreqChannel[VFO] = FREQ_CHANNEL_FIRST + BAND6_400MHz;
-
-		if (gEeprom.ScreenChannel[VFO] == FREQ_CHANNEL_FIRST + BAND5_350MHz)
-			gEeprom.ScreenChannel[VFO] = FREQ_CHANNEL_FIRST + BAND6_400MHz;
-	}
-#endif
 	uint8_t channel = gEeprom.ScreenChannel[VFO];
 
 	if (IS_VALID_CHANNEL(channel)) {
@@ -374,14 +364,6 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 		pVfo->pTX = &pVfo->freq_config_RX;
 	}
 
-#ifdef ENABLE_FREQ_LOCKING
-	if (!gSetting_350EN)
-	{
-		FREQ_Config_t *pConfig = pVfo->pRX;
-		if (pConfig->Frequency >= 35000000 && pConfig->Frequency < 40000000)
-			pConfig->Frequency = 43300000;
-	}
-#endif
 	if (pVfo->Modulation != MODULATION_FM)
 	{	// freq/chan is in AM mode
 		pVfo->SCRAMBLING_TYPE         = 0;

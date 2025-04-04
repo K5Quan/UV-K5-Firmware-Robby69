@@ -170,13 +170,7 @@ void SETTINGS_SaveSettings(void)
 	State[2]  = gSetting_KILLED;
 #endif
 
-#ifdef ENABLE_FREQ_LOCKING
 	State[0]  = gSetting_F_LOCK;
-	State[1]  = gSetting_350TX;
-	State[3]  = gSetting_200TX;
-	State[4]  = gSetting_500TX;
-	State[5]  = gSetting_350EN;
-#endif
 	State[6]  = gSetting_ScrambleEnable;
 	//if (!gSetting_TX_EN)             State[7] &= ~(1u << 0);
 #ifdef ENABLE_DTMF

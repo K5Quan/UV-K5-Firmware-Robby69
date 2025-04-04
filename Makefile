@@ -52,10 +52,6 @@ ENABLE_MESSENGER_FSK_MUTE               := 0
 ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
-ENABLE_FREQ_LOCKING						:= 0 
-#Robby69 0 to remove all frequency lock
-ENABLE_SPECTRUM_ARROW					:= 0
-#Robby69 0 to remove the spectrum arrow
 ENABLE_SCANNER							:= 0
 
 #############################################################
@@ -287,9 +283,6 @@ ifeq ($(ENABLE_ALARM),1)
 endif
 ifeq ($(ENABLE_TX1750),1)
 	CFLAGS  += -DENABLE_TX1750
-endif
-ifeq ($(ENABLE_FREQ_LOCKING),1)
-	CFLAGS  += -ENABLE_FREQ_LOCKING
 endif
 
 ifeq ($(ENABLE_PWRON_PASSWORD),1)

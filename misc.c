@@ -84,15 +84,7 @@ const uint8_t     gMicGain_dB2[5]                  = {3, 8, 16, 24, 31};
 #ifdef ENABLE_DTMF
 bool              gSetting_KILLED;
 #endif
-
-#ifdef ENABLE_FREQ_LOCKING
-bool              gSetting_350TX;
-bool              gSetting_200TX;
-bool              gSetting_500TX;
-bool              gSetting_350EN;
 uint8_t           gSetting_F_LOCK;
-#endif
-
 bool              gSetting_ScrambleEnable;
 
 uint8_t           gSetting_backlight_on_tx_rx;
