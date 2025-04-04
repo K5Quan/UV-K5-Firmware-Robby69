@@ -168,7 +168,7 @@ int TX_freq_check(const uint32_t Frequency)
 
 	// dis-allowed TX frequency
 	return -1;
-#endif
+
 
 }
 
