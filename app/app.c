@@ -1040,7 +1040,7 @@ static void CheckKeys(void)
 	if (gPttIsPressed)
 	{
 
-		if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && (gSerialConfigCountDown_500ms <= 0) && (gPttOnePushCounter == 0))
+		if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && !gSerialConfigCountDown_500ms > 0 && gPttOnePushCounter == 0)
         {   // PTT pressed
             if (++gPttDebounceCounter >= 3)     // 30ms
             {   // start transmitting
@@ -1051,24 +1051,24 @@ static void CheckKeys(void)
                 ProcessKey(KEY_PTT, true, false);
             }
         }
-        else if ((GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) || (gSerialConfigCountDown_500ms > 0) && (gPttOnePushCounter == 1))
+        else if ((GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) || gSerialConfigCountDown_500ms > 0 && gPttOnePushCounter == 1)
         {   
             // PTT released or serial comms config in progress
-            if (++gPttDebounceCounter >= 3 || (gSerialConfigCountDown_500ms > 0))     // 30ms
+            if (++gPttDebounceCounter >= 3 || gSerialConfigCountDown_500ms > 0)     // 30ms
             {   // stop transmitting
                 gPttOnePushCounter = 2;
             }
         }
-        else if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && (gSerialConfigCountDown_500ms <= 0) && (gPttOnePushCounter == 2))
+        else if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms <= 0 && gPttOnePushCounter == 2)
         {   // PTT pressed again            
-            if (++gPttDebounceCounter >= 3 || (gSerialConfigCountDown_500ms > 0))     // 30ms
+            if (++gPttDebounceCounter >= 3 || gSerialConfigCountDown_500ms > 0)     // 30ms
             {   // stop transmitting
                 gPttOnePushCounter = 3;
             }
         }
-        else if ((GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) || (gSerialConfigCountDown_500ms > 0) && (gPttOnePushCounter == 3))
+        else if ((GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) || gSerialConfigCountDown_500ms > 0 && gPttOnePushCounter == 3)
         {   // PTT released or serial comms config in progress
-            if (++gPttDebounceCounter >= 3 || (gSerialConfigCountDown_500ms > 0))     // 30ms
+            if (++gPttDebounceCounter >= 3 || gSerialConfigCountDown_500ms > 0)     // 30ms
             {   // stop transmitting
                 ProcessKey(KEY_PTT, false, false);
                 gPttIsPressed = false;
@@ -1083,7 +1083,7 @@ static void CheckKeys(void)
 		else
 			gPttDebounceCounter = 0;
 	}
-	else if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && (gSerialConfigCountDown_500ms == 0) && (gPttOnePushCounter == 1))
+	else if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms == 0 && gPttOnePushCounter == 1)
 	{	// PTT pressed
 		if (++gPttDebounceCounter >= 3)	    // 30ms
 		{	// start transmitting
@@ -1162,7 +1162,7 @@ static void CheckKeys(void)
 
 		gDebounceCounter = key_repeat_delay_10ms+1;
 	}
-
+}
 
 void APP_TimeSlice10ms(void)
 {
