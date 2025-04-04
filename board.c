@@ -702,7 +702,7 @@ void BOARD_EEPROM_Init(void)
 	gSetting_KILLED            = (Data[2] < 2) ? Data[2] : false;
 #endif
 
-	gSetting_F_LOCK            = (Data[0] < F_LOCK_LEN) ? Data[0] : F_LOCK_DEF;
+	gSetting_F_LOCK            = (Data[0] < F_LOCK_LEN) ? Data[0] : F_UNLOCK_PMR;
 	gSetting_ScrambleEnable    = (Data[6] < 2) ? Data[6] : true;
 	//gSetting_TX_EN             = (Data[7] & (1u << 0)) ? true : false;
 #ifdef ENABLE_DTMF

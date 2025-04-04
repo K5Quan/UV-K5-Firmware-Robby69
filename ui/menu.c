@@ -315,7 +315,6 @@ const char * const gSubMenu_F_LOCK[] =
 	"PMR446\nONLY",
 	"ENABLE\nALL"
 };
-#endif
 
 const char gSubMenu_BACKLIGHT[][7] =
 {

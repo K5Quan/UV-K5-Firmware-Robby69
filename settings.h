@@ -41,7 +41,7 @@ typedef enum POWER_OnDisplayMode_t POWER_OnDisplayMode_t;
 
 enum {
 	F_UNLOCK_PMR,
-	F_LOCK_ALL,	// disable TX on all frequencies, scanner mode
+	F_UNLOCK_ALL,	// enable TX on all frequenciese
 	F_LOCK_LEN
 };
 

@@ -158,18 +158,17 @@ int TX_freq_check(const uint32_t Frequency)
 	switch (gSetting_F_LOCK)
 	{
 		case F_UNLOCK_PMR:
-			if (Frequency >= 44600625 && Frequency <= 44619375)
+			if (Frequency >= 44600000 && Frequency <= 44620000)
 				return 0;
 			break;
 
-		case F_LOCK_ALL:
+		case F_UNLOCK_ALL:
+				return 0;
 			break;
 	}
 
 	// dis-allowed TX frequency
 	return -1;
-#endif
-
 }
 
 int RX_freq_check(const uint32_t Frequency)
