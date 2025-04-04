@@ -109,7 +109,6 @@ const t_menu_item MenuList[] =
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
 	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        }, //Robby69 hidden menu start
-	{"SetPTT", VOICE_ID_INVALID,				   	   MENU_SET_PTT       },
 	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" 
 	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
 	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
@@ -316,6 +315,7 @@ const char * const gSubMenu_F_LOCK[] =
 	"PMR446\nONLY",
 	"ENABLE\nALL"
 };
+#endif
 
 const char gSubMenu_BACKLIGHT[][7] =
 {
