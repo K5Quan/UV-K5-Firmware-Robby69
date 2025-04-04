@@ -365,6 +365,12 @@ const char gSubMenu_SCRAMBLER[][7] =
 	"3500Hz"
 };
 
+const char gSubMenu_SET_PTT[][8] =
+{
+	"CLASSIC",
+	"ONEPUSH"
+};
+
 const t_sidefunction SIDEFUNCTIONS[] =
 {
 	{"NONE",			ACTION_OPT_NONE},
@@ -932,7 +938,9 @@ void UI_DisplayMenu(void)
 			case MENU_MLONG:
 				strcpy(String, gSubMenu_SIDEFUNCTIONS[gSubMenuSelection].name);
 				break;
-
+			case MENU_SET_PTT:
+				strcpy(String, gSubMenu_SET_PTT[gSubMenuSelection]);
+				break;
 		}
 	}
 
