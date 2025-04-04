@@ -244,7 +244,7 @@ volatile uint8_t  boot_counter_10ms;
 int16_t           gCurrentRSSI[2] = {0, 0};  // now one per VFO
 
 uint8_t           gIsLocked = 0xFF;
-uint8_t       	  gPttOnePushCounter = 0;
+
 
 
 int32_t NUMBER_AddWithWraparound(int32_t Base, int32_t Add, int32_t LowerLimit, int32_t UpperLimit)
