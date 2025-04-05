@@ -378,7 +378,7 @@ uint16_t GetRssi() {
 
   // testing resolution to sticky squelch issue
   while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
-    SYSTICK_DelayUs(100);
+    SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
  

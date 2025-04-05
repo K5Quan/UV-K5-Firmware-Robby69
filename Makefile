@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := 4.20
+VERSION_STRING := 4.21
 
 # compile options (see README.md for descriptions)
 # 0 = disable
