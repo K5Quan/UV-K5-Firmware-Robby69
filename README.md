@@ -43,3 +43,4 @@
             		- Un appui : seule la barre d’historique se déplace,
             		- Un second appui : seule la barre audio se déplace.
 
+<h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/commits/master/"> Histroique des versions</a></h2>
