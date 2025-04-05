@@ -77,6 +77,8 @@
 	uint8_t gPlayMSGRingCount = 0;
 #endif
 
+bool gCurrentTxState = false;
+
 static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
 static void FlashlightTimeSlice();
 
@@ -1036,34 +1038,38 @@ static void CheckKeys(void)
 		return;
 
 
-// -------------------- PTT ------------------------
-	if (gPttIsPressed)
-	{
-		if (GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) || gSerialConfigCountDown_500ms > 0)
-		{	// PTT released or serial comms config in progress
-			if (++gPttDebounceCounter >= 3 || gSerialConfigCountDown_500ms > 0)	    // 30ms
-			{	// stop transmitting
-				ProcessKey(KEY_PTT, false, false);
-				gPttIsPressed = false;
-				if (gKeyReading1 != KEY_INVALID)
-					gPttWasReleased = true;
-			}
-		}
-		else
-			gPttDebounceCounter = 0;
-	}
-	else if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms == 0)
-	{	// PTT pressed
-		if (++gPttDebounceCounter >= 3)	    // 30ms
-		{	// start transmitting
-			boot_counter_10ms   = 0;
-			gPttDebounceCounter = 0;
-			gPttIsPressed       = true;
-			ProcessKey(KEY_PTT, true, false);
-		}
-	}
-	else
-		gPttDebounceCounter = 0;
+// -------------------- Toggle PTT ------------------------
+if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms == 0)
+{   // PTT button is pressed
+    if (!gPttIsPressed)
+    {   // Only act on the initial press, not while holding
+        if (++gPttDebounceCounter >= 3)    // 30ms debounce
+        {   
+            // Toggle transmission state
+            gPttIsPressed = true;
+            gPttDebounceCounter = 0;
+            boot_counter_10ms = 0;
+            
+            // Toggle between KEY_PTT on/off
+            if (gCurrentTxState) {
+                ProcessKey(KEY_PTT, false, false);  // Turn off TX
+                gCurrentTxState = false;
+            } else {
+                ProcessKey(KEY_PTT, true, false);   // Turn on TX
+                gCurrentTxState = true;
+            }
+        }
+    }
+    else
+    {
+        gPttDebounceCounter = 0;  // Reset if already pressed
+    }
+}
+else
+{   // PTT button is released
+    gPttIsPressed = false;
+    gPttDebounceCounter = 0;
+}
 
 // --------------------- OTHER KEYS ----------------------------
 
