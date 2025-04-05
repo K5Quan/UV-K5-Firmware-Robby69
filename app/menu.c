@@ -374,12 +374,9 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMin = 0;
 			*pMax = gSubMenu_SIDEFUNCTIONS_size-1;
 			break;
-		case MENU_SET_PTT:
-            *pMax = ARRAY_SIZE(gSubMenu_SET_PTT) - 1;
-            break;
+
 		default:
 			return -1;
-
 	}
 
 	return 0;

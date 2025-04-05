@@ -184,7 +184,6 @@ extern uint16_t              gEEPROM_RSSI_CALIB[7][4];
 
 extern uint16_t              gEEPROM_1F8A;
 extern uint16_t              gEEPROM_1F8C;
-extern uint8_t               gPttOnePushCounter;
 
 typedef union { 
     struct {
