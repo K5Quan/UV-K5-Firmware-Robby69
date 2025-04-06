@@ -1039,24 +1039,39 @@ static void CheckKeys(void)
 
 
 // -------------------- Toggle PTT ------------------------
+//ROBBY69 TOGGLE PTT
+// First check if we need to stop transmission due to timeout
+if (gCurrentTxState && gTxTimerCountdown_500ms == 0) {
+    ProcessKey(KEY_PTT, false, false);  // Turn off TX
+    gCurrentTxState = false;
+    gPttIsPressed = false;  // Reset PTT state as well
+}
+
+// Then handle PTT button logic
 if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms == 0)
 {   // PTT button is pressed
     if (!gPttIsPressed)
     {   // Only act on the initial press, not while holding
         if (++gPttDebounceCounter >= 3)    // 30ms debounce
         {   
-            // Toggle transmission state
             gPttIsPressed = true;
             gPttDebounceCounter = 0;
             boot_counter_10ms = 0;
-            
-            // Toggle between KEY_PTT on/off
-            if (gCurrentTxState) {
-                ProcessKey(KEY_PTT, false, false);  // Turn off TX
-                gCurrentTxState = false;
+		if (Ptt_Toggle_Mode) {
+                // Toggle between KEY_PTT on/off
+                if (gCurrentTxState) {
+                    ProcessKey(KEY_PTT, false, false);  // Turn off TX
+                    gCurrentTxState = false;
+                } else {
+                    ProcessKey(KEY_PTT, true, false);   // Turn on TX
+                    gCurrentTxState = true;
+                }
             } else {
-                ProcessKey(KEY_PTT, true, false);   // Turn on TX
-                gCurrentTxState = true;
+                // Standard PTT behavior - transmit while pressed
+                if (!gCurrentTxState) {
+                    ProcessKey(KEY_PTT, true, false);   // Turn on TX
+                    gCurrentTxState = true;
+                }
             }
         }
     }
@@ -1067,6 +1082,13 @@ if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms 
 }
 else
 {   // PTT button is released
+    if (gPttIsPressed) {
+        if (!Ptt_Toggle_Mode && gCurrentTxState) {
+            // Only turn off TX if in normal PTT mode and we're transmitting
+            ProcessKey(KEY_PTT, false, false);
+            gCurrentTxState = false;
+        }
+    }
     gPttIsPressed = false;
     gPttDebounceCounter = 0;
 }

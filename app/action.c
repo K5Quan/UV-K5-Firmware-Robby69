@@ -42,6 +42,7 @@
 #include "ui/inputbox.h"
 #include "ui/ui.h"
 #include "spectrum.h"
+
 static void ACTION_FlashLight(void)
 {
 	switch (gFlashLightState)
@@ -59,6 +60,9 @@ static void ACTION_FlashLight(void)
 			GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_FLASHLIGHT);
 	}
 }
+
+//Robby69 
+static void ACTION_TOGGLE_PTT(void) {Ptt_Toggle_Mode = !Ptt_Toggle_Mode;}
 
 void ACTION_Power(void)
 {
@@ -381,6 +385,9 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			break;
 		case ACTION_OPT_FLASHLIGHT:
 			ACTION_FlashLight();
+			break;
+		case ACTION_OPT_TOGGLE_PTT:
+			ACTION_TOGGLE_PTT();
 			break;
 		case ACTION_OPT_POWER:
 			ACTION_Power();

@@ -45,7 +45,7 @@ static void DrawSmallAntennaAndBars(uint8_t *p, unsigned int level)
 	if(level>6)
 		level = 6;
 
-	memcpy(p, BITMAP_Antenna, ARRAY_SIZE(BITMAP_Antenna));
+	//memcpy(p, BITMAP_Antenna, ARRAY_SIZE(BITMAP_Antenna));
 
 	for(uint8_t i = 1; i <= level; i++) {
 		char bar = (0xff << (6-i)) & 0x7F;
@@ -605,6 +605,10 @@ void UI_DisplayMain(void)
 			break;
 		}		
 		UI_PrintStringSmall(s, LCD_WIDTH + 25, 0, line + 1);
+
+		// show the Ptt_Toggle_Mode
+		
+		if (Ptt_Toggle_Mode) 	UI_PrintStringSmall("T", LCD_WIDTH + 0, 0, line + 1);
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
