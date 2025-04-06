@@ -8,7 +8,7 @@
 - Le développement de ce firmware est parti du firmware NUNU de NTOIVOLA. https://github.com/ntoivola/uv-k5-firmware-custom-nunu
 - Il est fourni tel quel, sans support ni garantie d'aucune sorte.
 - Le manuel est disponible à l'adresse : https://github.com/ntoivola/uv-k5-firmware-custom-nunu sauf mes évolutions décrites ci-dessous.
-- Appui PTT alterné, on appuie pour émettre, on appuie à nouveau pour cesser d'émettre
+- Appui PTT alterné, on appuie pour émettre, on appuie à nouveau pour cesser d'émettre. Ce mode toggle est à affecter sur une touche raccourci (SIDE 1, SIDE 2 ou M)
 - Radio Broadcast FM présente en version ultra simplifiée pour gagner de la place
 - Verrouillage de l'émission en PMR uniquement si souhaité.
 - Forte réduction de l'utilisation de la mémoire, il reste 13% disponible.
