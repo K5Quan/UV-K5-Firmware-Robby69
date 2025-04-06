@@ -9,7 +9,7 @@
 - Il est fourni tel quel, sans support ni garantie d'aucune sorte.
 - Le manuel est disponible à l'adresse : https://github.com/ntoivola/uv-k5-firmware-custom-nunu sauf mes évolutions décrites ci-dessous.
 - Appui PTT alterné, on appuie pour émettre, on appuie à nouveau pour cesser d'émettre. Ce mode toggle est à affecter sur une touche raccourci (SIDE 1, SIDE 2 ou M)
-- Radio Broadcast FM présente en version ultra simplifiée pour gagner de la place
+- Radio Broadcast FM présente en version ultra simplifiée pour gagner de la place sans pour autant supprimer complètement cette fonction !!!
 - Verrouillage de l'émission en PMR uniquement si souhaité.
 - Forte réduction de l'utilisation de la mémoire, il reste 13% disponible.
 -  Réduction des puissances MID et LOW – Tests en cours… Objectif : 100mW, 500mW et 5W.
@@ -25,8 +25,8 @@
 - Optimisation réglage AGC
 - Suppression de l'utilisation DTMF pour gagner de la place.
 - Suppression du scanner pour gagner de la place et spectre 5x plus rapide.
-- Simplification du menu: éléments du menu masqués :
-	- F1Shrt, F1Long, F2Shrt, F2Long, M Long, KeyLck, TxTOut, BatSav, Mic, ChDisp, POnMsg, BatTxt, BackLt, BLMin, BLMax, BltTRX, Beep, Voice, D Live, SqTone, 1 Call, FrCali, BatCal, BatTyp.
+- Simplification du menu: les éléments suivants sont dans le menu masqués
+	- F Lock, ScraEn, Scramb, Compnd, ChDele, ChName, F1Shrt, F1Long, F2Shrt, F2Long, M Long, KeyLck, TxTOut, BatSav, Mic, ChDisp, POnMsg, BatTxt, BackLt, BLMin, BLMax, BltTRX, Beep, SqTone, 1 Call, FrCali, BatCal, BatTyp, Reset VFO.
  	- Pour les retrouver, allumer le K5 en appuyant PTT et bouton I sous le PTT
 - Affichage des codes CTCSS et DCS sur le spectre (fonctionnement pour la première moitié des codes CTSS).
 - La fréquence sélectionnée est copiée dans le VFO lors de la sortie du spectre.
