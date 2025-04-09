@@ -930,17 +930,24 @@ static void DrawF(uint32_t f) {
 	f= freqHistory[indexFd];
 	int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
+
+
+
 	if (f > 0){
-		if(isKnownChannel) sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
-		else 	
-    if(GetScanStep() ==  833) {
-      uint32_t base = f/2500*2500;
-      int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-      f = base + (chno * 833) + (chno == 3);
-    }
-    sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
-				GUI_DisplaySmallest(String, 0, 16, false, true);}
-	
+    //Robby69 show history 
+		if(isKnownChannel) {sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);}
+	    else 	
+        {if(GetScanStep() ==  833) {
+            uint32_t base = f/2500*2500;
+            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+            f = base + (chno * 833) + (chno == 3);
+            }
+            sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
+          }
+    GUI_DisplaySmallest(String, 0, 16, false, true);}
+
+
+    
 //Robby show CTCSS or DCS
 	if (refresh == 0){
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
