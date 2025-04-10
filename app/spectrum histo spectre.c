@@ -1494,6 +1494,35 @@ static void NextScanStep() {
     // channel mode
     if (appMode==CHANNEL_MODE)
     {
+      if (scanInfo.i <= GetStepsCount())
+        {
+        int currentChannel = scanChannel[scanInfo.i];
+        scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
+        }
+      else 
+        scanInfo.f = freqHistory[scanInfo.i - GetStepsCount()];
+      ++scanInfo.i; 
+    }
+    else
+    // frequency mode
+    {
+      ++scanInfo.i; 
+      scanInfo.f += scanInfo.scanStep;
+    }
+    
+  #elif
+    ++scanInfo.i;
+    scanInfo.f += scanInfo.scanStep;
+  #endif
+
+}
+
+/*static void NextScanStep() {
+  ++peak.t;
+  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+    // channel mode
+    if (appMode==CHANNEL_MODE)
+    {
       //if (scanInfo.i <= GetStepsCount())
       //{
       int currentChannel = scanChannel[scanInfo.i];
@@ -1515,13 +1544,13 @@ static void NextScanStep() {
     scanInfo.f += scanInfo.scanStep;
   #endif
 
-}
+}*/
 
 static void UpdateScan() {
   Scan();
 
-  //if (scanInfo.i < (GetStepsCount()+indexFs)) {
-  if (scanInfo.i < GetStepsCount()) {
+  if (scanInfo.i < (GetStepsCount()+indexFs)) {
+  //if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
   }
@@ -1712,60 +1741,54 @@ void APP_RunSpectrum() {
   }
 }
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-  void LoadValidMemoryChannels(void)
-  {
+void LoadValidMemoryChannels(void)
+{
     memset(scanChannel,0,sizeof(scanChannel));
     scanChannelsCount = 0;
     bool listsEnabled = false;
+    uint8_t listChannelsCount;
+    int sl;
     
     // loop through all scanlists
-    for (int sl=1; sl <= 16; sl++) {
-      // skip disabled scanlist
-      if (sl <= 15 && !settings.scanListEnabled[sl-1])
-        continue;
+    for (sl=1; sl <= 16; sl++)
+    {
+        // skip disabled scanlist
+        if (sl <= 15 && !settings.scanListEnabled[sl-1]) continue;
 
-      // valid scanlist is enabled
-      if (sl <= 15 && settings.scanListEnabled[sl-1])
-        listsEnabled = true;
-      
-      // break if some lists were enabled, else scan all channels
-      if (sl > 15 && listsEnabled)
-        break;
-
-      uint8_t offset = scanChannelsCount;
-      uint8_t listChannelsCount = RADIO_ValidMemoryChannelsCount(listsEnabled, sl-1);
+        // valid scanlist is enabled
+        if (sl <= 15 && settings.scanListEnabled[sl-1]) listsEnabled = true;
+        
+        // break if some lists were enabled, else scan all channels
+        if (sl > 15 && listsEnabled) break;
+        listChannelsCount = RADIO_ValidMemoryChannelsCount(listsEnabled, sl-1);
+        
+        // For scan list 15, add VFO frequencies and history frequencies
+        if (settings.scanListEnabled[14]) 
+          {
+          // Add frequencies from history table
+          listChannelsCount+=indexFs;
+          }
+      }
       scanChannelsCount += listChannelsCount;
       signed int channelIndex=-1;
-      for(int i=0; i < listChannelsCount; i++)
+      for (int i=0; i < (listChannelsCount-indexFs); i++)
       {
-        int nextChannel;
-        nextChannel = RADIO_FindNextChannel((channelIndex)+1, 1, listsEnabled, sl-1);
-
+        // Handle regular channels
+        uint8_t nextChannel = RADIO_FindNextChannel((channelIndex)+1, 1, listsEnabled, sl-1);
         if (nextChannel == 0xFF)
-        {	// no valid channel found
-          break;
-        }
-        else
-        {
-          channelIndex = nextChannel;
-          scanChannel[offset+i]=channelIndex;
-        }
+            {	// no valid channel found
+                break;
+            }
+            else
+            {
+                channelIndex = nextChannel;
+                scanChannel[scanChannelsCount+i]=channelIndex;
+            }
       }
-    }
-  }
+}
 
   void ToggleScanList(int scanListNumber, int single)
   {
-    // if (settings.scanList==S_SCAN_LIST_ALL)
-    // {
-    //   settings.scanList=S_SCAN_LIST_1;
-    // }
-    // else
-    // {
-    //   settings.scanList++;
-    // }
-
     if (single)
       memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
   
@@ -1797,23 +1820,3 @@ void APP_RunSpectrum() {
     }
     RelaunchScan();
   }
- 
-
- /* void Attenuate(uint8_t amount)
-  {
-    // attenuate doesn't work with more than 128 samples,
-    // since we select max rssi in such mode ignoring attenuation
-     if(scanInfo.measurementsCount > 128)
-      return;
-
-    // idea: consider amount to be 10% of rssiMax-rssiMin
-    if(attenuationOffset[peak.i] < MAX_ATTENUATION){
-      attenuationOffset[peak.i] += amount;
-      isAttenuationApplied = true;
-
-      ResetPeak();
-      ResetScanStats();
-    }
-    
-  }*/
-#endif
