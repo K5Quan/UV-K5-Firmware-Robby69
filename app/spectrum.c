@@ -60,7 +60,6 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
-  void AutoAdjustResolution();
   void ToggleNormalizeRssi(bool on);
   //void Attenuate(uint8_t amount);
 #endif
@@ -83,7 +82,7 @@ static char StringC[10];
   char     rxChannelName[12];
   ModulationMode_t  channelModulation;
   BK4819_FilterBandwidth_t channelBandwidth;
-  void     LoadValidMemoryChannels(int latestScanListNumber);
+  void     LoadValidMemoryChannels(void);
 #endif
 
 bool isInitialized = false;
@@ -122,13 +121,13 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 150,
-							 rssiTriggerLevelH: 150,
+							               rssiTriggerLevelH: 150,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: -20, //Robby69 -50
+                             dbMax: 10, // Zylka Robby69 -20
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -487,9 +486,8 @@ static void ResetModifiers() {
   blacklistFreqsIdx = 0;
 #endif
   if(appMode==CHANNEL_MODE){
-      LoadValidMemoryChannels(255);
+      LoadValidMemoryChannels();
   }
-  AutoAdjustResolution(); //Robby69
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   //isAttenuationApplied = false;
@@ -523,7 +521,7 @@ static void UpdateScanInfo() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +8, 0, RSSI_MAX_VALUE); //Robby69 +8
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +40, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
@@ -690,7 +688,6 @@ static void ToggleStepsCount() {
   } else {
     settings.stepsCount--;
   }
-  AutoAdjustResolution();//Robby69 added
   AutoAdjustFreqChangeStep();
   ResetModifiers();
   redrawScreen = true;
@@ -812,15 +809,6 @@ uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
 uint8_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
-//Robby69 16 and 32 added
-void AutoAdjustResolution(){
-  settings.stepsCount = settings.stepsCount ;
-	/*if (GetStepsCount() <= 16){settings.stepsCount = STEPS_16;return;}
-	if (GetStepsCount() <= 32){settings.stepsCount = STEPS_32;return;}
-	if (GetStepsCount() <= 64){settings.stepsCount = STEPS_64;return;}
-	if (GetStepsCount() > 64){settings.stepsCount = STEPS_128;return;}*/
-}
-
 
 static void DrawSpectrum()
     {//Robby69 V4.16
@@ -847,13 +835,6 @@ static void DrawSpectrum()
         }
     }
 
-/*static void DrawSpectrum() {//Robby69 V4.15
-	uint16_t rssi;
-	for (uint8_t x = 0; x < 127; ++x) { //Robby69 127 to remove vertical bar
-		rssi = rssiHistory[1+ (x >> settings.stepsCount)]; //Robby69
-		if (rssi != RSSI_MAX_VALUE) 
-			DrawVLine(Rssi2Y(rssi), DrawingEndY, x, true);}
-}*/
 
 static void DrawStatus() {
 #ifdef SPECTRUM_EXTRA_VALUES
@@ -944,9 +925,9 @@ static void DrawF(uint32_t f) {
             }
             sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
           }
-    GUI_DisplaySmallest(String, 0, 16, false, true);}
-
-
+    //GUI_DisplaySmallest(String, 0, 16, false, true);
+    UI_PrintStringSmall(String, 1, 1, 2); 
+    }
     
 //Robby show CTCSS or DCS
 	if (refresh == 0){
@@ -961,13 +942,13 @@ static void DrawF(uint32_t f) {
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
 			refresh = 100;
-			sprintf(StringC, " Code %u.%u Hz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
+			sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
 			
-	GUI_DisplaySmallest(StringC, 70, 16, false, true);
-	refresh--;
+	GUI_DisplaySmallest(StringC, 100, 15, false, true);
+  refresh--;
 
 #if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-	if (isKnownChannel) {
+	if (isKnownChannel && isListening) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 0);}
 #endif
@@ -1513,8 +1494,13 @@ static void NextScanStep() {
     // channel mode
     if (appMode==CHANNEL_MODE)
     {
+      //if (scanInfo.i <= GetStepsCount())
+      //{
       int currentChannel = scanChannel[scanInfo.i];
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
+      //}
+      //else 
+      //scanInfo.f = freqHistory[scanInfo.i - GetStepsCount()];
       ++scanInfo.i; 
     }
     else
@@ -1534,6 +1520,7 @@ static void NextScanStep() {
 static void UpdateScan() {
   Scan();
 
+  //if (scanInfo.i < (GetStepsCount()+indexFs)) {
   if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
@@ -1670,11 +1657,7 @@ appMode = mode;
 void APP_RunSpectrum() {
 #endif
   #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-    if (appMode==CHANNEL_MODE)
-    {
-      LoadValidMemoryChannels(255);
-      AutoAdjustResolution();
-    }
+    if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
   #endif
   #ifdef ENABLE_SCAN_RANGES
     if(mode==SCAN_RANGE_MODE) {
@@ -1685,7 +1668,6 @@ void APP_RunSpectrum() {
           break;
         }
       }
-      AutoAdjustResolution(); //Robby69
     }
     else
   #endif
@@ -1731,7 +1713,7 @@ void APP_RunSpectrum() {
 }
 
 #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-  void LoadValidMemoryChannels(int latestScanListNumber)
+  void LoadValidMemoryChannels(void)
   {
     memset(scanChannel,0,sizeof(scanChannel));
     scanChannelsCount = 0;
@@ -1768,15 +1750,6 @@ void APP_RunSpectrum() {
         {
           channelIndex = nextChannel;
           scanChannel[offset+i]=channelIndex;
-		  //Robby69 test 08/03/25
-		  latestScanListNumber = latestScanListNumber;
-          /*if (sl == latestScanListNumber && i == 0) {
-            // put the name of the first channel from the just-enabled list in rxChannelName
-            // so it will show briefly on the screen
-            memmove(rxChannelName, gMR_ChannelFrequencyAttributes[channelIndex].Name, sizeof(rxChannelName));
-            rxChannelDisplayCountdown = 4;
-            redrawScreen = true;
-          }*/
         }
       }
     }
@@ -1797,14 +1770,8 @@ void APP_RunSpectrum() {
       memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
   
     settings.scanListEnabled[scanListNumber-1] = !settings.scanListEnabled[scanListNumber-1];
-
-    // if scanlist was toggled on, save its number in latest
-    int latest = 255;
-    if (settings.scanListEnabled[scanListNumber-1])
-      latest = scanListNumber;
-    LoadValidMemoryChannels(latest);
+    LoadValidMemoryChannels();
     ResetModifiers();
-    AutoAdjustResolution();
   }
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
