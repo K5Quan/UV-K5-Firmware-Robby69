@@ -1,19 +1,3 @@
-/* Copyright 2023 fagci
- * https://github.com/fagci
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *     Unless required by applicable law or agreed to in writing, software
- *     distributed under the License is distributed on an "AS IS" BASIS,
- *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *     See the License for the specific language governing permissions and
- *     limitations under the License.
- * 	   Test
- */
 #include "app/spectrum.h"
 
 #ifdef ENABLE_SCAN_RANGES
@@ -35,9 +19,7 @@ struct FrequencyBandInfo {
     uint32_t middle;
 };
 
-//bool gTailFound;
 bool isBlacklistApplied;
-//DCS_CodeType_t    gScanCssResultType2;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
@@ -45,23 +27,20 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
-#define Bottom_print 51 //Robby69 13
+#define Bottom_print 51 //Robby69
 
 #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   Mode appMode;
-  //Idea - make this user adjustable to compensate for different antennas, frontends, conditions
   #define UHF_NOISE_FLOOR 40
   #define MAX_ATTENUATION 160
   #define ATTENUATE_STEP  10
   bool    isNormalizationApplied;
-  //bool    isAttenuationApplied;
   uint8_t  gainOffset[129];
   uint8_t  attenuationOffset[129];
   uint8_t scanChannel[MR_CHANNEL_LAST+3];
   uint8_t scanChannelsCount;
   void ToggleScanList();
   void ToggleNormalizeRssi(bool on);
-  //void Attenuate(uint8_t amount);
 #endif
 
 const uint16_t RSSI_MAX_VALUE = 65535;
@@ -127,7 +106,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
                              dbMin: -130,
-                             dbMax: 10, // Zylka Robby69 -20
+                             dbMax: 10,
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0}};
 
@@ -155,7 +134,6 @@ RegisterSpec registerSpecs[] = {
     {"LNA",  BK4819_REG_13, 5, 0b111, 1},
     {"PGA",  BK4819_REG_13, 0, 0b111, 1},
     {"MIX",  BK4819_REG_13, 3, 0b11,  1},
-    // {"IF", BK4819_REG_3D, 0, 0xFFFF, 0x2aaa},
 };
 
 uint16_t statuslineUpdateTimer = 0;
@@ -280,9 +258,6 @@ static void ResetPeak() {
   peak.rssi = 0;
 }
 
-//bool IsCenterMode() { return settings.scanStepIndex < S_STEP_2_5kHz; }
-
-//bool IsCenterMode() { return 1; } //Robby69
 
 // scan step in 0.01khz
 uint16_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
@@ -337,17 +312,13 @@ static void ExitAndCopyToVfo() {
     gTxVfo->STEP_SETTING = FREQUENCY_GetStepIdxFromStepFrequency(GetScanStep());
     gTxVfo->Modulation = settings.modulationType;
     gTxVfo->CHANNEL_BANDWIDTH = settings.listenBw;
-
-    //SETTINGS_SetVfoFrequency(peak.f);
-	SETTINGS_SetVfoFrequency(freqHistory[indexFd]); //Robby69
-  
+    SETTINGS_SetVfoFrequency(freqHistory[indexFd]); //Robby69
     gRequestSaveChannel = 1;
   }
  
   // Additional delay to debounce keys
-  SYSTEM_DelayMs(200);
-
-  isInitialized = false;
+SYSTEM_DelayMs(200);
+isInitialized = false;
 }
 
 uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency) 
@@ -372,9 +343,6 @@ uint8_t GetBWRegValueForScan() {
   
 uint16_t GetRssi() {
   uint16_t rssi;
-    // SYSTICK_DelayUs(800);
-  // testing autodelay based on Glitch value
-
   // testing resolution to sticky squelch issue
   while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
@@ -387,10 +355,7 @@ uint16_t GetRssi() {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
     }
-
-    rssi+=gainOffset[CurrentScanIndex()];
-    //rssi-=attenuationOffset[CurrentScanIndex()];
-
+  rssi+=gainOffset[CurrentScanIndex()];
   #endif
   return rssi;
 }
@@ -596,8 +561,6 @@ static void UpdateRssiTriggerLevel(bool inc) {
 			settings.rssiTriggerLevelH -=5;
 		settings.rssiTriggerLevel  -=5;}}
   ClampRssiTriggerLevel();
-  //redrawScreen = true;
-  //redrawStatus = true;
 }
 
 static void UpdateDBMax(bool inc) {
@@ -879,10 +842,6 @@ static void DrawStatus() {
             4 * 760 / gBatteryCalibration[3];
 
   unsigned perc = BATTERY_VoltsToPercent(voltage);
-
-  // sprintf(String, "%d %d", voltage, perc);
-  // GUI_DisplaySmallest(String, 48, 1, true, true);
-
   gStatusLine[116] = 0b00011100;
   gStatusLine[117] = 0b00111110;
   for (int i = 118; i <= 126; i++) {
@@ -1055,11 +1014,6 @@ static void DrawNums() {
     sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000); //Robby69 was %u.%05u
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
-  
- /* if(isAttenuationApplied){
-    sprintf(String, "ATT");
-    GUI_DisplaySmallest(String, 52, Bottom_print, false, true);
-  }*/
 
   if(isBlacklistApplied){
     sprintf(String, "BL");
@@ -1592,12 +1546,6 @@ static void Tick() {
       if (--gBacklightCountdown == 0)
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
-
-  /*  if (rxChannelDisplayCountdown > 0)
-      if (--rxChannelDisplayCountdown == 0)
-        if (!isListening)
-          rxChannelName[0] = '\0'; */
-
     gNextTimeslice_500ms = false;
 
 #ifdef ENABLE_SCAN_RANGES
@@ -1606,8 +1554,7 @@ static void Tick() {
     // listening has it's own timer
     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
-	 // if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
-      if (IsPeakOverLevel()) {
+    if (IsPeakOverLevel()) {
         ToggleRX(true);
         TuneToPeak();
 		return;
@@ -1757,15 +1704,6 @@ void APP_RunSpectrum() {
 
   void ToggleScanList(int scanListNumber, int single)
   {
-    // if (settings.scanList==S_SCAN_LIST_ALL)
-    // {
-    //   settings.scanList=S_SCAN_LIST_1;
-    // }
-    // else
-    // {
-    //   settings.scanList++;
-    // }
-
     if (single)
       memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
   
@@ -1798,22 +1736,4 @@ void APP_RunSpectrum() {
     RelaunchScan();
   }
  
-
- /* void Attenuate(uint8_t amount)
-  {
-    // attenuate doesn't work with more than 128 samples,
-    // since we select max rssi in such mode ignoring attenuation
-     if(scanInfo.measurementsCount > 128)
-      return;
-
-    // idea: consider amount to be 10% of rssiMax-rssiMin
-    if(attenuationOffset[peak.i] < MAX_ATTENUATION){
-      attenuationOffset[peak.i] += amount;
-      isAttenuationApplied = true;
-
-      ResetPeak();
-      ResetScanStats();
-    }
-    
-  }*/
 #endif
