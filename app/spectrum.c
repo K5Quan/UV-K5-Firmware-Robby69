@@ -28,8 +28,6 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
 #define Bottom_print 51 //Robby69
-
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   Mode appMode;
   #define UHF_NOISE_FLOOR 40
   #define MAX_ATTENUATION 160
@@ -41,7 +39,6 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannelsCount;
   void ToggleScanList();
   void ToggleNormalizeRssi(bool on);
-#endif
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
@@ -264,12 +261,11 @@ uint16_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
 uint16_t GetStepsCount() 
 { 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   if (appMode==CHANNEL_MODE)
   {
     return scanChannelsCount;
   }
-#endif
+
 #ifdef ENABLE_SCAN_RANGES
   if(appMode==SCAN_RANGE_MODE) {
     return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
@@ -348,15 +344,12 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
- 
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-    if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
     }
   rssi+=gainOffset[CurrentScanIndex()];
-  #endif
   return rssi;
 }
 
@@ -455,7 +448,6 @@ static void ResetModifiers() {
   }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  //isAttenuationApplied = false;
   isBlacklistApplied = false;
   RelaunchScan();
 }
@@ -1152,8 +1144,7 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_SIDE2: //Robby69
-    //Attenuate(ATTENUATE_STEP);
-	SquelchBarKeyMode += 1; //Robby69
+  SquelchBarKeyMode += 1; //Robby69
 	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
     break;
   case KEY_PTT:
@@ -1444,17 +1435,17 @@ static void Scan() {
 
 static void NextScanStep() {
   ++peak.t;
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-    // channel mode
+      // channel mode
     if (appMode==CHANNEL_MODE)
     {
-      //if (scanInfo.i <= GetStepsCount())
-      //{
+      if (scanInfo.i <= GetStepsCount())
+      {
       int currentChannel = scanChannel[scanInfo.i];
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
-      //}
-      //else 
-      //scanInfo.f = freqHistory[scanInfo.i - GetStepsCount()];
+      }
+      else
+        if (settings.scanListEnabled[14])  //Scanlist 15 is enabled
+          scanInfo.f = freqHistory[scanInfo.i - GetStepsCount()];
       ++scanInfo.i; 
     }
     else
@@ -1463,19 +1454,13 @@ static void NextScanStep() {
       ++scanInfo.i; 
       scanInfo.f += scanInfo.scanStep;
     }
-    
-  #elif
-    ++scanInfo.i;
-    scanInfo.f += scanInfo.scanStep;
-  #endif
-
 }
 
 static void UpdateScan() {
   Scan();
 
-  //if (scanInfo.i < (GetStepsCount()+indexFs)) {
-  if (scanInfo.i < GetStepsCount()) {
+  if (scanInfo.i < (GetStepsCount()+indexFs)) {
+  //if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
   }
@@ -1593,19 +1578,15 @@ static void Tick() {
   }
 }
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   if(appMode!=mode){
     ResetModifiers();
   }
-appMode = mode;
-#elif
-void APP_RunSpectrum() {
-#endif
-  #ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-    if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
-  #endif
+  appMode = mode;
+  if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
+
   #ifdef ENABLE_SCAN_RANGES
     if(mode==SCAN_RANGE_MODE) {
       currentFreq = initialFreq = gScanRangeStart;
@@ -1659,7 +1640,6 @@ void APP_RunSpectrum() {
   }
 }
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
   void LoadValidMemoryChannels(void)
   {
     memset(scanChannel,0,sizeof(scanChannel));
@@ -1735,5 +1715,3 @@ void APP_RunSpectrum() {
     }
     RelaunchScan();
   }
- 
-#endif

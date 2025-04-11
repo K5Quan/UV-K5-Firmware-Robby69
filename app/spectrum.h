@@ -96,13 +96,12 @@ typedef enum State {
   STILL,
 } State;
 
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
+
 typedef enum Mode {
   FREQUENCY_MODE,
   CHANNEL_MODE,
   SCAN_RANGE_MODE
 } Mode;
-#endif
 
 typedef enum StepsCount {
   STEPS_128,
@@ -183,18 +182,12 @@ typedef struct PeakInfo {
   uint32_t f;
   uint16_t i;
 } PeakInfo;
-#ifdef ENABLE_SPECTRUM_CHANNEL_SCAN
-void APP_RunSpectrum(Mode mode);
-#elif
-void APP_RunSpectrum(void);
-#endif
 
+void APP_RunSpectrum(Mode mode);
 
 #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   void LookupChannelInfo();
   void LookupChannelModulation();
 #endif
 
-#endif /* ifndef SPECTRUM_H */
-
-// vim: ft=c
+#endif 
