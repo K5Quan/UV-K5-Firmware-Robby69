@@ -20,6 +20,7 @@ struct FrequencyBandInfo {
 };
 
 bool isBlacklistApplied;
+
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
@@ -112,10 +113,9 @@ uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = 100;
 uint32_t freqHistory[100]; //Robby69
-uint8_t indexFd = 0; //no display
+uint8_t indexFd = 1;
 uint8_t indexFs = 1;
-
-
+bool ShowHistory = false;
 uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
@@ -500,7 +500,7 @@ bool found = 0;
 for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
 if (!found) {
 	freqHistory[indexFs] = peak.f;
-	if (indexFd > 0) indexFd = indexFs;
+	indexFd = indexFs;
 	indexFs++;}
 if (indexFs > FMaxNumb) indexFs = 1;
 }
@@ -857,9 +857,10 @@ static void DrawF(uint32_t f) {
           f = base + (chno * 833) + (chno == 3);
 	      }
     
-		sprintf(String, "%u.%05u", f / 100000, f % 100000);
-		UI_PrintStringSmall(String, 1, 127, 0);}
-		int channelFd = BOARD_gMR_fetchChannel(f);
+	sprintf(String, "%u.%05u", f / 100000, f % 100000);
+	UI_PrintStringSmall(String, 1, 127, 0);}
+	f= freqHistory[indexFd];				 
+	int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
 
 
@@ -875,8 +876,7 @@ static void DrawF(uint32_t f) {
             }
             sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
           }
-    //GUI_DisplaySmallest(String, 0, 16, false, true);
-    if (indexFd>0)
+    if (ShowHistory)
       UI_PrintStringSmall(String, 1, 1, 2); 
     }
     
@@ -1078,34 +1078,35 @@ static void OnKeyDown(uint8_t key) {
   case KEY_8:
 	uint8_t i;
 	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Reset History table
-	indexFd = 0;
-	indexFs = 1;
-    ToggleBacklight();
-    break;
+	indexFd = 1;
+  indexFs = 1;
+  ShowHistory = false;
+  ToggleBacklight();
+  break;
   case KEY_UP:
 #ifdef ENABLE_SCAN_RANGES
-if (indexFd == 0) indexFd = indexFs;
-  else indexFd++;
-if(freqHistory[indexFd]==0)indexFd--;
-if (indexFd > FMaxNumb) indexFd = 1;
+  ShowHistory = true;
+  indexFd++;
+	if(freqHistory[indexFd]==0)indexFd--;
+	if (indexFd > FMaxNumb) indexFd = 1;	  
 	
     if(appMode==FREQUENCY_MODE)
     {
 #endif
       UpdateCurrentFreq(true);
     }
-    //else {ResetModifiers();}
     break;
   case KEY_DOWN:
-  if (indexFd < 1) indexFd = 0;
-  if (indexFd>1) indexFd--;
+    ShowHistory = true;
+    indexFd--;
+    if (indexFd < 1) indexFd = 1;
+
 #ifdef ENABLE_SCAN_RANGES
     if(appMode==FREQUENCY_MODE)
     {
 #endif
       UpdateCurrentFreq(false);
     }
-    //else {ResetModifiers();}
     break;
   case KEY_SIDE1:
     Blacklist();
