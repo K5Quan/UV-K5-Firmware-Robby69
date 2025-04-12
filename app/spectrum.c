@@ -112,7 +112,7 @@ uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = 100;
 uint32_t freqHistory[100]; //Robby69
-uint8_t indexFd = 1;
+uint8_t indexFd = 0; //no display
 uint8_t indexFs = 1;
 
 
@@ -500,7 +500,7 @@ bool found = 0;
 for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
 if (!found) {
 	freqHistory[indexFs] = peak.f;
-	indexFd = indexFs;
+	if (indexFd > 0) indexFd = indexFs;
 	indexFs++;}
 if (indexFs > FMaxNumb) indexFs = 1;
 }
@@ -859,8 +859,7 @@ static void DrawF(uint32_t f) {
     
 		sprintf(String, "%u.%05u", f / 100000, f % 100000);
 		UI_PrintStringSmall(String, 1, 127, 0);}
-	f= freqHistory[indexFd];
-	int channelFd = BOARD_gMR_fetchChannel(f);
+		int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
 
 
@@ -877,7 +876,8 @@ static void DrawF(uint32_t f) {
             sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
           }
     //GUI_DisplaySmallest(String, 0, 16, false, true);
-    UI_PrintStringSmall(String, 1, 1, 2); 
+    if (indexFd>0)
+      UI_PrintStringSmall(String, 1, 1, 2); 
     }
     
 //Robby show CTCSS or DCS
@@ -1078,15 +1078,16 @@ static void OnKeyDown(uint8_t key) {
   case KEY_8:
 	uint8_t i;
 	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Reset History table
-	indexFd = 1;
+	indexFd = 0;
 	indexFs = 1;
     ToggleBacklight();
     break;
   case KEY_UP:
 #ifdef ENABLE_SCAN_RANGES
-	indexFd++;
-	if(freqHistory[indexFd]==0)indexFd--;
-	if (indexFd > FMaxNumb) indexFd = 1;
+if (indexFd == 0) indexFd = indexFs;
+  else indexFd++;
+if(freqHistory[indexFd]==0)indexFd--;
+if (indexFd > FMaxNumb) indexFd = 1;
 	
     if(appMode==FREQUENCY_MODE)
     {
@@ -1096,8 +1097,8 @@ static void OnKeyDown(uint8_t key) {
     //else {ResetModifiers();}
     break;
   case KEY_DOWN:
-  	indexFd--;
-	if (indexFd < 1) indexFd = 1;
+  if (indexFd < 1) indexFd = 0;
+  if (indexFd>1) indexFd--;
 #ifdef ENABLE_SCAN_RANGES
     if(appMode==FREQUENCY_MODE)
     {
