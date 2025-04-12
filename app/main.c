@@ -69,7 +69,9 @@ void toggle_chan_scanlist(void)
 	if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
 		//using offset to select stop frequency.
 		gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-		gScanRangeStop = gTxVfo->pTX->Frequency;
+		gScanRangeStop = gTxVfo->pTX->Frequency-gScanRangeStart; //TEST F DIRECT;
+		if(gTxVfo->pRX->Frequency > gTxVfo->pTX->Frequency) // Negative offset
+			gScanRangeStop = gTxVfo->pTX->Frequency;//manage higher frequencies such as 860MHz
 		if(gScanRangeStart > gScanRangeStop)
 			SWAP(gScanRangeStart, gScanRangeStop);
 		return;
