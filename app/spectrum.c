@@ -1443,9 +1443,6 @@ static void NextScanStep() {
       int currentChannel = scanChannel[scanInfo.i];
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
       }
-      else
-        if (settings.scanListEnabled[14])  //Scanlist 15 is enabled
-          scanInfo.f = freqHistory[scanInfo.i - GetStepsCount()];
       ++scanInfo.i; 
     }
     else
@@ -1458,9 +1455,7 @@ static void NextScanStep() {
 
 static void UpdateScan() {
   Scan();
-
-  if (scanInfo.i < (GetStepsCount()+indexFs)) {
-  //if (scanInfo.i < GetStepsCount()) {
+  if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
   }
@@ -1473,8 +1468,7 @@ static void UpdateScan() {
   preventKeypress = false;
 
   UpdatePeakInfo();
-  //if (IsPeakOverLevelH()) FillfreqHistory();//Robby69
-    
+      
   if (IsPeakOverLevel()) {
     ToggleRX(true);
     TuneToPeak();
