@@ -253,15 +253,9 @@ void ACTION_Scan(bool bRestart)
 
 void ACTION_RunSpectrum(void)
 {
-	if(gScanRangeStart){
-			// if scanRangeStart then we enter in scan range mode
-			APP_RunSpectrum(SCAN_RANGE_MODE);
-		}
-		else{
-			// if we are in channel mode then enter spectrum in channel mode
-			// otherwise enter spectrum in frequency mode
-			APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
-		}
+	// if scanRangeStart then we enter in scan range mode	
+	if(gScanRangeStart)	APP_RunSpectrum(SCAN_RANGE_MODE);
+	else APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
 }
 
 void ACTION_SwitchDemodul(void)

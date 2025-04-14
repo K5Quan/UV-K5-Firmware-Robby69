@@ -827,6 +827,8 @@ void APP_EndTransmission(bool playRoger)
 
 void APP_Update(void)
 {
+
+
 #ifdef ENABLE_VOICE
 	if (gFlagPlayQueuedVoice) {
 			AUDIO_PlayQueuedVoice();
@@ -859,6 +861,13 @@ void APP_Update(void)
 	if (gFmRadioMode && gFmRadioCountdown_500ms > 0)    // 1of11
 		return;
 #endif
+
+//Robby69 auto start spectrum in channel mode
+	if (Start_with_Spectrum)
+		{
+		Start_with_Spectrum= false;
+		ACTION_RunSpectrum();
+		}
 
 #ifdef ENABLE_VOICE
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed && gVoiceWriteIndex == 0)
@@ -1020,6 +1029,7 @@ void APP_Update(void)
 		}
 
 		gPowerSaveCountdownExpired = false;
+
 	}
 }
 

@@ -40,6 +40,8 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
   uint8_t scanChannelsCount;
   void ToggleScanList();
   void ToggleNormalizeRssi(bool on);
+  static void LoadSettings();
+  static void SaveSettings();
 
 const uint16_t RSSI_MAX_VALUE = 65535;
 
@@ -331,6 +333,7 @@ static void DeInitSpectrum() {
   RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
+  SaveSettings(); //Robby69
 }
 
 uint8_t GetBWRegValueForScan() {
@@ -431,6 +434,13 @@ static void InitScan() {
     scanInfo.measurementsCount++;
 }
 
+static void AutoTriggerLevel() {
+  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
+    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +60, 0, RSSI_MAX_VALUE); //Robby69 +8
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
+  }
+}
+
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
   //squelch_level_mod=10;
@@ -449,14 +459,16 @@ static void ResetModifiers() {
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
+  AutoTriggerLevel();
   RelaunchScan();
+  
 }
 
 static void RelaunchScan() {
   InitScan();
   ResetPeak();
   ToggleRX(false);
-  settings.rssiTriggerLevel = RSSI_MAX_VALUE; //Robby69
+  //settings.rssiTriggerLevel = RSSI_MAX_VALUE; //Robby69
   preventKeypress = true;
   scanInfo.rssiMin = RSSI_MAX_VALUE;
 }
@@ -476,12 +488,7 @@ static void UpdateScanInfo() {
   }
 }
 
-static void AutoTriggerLevel() {
-  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +40, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
-  }
-}
+
 
 
 static void UpdatePeakInfoForce() {
@@ -1577,6 +1584,7 @@ static void Tick() {
 
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
+  LoadSettings();//Robby69
   if(appMode!=mode){
     ResetModifiers();
   }
@@ -1711,3 +1719,28 @@ void APP_RunSpectrum(Mode mode) {
     }
     RelaunchScan();
   }
+
+void LoadSettings()
+{
+      uint16_t data = 0;
+      EEPROM_ReadBuffer(0x1DF2, &data, 2);
+      // Load scan list flags
+      for (int i = 0; i < 15; i++) {
+          settings.scanListEnabled[i] = (data >> i) & 0x01;
+      }
+}
+  
+void SaveSettings() 
+{
+      uint16_t data = 0;  // Single 16-bit variable to store flags
+      // Read existing data from EEPROM (2 bytes)
+      //EEPROM_ReadBuffer(0x1DF2, &data, sizeof(data));
+      // Pack 15 boolean flags into bits 0-14 (bit 15 unused)
+      for (int i = 0; i < 15; i++) {
+          if (settings.scanListEnabled[i]) {
+              data |= (1 << i);  // Set bit if flag is true
+            }
+          }
+      // Write back to EEPROM (2 bytes)
+      EEPROM_WriteBuffer(0x1DF2, &data, 2);
+}

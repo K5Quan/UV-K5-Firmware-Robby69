@@ -23,7 +23,7 @@
 
 // the BK4819 has 2 bands it covers, 18MHz ~ 630MHz and 760MHz ~ 1300MHz
 const freq_band_table_t BX4819_band1 = { 1800000,  63000000}; //Robby69
-const freq_band_table_t BX4819_band2 = {76000000, 130000000};
+const freq_band_table_t BX4819_band2 = {76000000, 260000000}; //test offset 2600 was 1300
 
 const freq_band_table_t frequencyBandTable[7] =
 {
