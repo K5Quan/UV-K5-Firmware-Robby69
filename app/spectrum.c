@@ -436,7 +436,7 @@ static void InitScan() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-    settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +60, 0, RSSI_MAX_VALUE); //Robby69 +8
+  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +60, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
@@ -459,7 +459,7 @@ static void ResetModifiers() {
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
-  AutoTriggerLevel();
+  //AutoTriggerLevel();
   RelaunchScan();
   
 }
@@ -499,7 +499,7 @@ static void UpdatePeakInfoForce() {
   #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
     LookupChannelInfo();
   #endif
-  AutoTriggerLevel(); //Robby69
+  //AutoTriggerLevel(); //Robby69
 }
 void FillfreqHistory(){ //Robby69
 uint8_t i;
@@ -1585,6 +1585,7 @@ static void Tick() {
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   LoadSettings();//Robby69
+  
   if(appMode!=mode){
     ResetModifiers();
   }
@@ -1712,29 +1713,33 @@ void APP_RunSpectrum(Mode mode) {
         gainOffset[i] = peak.rssi - rssiHistory[i];
       }
       isNormalizationApplied = true;
+      settings.rssiTriggerLevel=RSSI_MAX_VALUE;
     }
     else {
       memset(gainOffset, 0, sizeof(gainOffset));
       isNormalizationApplied = false;
     }
+    AutoTriggerLevel(); //Robby69
     RelaunchScan();
   }
 
 void LoadSettings()
 {
       uint16_t data = 0;
-      EEPROM_ReadBuffer(0x1DF2, &data, 2);
+      EEPROM_ReadBuffer(0x1D00, &data, 2);
       // Load scan list flags
       for (int i = 0; i < 15; i++) {
           settings.scanListEnabled[i] = (data >> i) & 0x01;
       }
+      EEPROM_ReadBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
+      EEPROM_ReadBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
 }
   
 void SaveSettings() 
 {
       uint16_t data = 0;  // Single 16-bit variable to store flags
       // Read existing data from EEPROM (2 bytes)
-      //EEPROM_ReadBuffer(0x1DF2, &data, sizeof(data));
+      //EEPROM_ReadBuffer(0x1D00, &data, sizeof(data));
       // Pack 15 boolean flags into bits 0-14 (bit 15 unused)
       for (int i = 0; i < 15; i++) {
           if (settings.scanListEnabled[i]) {
@@ -1742,5 +1747,7 @@ void SaveSettings()
             }
           }
       // Write back to EEPROM (2 bytes)
-      EEPROM_WriteBuffer(0x1DF2, &data, 2);
+      EEPROM_WriteBuffer(0x1D00, &data, 2);
+      EEPROM_WriteBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
+      EEPROM_WriteBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
 }
