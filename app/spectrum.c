@@ -1737,6 +1737,9 @@ void LoadSettings()
       }
       EEPROM_ReadBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
       EEPROM_ReadBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
+      EEPROM_ReadBuffer(0x1D11, &appMode, 1);
+      EEPROM_ReadBuffer(0x1D12, &gScanRangeStart, 4); //32 bits
+      EEPROM_ReadBuffer(0x1D16, &gScanRangeStart, 4); //32 bits
 }
   
 void SaveSettings() 
@@ -1754,4 +1757,7 @@ void SaveSettings()
       EEPROM_WriteBuffer(0x1D00, &data, 2);
       EEPROM_WriteBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
       EEPROM_WriteBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
+      EEPROM_WriteBuffer(0x1D11, &appMode, 1);
+      EEPROM_WriteBuffer(0x1D12, &gScanRangeStart, 4); //32 bits
+      EEPROM_WriteBuffer(0x1D16, &gScanRangeStart, 4); //32 bits
 }
