@@ -1733,7 +1733,7 @@ typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  uint32_t gScanRangeStart;
+  /*//uint32_t gScanRangeStart;
   uint32_t gScanRangeStop;
   Mode appMode;
   StepsCount stepsCount;
@@ -1742,16 +1742,16 @@ typedef struct {
   BK4819_FilterBandwidth_t bw;
   BK4819_FilterBandwidth_t listenBw;
   int dbMin;
-  int dbMax;
+  int dbMax;*/
 } SettingsEEPROM;
 
   
 void LoadSettings()
 {
-  SettingsEEPROM eepromData;
+  SettingsEEPROM eepromData = {0};
   
   // Lecture de toutes les données
-  EEPROM_ReadBuffer(0x1D01, &eepromData, sizeof(eepromData));
+  EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   
   // Extraction des flags
   for (int i = 0; i < 15; i++) {
@@ -1761,7 +1761,7 @@ void LoadSettings()
   // Copie des autres champs
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  appMode = eepromData.appMode;
+  /*appMode = eepromData.appMode;
   gScanRangeStart = eepromData.gScanRangeStart;
   gScanRangeStop = eepromData.gScanRangeStop;
   settings.stepsCount = eepromData.stepsCount;
@@ -1770,7 +1770,7 @@ void LoadSettings()
   settings.bw = eepromData.bw;
   settings.listenBw = eepromData.listenBw;
   settings.dbMin = eepromData.dbMin;
-  settings.dbMax = eepromData.dbMax;
+  settings.dbMax = eepromData.dbMax;*/
   }
 
 void SaveSettings() 
@@ -1787,7 +1787,7 @@ void SaveSettings()
   // Copie des autres champs
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
-  eepromData.appMode = appMode;
+  /*eepromData.appMode = appMode;
   eepromData.gScanRangeStart = gScanRangeStart;
   eepromData.gScanRangeStop = gScanRangeStop;
   eepromData.stepsCount = settings.stepsCount;
@@ -1796,8 +1796,8 @@ void SaveSettings()
   eepromData.bw = settings.bw;
   eepromData.listenBw = settings.listenBw;
   eepromData.dbMin = settings.dbMin;
-  eepromData.dbMax = settings.dbMax;
+  eepromData.dbMax = settings.dbMax;*/
   
   // Écriture de toutes les données
-  EEPROM_WriteBuffer(0x1D01, &eepromData, sizeof(eepromData));
+  EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 }
