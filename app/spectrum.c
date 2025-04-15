@@ -333,7 +333,8 @@ static void DeInitSpectrum() {
   RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
-  SaveSettings(); //Robby69
+  uint8_t Last_state = 0; //Spectrum Not Active
+  EEPROM_WriteBuffer(0x1D10, &Last_state, 1);
 }
 
 uint8_t GetBWRegValueForScan() {
@@ -1165,10 +1166,11 @@ static void OnKeyDown(uint8_t key) {
     #endif
     break;
   case KEY_MENU:
-    #ifdef ENABLE_SPECTRUM_COPY_VFO
+    /*#ifdef ENABLE_SPECTRUM_COPY_VFO
       SetState(STILL);
       TuneToPeak();
-    #endif
+    #endif*/
+    SaveSettings(); //Robby69
     break;
   case KEY_EXIT:
     if (menuState) {
@@ -1176,9 +1178,9 @@ static void OnKeyDown(uint8_t key) {
       break;
     }
     DeInitSpectrum();
-    break;
-  default:
-    break;
+      break;
+    default:
+      break;
   }
 }
 
@@ -1585,6 +1587,8 @@ static void Tick() {
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   LoadSettings();//Robby69
+  uint8_t Last_state = 1; //Spectrum Active
+  EEPROM_WriteBuffer(0x1D10, &Last_state, 1);
   
   if(appMode!=mode){
     ResetModifiers();

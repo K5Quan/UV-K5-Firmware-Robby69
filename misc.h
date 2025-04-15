@@ -304,7 +304,6 @@ extern bool                  g_CxCSS_TAIL_Found;
 extern bool                  g_SquelchLost;
 extern uint8_t               gFlashLightState;
 extern bool 				 Ptt_Toggle_Mode;
-extern bool					 Start_with_Spectrum;
 extern volatile uint16_t     gFlashLightBlinkCounter;
 extern bool                  gFlagEndTransmission;
 extern uint8_t               gNextMrChannel;

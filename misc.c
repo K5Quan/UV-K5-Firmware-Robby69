@@ -192,7 +192,6 @@ bool              g_CxCSS_TAIL_Found;
 bool              g_SquelchLost;
 uint8_t           gFlashLightState;
 bool			  Ptt_Toggle_Mode = false;
-bool			  Start_with_Spectrum = true;
 volatile uint16_t gFlashLightBlinkCounter;
 bool              gFlagEndTransmission;
 uint8_t           gNextMrChannel;

@@ -72,6 +72,8 @@
 	#include "helper/crypto.h"
 #endif
 
+#include "driver/eeprom.h"   // EEPROM_ReadBuffer()
+
 #ifdef ENABLE_MESSENGER_NOTIFICATION
 	bool gPlayMSGRing = false;
 	uint8_t gPlayMSGRingCount = 0;
@@ -863,11 +865,10 @@ void APP_Update(void)
 #endif
 
 //Robby69 auto start spectrum in channel mode
-	if (Start_with_Spectrum)
-		{
-		Start_with_Spectrum= false;
+	uint8_t Last_state = 0; //Spectrum Not Active
+  	EEPROM_ReadBuffer(0x1D10, &Last_state, 1);
+	if (Last_state) //WAS SPECTRUM
 		ACTION_RunSpectrum();
-		}
 
 #ifdef ENABLE_VOICE
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed && gVoiceWriteIndex == 0)
