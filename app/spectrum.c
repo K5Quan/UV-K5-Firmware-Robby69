@@ -1733,12 +1733,19 @@ typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  uint8_t reserved[11];           // Espace réservé pour alignement (0x1D06-0x1D10)
   uint32_t gScanRangeStart;
-  uint32_t gScanRangeStop;         // Note: Correction du nom (dans l'original c'était gScanRangeStart deux fois)
+  uint32_t gScanRangeStop;
   Mode appMode;
+  StepsCount stepsCount;
+  ScanStep scanStepIndex;
+  uint32_t frequencyChangeStep;  
+  BK4819_FilterBandwidth_t bw;
+  BK4819_FilterBandwidth_t listenBw;
+  int dbMin;
+  int dbMax;
 } SettingsEEPROM;
 
+  
 void LoadSettings()
 {
   SettingsEEPROM eepromData;
@@ -1756,8 +1763,15 @@ void LoadSettings()
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   gScanRangeStart = eepromData.gScanRangeStart;
-  gScanRangeStop = eepromData.gScanRangeStop;  // Correction du nom
-}
+  gScanRangeStop = eepromData.gScanRangeStop;
+  settings.StepsCount = eepromData.stepsCount;
+  settings.scanStepIndex = eepromData.scanStepIndex;
+  frequencyChangeStep = eepromData.frequencyChangeStep;
+  bw = eepromData.bw;
+  settings.listenBw = eepromData.listenBw;
+  settings.dbMin = eepromData.dbMin;
+  settings.dbMax = eepromData.dbMax;
+  }
 
 void SaveSettings() 
 {
@@ -1776,6 +1790,13 @@ void SaveSettings()
   eepromData.appMode = appMode;
   eepromData.gScanRangeStart = gScanRangeStart;
   eepromData.gScanRangeStop = gScanRangeStop;
+  eepromData.stepsCount = settings.stepsCount;
+  eepromData.scanStepIndex = settings.scanStepIndex;
+  eepromData.frequencyChangeStep = frequencyChangeStep;
+  eepromData.bw = bw;
+  eepromData.listenBw = settings.listenBw;
+  eepromData.dbMin = settings.dbMin;
+  eepromData.dbMax = settings.dbMax;
   
   // Écriture de toutes les données
   EEPROM_WriteBuffer(0x1D01, &eepromData, sizeof(eepromData));
