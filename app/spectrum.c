@@ -1764,10 +1764,10 @@ void LoadSettings()
   appMode = eepromData.appMode;
   gScanRangeStart = eepromData.gScanRangeStart;
   gScanRangeStop = eepromData.gScanRangeStop;
-  settings.StepsCount = eepromData.stepsCount;
+  settings.stepsCount = eepromData.stepsCount;
   settings.scanStepIndex = eepromData.scanStepIndex;
-  frequencyChangeStep = eepromData.frequencyChangeStep;
-  bw = eepromData.bw;
+  settings.frequencyChangeStep = eepromData.frequencyChangeStep;
+  settings.bw = eepromData.bw;
   settings.listenBw = eepromData.listenBw;
   settings.dbMin = eepromData.dbMin;
   settings.dbMax = eepromData.dbMax;
@@ -1792,8 +1792,8 @@ void SaveSettings()
   eepromData.gScanRangeStop = gScanRangeStop;
   eepromData.stepsCount = settings.stepsCount;
   eepromData.scanStepIndex = settings.scanStepIndex;
-  eepromData.frequencyChangeStep = frequencyChangeStep;
-  eepromData.bw = bw;
+  eepromData.frequencyChangeStep = settings.frequencyChangeStep;
+  eepromData.bw = settings.bw;
   eepromData.listenBw = settings.listenBw;
   eepromData.dbMin = settings.dbMin;
   eepromData.dbMax = settings.dbMax;
