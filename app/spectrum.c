@@ -1586,7 +1586,11 @@ static void Tick() {
 
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
-  LoadSettings();//Robby69
+  static bool loaded = false;
+  if (!loaded)
+  {LoadSettings();//Robby69
+  loaded = true;
+  }
   uint8_t Last_state = 1; //Spectrum Active
   EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
   
@@ -1733,7 +1737,7 @@ typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  /*//uint32_t gScanRangeStart;
+  /*uint32_t gScanRangeStart;
   uint32_t gScanRangeStop;
   Mode appMode;
   StepsCount stepsCount;
@@ -1761,10 +1765,10 @@ void LoadSettings()
   // Copie des autres champs
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  /*appMode = eepromData.appMode;
-  gScanRangeStart = eepromData.gScanRangeStart;
+  /*gScanRangeStart = eepromData.gScanRangeStart;
   gScanRangeStop = eepromData.gScanRangeStop;
-  settings.stepsCount = eepromData.stepsCount;
+   appMode = eepromData.appMode;
+   settings.stepsCount = eepromData.stepsCount;
   settings.scanStepIndex = eepromData.scanStepIndex;
   settings.frequencyChangeStep = eepromData.frequencyChangeStep;
   settings.bw = eepromData.bw;
@@ -1787,9 +1791,9 @@ void SaveSettings()
   // Copie des autres champs
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
-  /*eepromData.appMode = appMode;
-  eepromData.gScanRangeStart = gScanRangeStart;
+  /*eepromData.gScanRangeStart = gScanRangeStart;
   eepromData.gScanRangeStop = gScanRangeStop;
+  eepromData.appMode = appMode;
   eepromData.stepsCount = settings.stepsCount;
   eepromData.scanStepIndex = settings.scanStepIndex;
   eepromData.frequencyChangeStep = settings.frequencyChangeStep;
