@@ -334,7 +334,7 @@ static void DeInitSpectrum() {
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   uint8_t Last_state = 0; //Spectrum Not Active
-  EEPROM_WriteBuffer(0x1D10, &Last_state, 1);
+  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
 }
 
 uint8_t GetBWRegValueForScan() {
@@ -1588,7 +1588,7 @@ void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   LoadSettings();//Robby69
   uint8_t Last_state = 1; //Spectrum Active
-  EEPROM_WriteBuffer(0x1D10, &Last_state, 1);
+  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
   
   if(appMode!=mode){
     ResetModifiers();
@@ -1727,37 +1727,56 @@ void APP_RunSpectrum(Mode mode) {
     RelaunchScan();
   }
 
+
+
+typedef struct {
+  uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
+  uint16_t rssiTriggerLevel;
+  uint16_t rssiTriggerLevelH;
+  uint8_t reserved[11];           // Espace réservé pour alignement (0x1D06-0x1D10)
+  uint32_t gScanRangeStart;
+  uint32_t gScanRangeStop;         // Note: Correction du nom (dans l'original c'était gScanRangeStart deux fois)
+  Mode appMode;
+} SettingsEEPROM;
+
 void LoadSettings()
 {
-      uint16_t data = 0;
-      EEPROM_ReadBuffer(0x1D00, &data, 2);
-      // Load scan list flags
-      for (int i = 0; i < 15; i++) {
-          settings.scanListEnabled[i] = (data >> i) & 0x01;
-      }
-      EEPROM_ReadBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
-      EEPROM_ReadBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
-      EEPROM_ReadBuffer(0x1D11, &appMode, 1);
-      EEPROM_ReadBuffer(0x1D12, &gScanRangeStart, 4); //32 bits
-      EEPROM_ReadBuffer(0x1D16, &gScanRangeStart, 4); //32 bits
-}
+  SettingsEEPROM eepromData;
   
+  // Lecture de toutes les données
+  EEPROM_ReadBuffer(0x1D01, &eepromData, sizeof(eepromData));
+  
+  // Extraction des flags
+  for (int i = 0; i < 15; i++) {
+      settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;
+  }
+  
+  // Copie des autres champs
+  settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
+  settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+  appMode = eepromData.appMode;
+  gScanRangeStart = eepromData.gScanRangeStart;
+  gScanRangeStop = eepromData.gScanRangeStop;  // Correction du nom
+}
+
 void SaveSettings() 
 {
-      uint16_t data = 0;  // Single 16-bit variable to store flags
-      // Read existing data from EEPROM (2 bytes)
-      //EEPROM_ReadBuffer(0x1D00, &data, sizeof(data));
-      // Pack 15 boolean flags into bits 0-14 (bit 15 unused)
-      for (int i = 0; i < 15; i++) {
-          if (settings.scanListEnabled[i]) {
-              data |= (1 << i);  // Set bit if flag is true
-            }
-          }
-      // Write back to EEPROM (2 bytes)
-      EEPROM_WriteBuffer(0x1D00, &data, 2);
-      EEPROM_WriteBuffer(0x1D02, &settings.rssiTriggerLevel, 2);
-      EEPROM_WriteBuffer(0x1D04, &settings.rssiTriggerLevelH, 2);
-      EEPROM_WriteBuffer(0x1D11, &appMode, 1);
-      EEPROM_WriteBuffer(0x1D12, &gScanRangeStart, 4); //32 bits
-      EEPROM_WriteBuffer(0x1D16, &gScanRangeStart, 4); //32 bits
+  SettingsEEPROM eepromData = {0};
+  
+  // Pack 15 boolean flags
+  for (int i = 0; i < 15; i++) {
+      if (settings.scanListEnabled[i]) {
+          eepromData.scanListFlags |= (1 << i);
+      }
+  }
+  
+  // Copie des autres champs
+  eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
+  eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
+  eepromData.appMode = appMode;
+  eepromData.gScanRangeStart = gScanRangeStart;
+  eepromData.gScanRangeStop = gScanRangeStop;
+  
+  // Écriture de toutes les données
+  EEPROM_WriteBuffer(0x1D01, &eepromData, sizeof(eepromData));
 }

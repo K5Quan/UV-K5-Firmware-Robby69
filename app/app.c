@@ -866,7 +866,7 @@ void APP_Update(void)
 
 //Robby69 auto start spectrum in channel mode
 	uint8_t Last_state = 0; //Spectrum Not Active
-  	EEPROM_ReadBuffer(0x1D10, &Last_state, 1);
+  	EEPROM_ReadBuffer(0x1D00, &Last_state, 1);
 	if (Last_state) //WAS SPECTRUM
 		ACTION_RunSpectrum();
 
