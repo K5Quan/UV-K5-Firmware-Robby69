@@ -13,13 +13,6 @@
 #endif
 #include "action.h"
 
-#define SQUELCH_MARGIN       6    // dB au-dessus du bruit pour ouvrir
-#define SQUELCH_HYSTERESIS   2    // dB pour éviter oscillations
-#define NOISE_MIN            -115 // plancher du bruit estimé
-#define NOISE_MAX_INCREASE   1    // max +1 dB par mise à jour
-static int16_t noise_floor = -120;
-static bool squelch_open = false;
-
 struct FrequencyBandInfo {
     uint32_t lower;
     uint32_t upper;
@@ -539,24 +532,6 @@ static void Measure()
     }
   #endif
   rssiHistory[scanInfo.i] = rssi;
-  update_noise_floor(Rssi2DBm(rssi)); //Robby69
-
-}
-
-void update_noise_floor(int16_t rssi_dbm) {
-  // Cas 1 : signal faible → on accepte la mise à jour
-  if (rssi_dbm < noise_floor + 3) {
-      if (rssi_dbm > noise_floor) {
-          // montée lente (max +1 dB)
-          noise_floor += (rssi_dbm - noise_floor > NOISE_MAX_INCREASE) ? NOISE_MAX_INCREASE : (rssi_dbm - noise_floor);
-      } else {
-          // descente rapide
-          noise_floor = (noise_floor * 7 + rssi_dbm) / 8;
-      }
-
-      // Clamp le bruit
-      if (noise_floor < NOISE_MIN) noise_floor = NOISE_MIN;
-  }
 }
 
 // Update things by keypress
