@@ -1,16 +1,10 @@
 #include "app/spectrum.h"
-
-#ifdef ENABLE_SCAN_RANGES
 #include "chFrScanner.h"
-#endif
-
 #include "driver/backlight.h"
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
 #include "audio.h"
 #include "ui/helper.h"
-#ifdef ENABLE_SPECTRUM_COPY_VFO
-  #include "common.h"
-#endif
+#include "common.h"
 #include "action.h"
 
 struct FrequencyBandInfo {
@@ -51,9 +45,7 @@ static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[32];
 static char StringC[10];
-
-#ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-  uint32_t lastPeakFrequency;
+uint32_t lastPeakFrequency;
   bool     isKnownChannel = false;
   int      channel;
   int      latestChannel;
@@ -62,8 +54,6 @@ static char StringC[10];
   ModulationMode_t  channelModulation;
   BK4819_FilterBandwidth_t channelBandwidth;
   void     LoadValidMemoryChannels(void);
-#endif
-
 bool isInitialized = false;
 bool isListening = true;
 bool monitorMode = false;
@@ -80,13 +70,12 @@ PeakInfo peak;
 ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
 
-#ifdef ENABLE_SCAN_RANGES
+
 #define BLACKLIST_SIZE 200
 static uint16_t blacklistFreqs[BLACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
 static bool IsBlacklisted(uint16_t idx);
 static uint8_t CurrentScanIndex();
-#endif
 
 char     latestScanListName[12];
 
@@ -176,10 +165,6 @@ static int clamp(int v, int min, int max) {
   return v <= min ? min : (v >= max ? max : v);
 }
 
-#ifdef ENABLE_SPECTRUM_ARROW
-static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
-#endif
-
 void SetState(State state) {
   previousState = currentState;
   currentState = state;
@@ -267,12 +252,9 @@ uint16_t GetStepsCount()
   {
     return scanChannelsCount;
   }
-
-#ifdef ENABLE_SCAN_RANGES
   if(appMode==SCAN_RANGE_MODE) {
     return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
   }
-#endif
   return 128 >> settings.stepsCount;
 }
 
@@ -292,7 +274,15 @@ static void TuneToPeak() {
   scanInfo.i = peak.i;
   SetF(scanInfo.f);
 }
-#ifdef ENABLE_SPECTRUM_COPY_VFO
+static void DeInitSpectrum() {
+  SetF(initialFreq);
+  RestoreRegisters();
+  gVfoConfigureMode = VFO_CONFIGURE;
+  isInitialized = false;
+  uint8_t Last_state = 0; //Spectrum Not Active
+  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
+}
+
 static void ExitAndCopyToVfo() {
   RestoreRegisters();
   if (appMode==CHANNEL_MODE)
@@ -317,6 +307,7 @@ static void ExitAndCopyToVfo() {
   // Additional delay to debounce keys
 SYSTEM_DelayMs(200);
 isInitialized = false;
+DeInitSpectrum();
 }
 
 uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency) 
@@ -326,16 +317,9 @@ uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency)
 			return i;
 	return S_STEP_25_0kHz;
 }
-#endif
 
-static void DeInitSpectrum() {
-  SetF(initialFreq);
-  RestoreRegisters();
-  gVfoConfigureMode = VFO_CONFIGURE;
-  isInitialized = false;
-  uint8_t Last_state = 0; //Spectrum Not Active
-  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
-}
+
+
 
 uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
@@ -373,17 +357,15 @@ static void ToggleRX(bool on) {
   isListening = on;
   BACKLIGHT_TurnOn();
 
-#ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
   // automatically switch modulation & bw if known channel
   if (on && isKnownChannel) {
     settings.modulationType = channelModulation;
-    settings.listenBw = channelBandwidth;
+    //  settings.listenBw = channelBandwidth;
     memmove(rxChannelName, channelName, sizeof(rxChannelName));
     RADIO_SetModulation(settings.modulationType);
     BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
     redrawScreen = true;
   }
-#endif
 
   // turn on green led only if screen brightness is over 7
   if(gEeprom.BACKLIGHT_MAX > 7)
@@ -437,7 +419,7 @@ static void InitScan() {
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +60, 0, RSSI_MAX_VALUE); //Robby69 +8
+  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +8, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
@@ -450,17 +432,16 @@ static void ResetModifiers() {
     if (rssiHistory[i] == RSSI_MAX_VALUE)
       rssiHistory[i] = 0;
   }
-#ifdef ENABLE_SCAN_RANGES 
   memset(blacklistFreqs, 0, sizeof(blacklistFreqs));
   blacklistFreqsIdx = 0;
-#endif
+
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels();
   }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
-  //AutoTriggerLevel();
+  AutoTriggerLevel();
   RelaunchScan();
   
 }
@@ -497,9 +478,7 @@ static void UpdatePeakInfoForce() {
   peak.rssi = scanInfo.rssiMax;
   peak.f = scanInfo.fPeak;
   peak.i = scanInfo.iPeak;
-  #ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-    LookupChannelInfo();
-  #endif
+  LookupChannelInfo();
   //AutoTriggerLevel(); //Robby69
 }
 void FillfreqHistory(){ //Robby69
@@ -522,7 +501,6 @@ static void Measure()
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
   if (rssi > settings.rssiTriggerLevelH) FillfreqHistory();
-  #ifdef ENABLE_SCAN_RANGES  
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -530,7 +508,6 @@ static void Measure()
       rssiHistory[(idx+1)%128] = 0;
       return;
     }
-  #endif
   rssiHistory[scanInfo.i] = rssi;
 }
 
@@ -720,10 +697,10 @@ static void UpdateFreqInput(KEY_Code_t key) {
 }
 
 static void Blacklist() {
-#ifdef ENABLE_SCAN_RANGES
+
   blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
   rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-#endif
+
   rssiHistory[peak.i] = RSSI_MAX_VALUE;
   isBlacklistApplied = true;
   ResetPeak();
@@ -731,7 +708,7 @@ static void Blacklist() {
   ResetScanStats();
 }
 
-#ifdef ENABLE_SCAN_RANGES
+
 static uint8_t CurrentScanIndex()
 {
   if(scanInfo.measurementsCount > 128) {
@@ -752,7 +729,7 @@ static bool IsBlacklisted(uint16_t idx)
       return true;
   return false;
 }
-#endif
+
 
 // Draw things
 
@@ -800,12 +777,7 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
-#ifdef SPECTRUM_EXTRA_VALUES
-  sprintf(String, "%d/%d P:%d T:%d", settings.dbMin, settings.dbMax,
-          Rssi2DBm(peak.rssi), Rssi2DBm(settings.rssiTriggerLevel));
-#else
   sprintf(String, "%d/%d", settings.dbMin, settings.dbMax);
-#endif
   GUI_DisplaySmallest(String, 0, 1, true, true);
 
   // display scanlists
@@ -906,12 +878,9 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 100, 15, false, true);
   refresh--;
 
-#if ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 	if (isKnownChannel && isListening) {
 		sprintf(String, "%s", channelName);
 		UI_PrintStringSmall(String, 1, 127, 1);}
-#endif
-
 
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
@@ -919,8 +888,7 @@ static void DrawF(uint32_t f) {
   GUI_DisplaySmallest(String, 108, 7, false, true);
 }
 
-#ifdef ENABLE_SPECTRUM_SHOW_CHANNEL_NAME
-  void LookupChannelInfo() {
+void LookupChannelInfo() {
     if (lastPeakFrequency == peak.f) 
       return;
     
@@ -965,7 +933,7 @@ void LookupChannelModulation() {
 		}	
 
 }
-#endif
+
 
 static void DrawNums() {
 
@@ -1092,7 +1060,7 @@ static void OnKeyDown(uint8_t key) {
   ToggleBacklight();
   break;
   case KEY_UP:
-#ifdef ENABLE_SCAN_RANGES
+
   ShowHistory = true;
   indexFd++;
 	if(freqHistory[indexFd]==0)indexFd--;
@@ -1100,7 +1068,7 @@ static void OnKeyDown(uint8_t key) {
 	
     if(appMode==FREQUENCY_MODE)
     {
-#endif
+
       UpdateCurrentFreq(true);
     }
     break;
@@ -1109,10 +1077,10 @@ static void OnKeyDown(uint8_t key) {
     indexFd--;
     if (indexFd < 1) indexFd = 1;
 
-#ifdef ENABLE_SCAN_RANGES
+
     if(appMode==FREQUENCY_MODE)
     {
-#endif
+
       UpdateCurrentFreq(false);
     }
     break;
@@ -1126,9 +1094,9 @@ static void OnKeyDown(uint8_t key) {
     UpdateRssiTriggerLevel(false);
     break;
   case KEY_5:
-#ifdef ENABLE_SCAN_RANGES
+
     if(appMode==FREQUENCY_MODE)
-#endif  
+  
       FreqInput();
     if (appMode==CHANNEL_MODE) {
       waitingForScanListNumber = 2;
@@ -1158,18 +1126,9 @@ static void OnKeyDown(uint8_t key) {
 	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
     break;
   case KEY_PTT:
-    #ifdef ENABLE_SPECTRUM_COPY_VFO
-      ExitAndCopyToVfo();
-    #else
-    SetState(STILL);
-    TuneToPeak();
-    #endif
+    ExitAndCopyToVfo();
     break;
   case KEY_MENU:
-    /*#ifdef ENABLE_SPECTRUM_COPY_VFO
-      SetState(STILL);
-      TuneToPeak();
-    #endif*/
     SaveSettings(); //Robby69
     break;
   case KEY_EXIT:
@@ -1267,9 +1226,7 @@ void OnKeyDownStill(KEY_Code_t key) {
     ToggleBacklight();
     break;
   case KEY_PTT:
-    #ifdef ENABLE_SPECTRUM_COPY_VFO
-      ExitAndCopyToVfo();
-    #endif
+    ExitAndCopyToVfo();
     break;
   case KEY_MENU:
     if (menuState == ARRAY_SIZE(registerSpecs) - 1) {
@@ -1434,9 +1391,9 @@ bool HandleUserInput() {
 
 static void Scan() {
   if (rssiHistory[scanInfo.i] != RSSI_MAX_VALUE
-#ifdef ENABLE_SCAN_RANGES
+
   && !IsBlacklisted(scanInfo.i)
-#endif
+
   ) {
     SetF(scanInfo.f);
     Measure();
@@ -1538,7 +1495,7 @@ static void Tick() {
 					BACKLIGHT_TurnOff();   // turn backlight off
     gNextTimeslice_500ms = false;
 
-#ifdef ENABLE_SCAN_RANGES
+
     // if a lot of steps then it takes long time
     // we don't want to wait for whole scan
     // listening has it's own timer
@@ -1553,7 +1510,7 @@ static void Tick() {
       preventKeypress = false;
     }
   }
-#endif
+
 
   if (!preventKeypress) {
     HandleUserInput();
@@ -1600,7 +1557,7 @@ void APP_RunSpectrum(Mode mode) {
   appMode = mode;
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
-  #ifdef ENABLE_SCAN_RANGES
+  
     if(mode==SCAN_RANGE_MODE) {
       currentFreq = initialFreq = gScanRangeStart;
       for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
@@ -1611,7 +1568,7 @@ void APP_RunSpectrum(Mode mode) {
       }
     }
     else
-  #endif
+  
 
   currentFreq = initialFreq = gTxVfo->pRX->Frequency;
 
@@ -1629,15 +1586,11 @@ void APP_RunSpectrum(Mode mode) {
 
 
   ToggleRX(true), ToggleRX(false); // hack to prevent noise when squelch off
-  #ifdef ENABLE_SPECTRUM_COPY_VFO
-    RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
-    BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
-    settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
-  #elif
-    RADIO_SetModulation(settings.modulationType = MODULATION_FM);
-    BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_WIDE, false);
-  #endif
-
+  RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
+  BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
+  settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
+  RADIO_SetModulation(settings.modulationType = MODULATION_FM);
+  BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_WIDE, false);
   AutoAdjustFreqChangeStep();
 
   RelaunchScan();
