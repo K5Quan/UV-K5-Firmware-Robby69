@@ -3,7 +3,7 @@
 <h2><a href="https://egzumer.github.io/uvtools/" rel="nofollow"> 🗲FLASHER AVEC CHROME🗲 </a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/tree/master/compiled-firmware" rel="nofollow"> Les firmwares compilés se trouvent ici</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/tag/DriverChirp" rel="nofollow"> Vous devez utiliser ce driver chirp : uvk5_nunu.py</a></h2>
-<h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/tag/PDFs" rel="nofollow"> Petit guides EN/FR</a></h2>
+<h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/tag/Guides" rel="nofollow"> Petit guides EN/FR</a></h2>
 <h2><a href="https://www.youtube.com/@robby_69400" rel="nofollow"> Quelques présentations et news sur ma chaine Youtube.</a></h2>
 <h2><a href="https://t.me/k5robby69"> Ce canal Telegram pour discuter.</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/commits/master/"> Historique des versions</a></h2>
