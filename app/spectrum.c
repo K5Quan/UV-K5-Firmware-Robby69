@@ -541,14 +541,17 @@ static void UpdateRssiTriggerLevel(bool inc) {
 }
 
 static void UpdateDBMax(bool inc) {
-  if (inc && settings.dbMax <= 100) { //Robby69
-    settings.dbMax += 10;
-  } else if (!inc && settings.dbMax > settings.dbMin) {
-    settings.dbMax -= 10;
-  } else {
-    return;
-  }
-
+  if (SquelchBarKeyMode ==0)
+    {
+    if (inc && settings.dbMin <= 0) {settings.dbMin += 10;}
+      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMin -= 10;}
+        else {return;}
+    }
+else
+    {if (inc && settings.dbMax <= 100) {settings.dbMax += 10;} 
+      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 10;} 
+           else {return;}
+    }
   ClampRssiTriggerLevel();
   redrawStatus = true;
   redrawScreen = true;
@@ -1690,16 +1693,16 @@ typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  /*uint32_t gScanRangeStart;
-  uint32_t gScanRangeStop;
-  Mode appMode;
-  StepsCount stepsCount;
-  ScanStep scanStepIndex;
-  uint32_t frequencyChangeStep;  
-  BK4819_FilterBandwidth_t bw;
-  BK4819_FilterBandwidth_t listenBw;
-  int dbMin;
-  int dbMax;*/
+  //uint32_t gScanRangeStart;
+  //uint32_t gScanRangeStop;
+  //Mode appMode;
+  //StepsCount stepsCount;
+  //ScanStep scanStepIndex;
+  //uint32_t frequencyChangeStep;  
+  //BK4819_FilterBandwidth_t bw;
+  //BK4819_FilterBandwidth_t listenBw;
+  //int dbMin;
+  //int dbMax;
 } SettingsEEPROM;
 
   
@@ -1718,16 +1721,16 @@ void LoadSettings()
   // Copie des autres champs
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  /*gScanRangeStart = eepromData.gScanRangeStart;
-  gScanRangeStop = eepromData.gScanRangeStop;
-   appMode = eepromData.appMode;
-   settings.stepsCount = eepromData.stepsCount;
-  settings.scanStepIndex = eepromData.scanStepIndex;
-  settings.frequencyChangeStep = eepromData.frequencyChangeStep;
-  settings.bw = eepromData.bw;
-  settings.listenBw = eepromData.listenBw;
-  settings.dbMin = eepromData.dbMin;
-  settings.dbMax = eepromData.dbMax;*/
+  //gScanRangeStart = eepromData.gScanRangeStart;
+  //gScanRangeStop = eepromData.gScanRangeStop;
+  //appMode = eepromData.appMode;
+  //settings.stepsCount = eepromData.stepsCount;
+  //settings.scanStepIndex = eepromData.scanStepIndex;
+  //settings.frequencyChangeStep = eepromData.frequencyChangeStep;
+  //settings.bw = eepromData.bw;
+  //settings.listenBw = eepromData.listenBw;
+  //settings.dbMin = eepromData.dbMin;*/
+  //settings.dbMax = eepromData.dbMax;
   }
 
 void SaveSettings() 
@@ -1744,16 +1747,16 @@ void SaveSettings()
   // Copie des autres champs
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
-  /*eepromData.gScanRangeStart = gScanRangeStart;
-  eepromData.gScanRangeStop = gScanRangeStop;
-  eepromData.appMode = appMode;
-  eepromData.stepsCount = settings.stepsCount;
-  eepromData.scanStepIndex = settings.scanStepIndex;
-  eepromData.frequencyChangeStep = settings.frequencyChangeStep;
-  eepromData.bw = settings.bw;
-  eepromData.listenBw = settings.listenBw;
-  eepromData.dbMin = settings.dbMin;
-  eepromData.dbMax = settings.dbMax;*/
+  //eepromData.gScanRangeStart = gScanRangeStart;
+  //eepromData.gScanRangeStop = gScanRangeStop;
+  //eepromData.appMode = appMode;
+  //eepromData.stepsCount = settings.stepsCount;
+  //eepromData.scanStepIndex = settings.scanStepIndex;
+  //eepromData.frequencyChangeStep = settings.frequencyChangeStep;
+  //eepromData.bw = settings.bw;
+  //eepromData.listenBw = settings.listenBw;
+  //eepromData.dbMin = settings.dbMin;
+  //eepromData.dbMax = settings.dbMax;
   
   // Écriture de toutes les données
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
