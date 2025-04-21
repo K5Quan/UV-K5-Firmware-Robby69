@@ -1133,6 +1133,8 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_MENU:
     SaveSettings(); //Robby69
+    SetState(STILL);//Show radio settings in Spectrum
+    TuneToPeak();
     break;
   case KEY_EXIT:
     if (menuState) {
