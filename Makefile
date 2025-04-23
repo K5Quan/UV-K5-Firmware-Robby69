@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBBY69
-VERSION_STRING := 4.32
+VERSION_STRING := 4.33
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -50,7 +50,7 @@ ENABLE_MESSENGER_FSK_MUTE               := 0
 ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
-ENABLE_SCANNER							:= 0
+ENABLE_SCANNER							:= 1
 
 #############################################################
 

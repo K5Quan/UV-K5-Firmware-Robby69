@@ -841,7 +841,7 @@ static void DrawF(uint32_t f) {
 	      }
     
 	sprintf(String, "%u.%05u", f / 100000, f % 100000);
-	UI_PrintStringSmall(String, 1, 127, 0);}
+	UI_PrintStringSmallBold(String, 1, 127, 0);}
 	f= freqHistory[indexFd];				 
 	int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
@@ -860,7 +860,7 @@ static void DrawF(uint32_t f) {
             sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
           }
     if (ShowHistory)
-      UI_PrintStringSmall(String, 1, 1, 2); 
+    UI_PrintStringSmallBold(String, 1, 1, 2); 
     }
     
 //Robby show CTCSS or DCS
@@ -883,7 +883,7 @@ static void DrawF(uint32_t f) {
 
 	if (isKnownChannel && isListening) {
 		sprintf(String, "%s", channelName);
-		UI_PrintStringSmall(String, 1, 127, 1);}
+		UI_PrintStringSmallBold(String, 1, 127, 1);}
 
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
@@ -1548,11 +1548,7 @@ static void Tick() {
 
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
-  static bool loaded = false;
-  if (!loaded)
-  {LoadSettings();//Robby69
-  loaded = true;
-  }
+  LoadSettings();//Robby69
   uint8_t Last_state = 1; //Spectrum Active
   EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
   

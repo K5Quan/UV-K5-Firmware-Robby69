@@ -175,8 +175,8 @@ void Main(void)
 		UI_DisplayWelcome();
 
 		if (gEeprom.POWER_ON_DISPLAY_MODE != POWER_ON_DISPLAY_MODE_NONE)
-		{	// seconds boot-up screen
-			SYSTEM_DelayMs(1000);
+		{	// 2.55 seconds boot-up screen
+			SYSTEM_DelayMs(2550);
 		}
 		else
 		{
