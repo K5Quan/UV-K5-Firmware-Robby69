@@ -288,8 +288,8 @@ static void ExitAndCopyToVfo() {
   if (appMode==CHANNEL_MODE)
   // channel mode
   {
-    gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[peak.i-1];
-    gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[peak.i-1];
+   // gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[peak.i-1];
+   // gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[peak.i-1];
 
     gRequestSaveVFO   = true;
     gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
@@ -332,11 +332,11 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  /*if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
-    }
+    }*/
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -417,12 +417,12 @@ static void InitScan() {
     scanInfo.measurementsCount++;
 }
 
-static void AutoTriggerLevel() {
+/*static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +8, 0, RSSI_MAX_VALUE); //Robby69 +8
+  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +30, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
-}
+}*/
 
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
@@ -441,7 +441,7 @@ static void ResetModifiers() {
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
-  AutoTriggerLevel();
+  //AutoTriggerLevel();
   RelaunchScan();
   
 }
@@ -541,17 +541,17 @@ static void UpdateRssiTriggerLevel(bool inc) {
 }
 
 static void UpdateDBMax(bool inc) {
-  if (SquelchBarKeyMode ==0)
-    {
-    if (inc && settings.dbMin <= 0) {settings.dbMin += 10;}
-      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMin -= 10;}
+  /*if (SquelchBarKeyMode ==0)
+    //{
+    if (inc && settings.dbMin <= 0) {settings.dbMin += 5;}
+      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMin -= 5;}
         else {return;}
     }
-else
-    {if (inc && settings.dbMax <= 100) {settings.dbMax += 10;} 
-      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 10;} 
+  else*/
+    if (inc && settings.dbMax <= 100) {settings.dbMax += 5;} 
+      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
            else {return;}
-    }
+  settings.dbMax = ((settings.dbMax + (settings.dbMax >= 0 ? 2 : -2)) / 5) * 5;
   ClampRssiTriggerLevel();
   redrawStatus = true;
   redrawScreen = true;
@@ -1133,8 +1133,8 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_MENU:
     SaveSettings(); //Robby69
-    SetState(STILL);//Show radio settings in Spectrum
-    TuneToPeak();
+    //SetState(STILL);//Show radio settings in Spectrum
+    //TuneToPeak();
     break;
   case KEY_EXIT:
     if (menuState) {
@@ -1591,7 +1591,7 @@ void APP_RunSpectrum(Mode mode) {
   BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
   settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
   RADIO_SetModulation(settings.modulationType = MODULATION_FM);
-  BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_WIDE, false);
+  BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
   AutoAdjustFreqChangeStep();
 
   RelaunchScan();
@@ -1661,7 +1661,7 @@ void APP_RunSpectrum(Mode mode) {
 
   // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
- void ToggleNormalizeRssi(bool on)
+  void ToggleNormalizeRssi(bool on)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel() && on){
@@ -1681,7 +1681,7 @@ void APP_RunSpectrum(Mode mode) {
       memset(gainOffset, 0, sizeof(gainOffset));
       isNormalizationApplied = false;
     }
-    AutoTriggerLevel(); //Robby69
+    //AutoTriggerLevel(); //Robby69
     RelaunchScan();
   }
 
@@ -1691,6 +1691,9 @@ typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
+  int8_t dbMax;
+  int8_t dbMin;
+  
   //uint32_t gScanRangeStart;
   //uint32_t gScanRangeStop;
   //Mode appMode;
@@ -1699,8 +1702,7 @@ typedef struct {
   //uint32_t frequencyChangeStep;  
   //BK4819_FilterBandwidth_t bw;
   //BK4819_FilterBandwidth_t listenBw;
-  //int dbMin;
-  //int dbMax;
+  
 } SettingsEEPROM;
 
   
@@ -1727,8 +1729,8 @@ void LoadSettings()
   //settings.frequencyChangeStep = eepromData.frequencyChangeStep;
   //settings.bw = eepromData.bw;
   //settings.listenBw = eepromData.listenBw;
-  //settings.dbMin = eepromData.dbMin;*/
-  //settings.dbMax = eepromData.dbMax;
+  settings.dbMin = eepromData.dbMin;
+  settings.dbMax = eepromData.dbMax;
   }
 
 void SaveSettings() 
@@ -1753,8 +1755,8 @@ void SaveSettings()
   //eepromData.frequencyChangeStep = settings.frequencyChangeStep;
   //eepromData.bw = settings.bw;
   //eepromData.listenBw = settings.listenBw;
-  //eepromData.dbMin = settings.dbMin;
-  //eepromData.dbMax = settings.dbMax;
+  eepromData.dbMin = settings.dbMin;
+  eepromData.dbMax = settings.dbMax;
   
   // Écriture de toutes les données
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));

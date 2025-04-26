@@ -77,7 +77,7 @@ void toggle_chan_scanlist(void)
 		return;
 	}
 #endif
-	if (++gTxVfo->SCANLIST > 5) //Robby69 Yves mod reduce scanlist was >15
+	if (++gTxVfo->SCANLIST > 15) //Robby69 Yves mod reduce scanlist was >15
 		gTxVfo->SCANLIST = 0;
 
 
