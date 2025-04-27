@@ -372,12 +372,6 @@ const t_sidefunction SIDEFUNCTIONS[] =
 	{"POWER",			ACTION_OPT_POWER},
 	{"MONITOR",			ACTION_OPT_MONITOR},
 	{"SCAN",			ACTION_OPT_SCAN},
-#ifdef ENABLE_VOX
-	{"VOX",				ACTION_OPT_VOX},
-#endif
-#ifdef ENABLE_ALARM	
-	{"ALARM",			ACTION_OPT_ALARM},
-#endif
 #ifdef ENABLE_FMRADIO
 	{"FM RADIO",		ACTION_OPT_FM},
 #endif	

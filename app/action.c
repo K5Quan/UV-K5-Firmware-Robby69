@@ -389,16 +389,7 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			ACTION_Scan(true);
 			break;
 #endif
-			case ACTION_OPT_VOX:
-#ifdef ENABLE_VOX
-			ACTION_Vox();
-#endif
-			break;
-		case ACTION_OPT_ALARM:
-#ifdef ENABLE_ALARM
-			ACTION_AlarmOr1750(false);
-#endif
-			break;
+
 #ifdef ENABLE_FMRADIO
 		case ACTION_OPT_FM:
 			ACTION_FM();
