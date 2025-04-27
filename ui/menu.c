@@ -106,12 +106,13 @@ const t_menu_item MenuList[] =
 #ifdef ENABLE_SCANNER	
 	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
 #endif
+	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
 	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        }, //Robby69 hidden menu start
 	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" 
 	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
-	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
+	
 	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
 	{"ChName", VOICE_ID_INVALID,                       MENU_MEM_NAME      },	
 	
