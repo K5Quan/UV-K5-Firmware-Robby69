@@ -417,12 +417,12 @@ static void InitScan() {
     scanInfo.measurementsCount++;
 }
 
-/*static void AutoTriggerLevel() {
+static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
   settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +30, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
-}*/
+}
 
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
@@ -1681,7 +1681,7 @@ void APP_RunSpectrum(Mode mode) {
       memset(gainOffset, 0, sizeof(gainOffset));
       isNormalizationApplied = false;
     }
-    //AutoTriggerLevel(); //Robby69
+    AutoTriggerLevel(); //Robby69
     RelaunchScan();
   }
 
