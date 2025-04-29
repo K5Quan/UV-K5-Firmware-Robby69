@@ -46,14 +46,15 @@ static uint32_t initialFreq;
 static char String[32];
 static char StringC[10];
 uint32_t lastPeakFrequency;
-  bool     isKnownChannel = false;
-  int      channel;
-  int      latestChannel;
-  char     channelName[12];
-  char     rxChannelName[12];
-  ModulationMode_t  channelModulation;
-  BK4819_FilterBandwidth_t channelBandwidth;
-  void     LoadValidMemoryChannels(void);
+bool     isKnownChannel = false;
+int      channel;
+int      latestChannel;
+char     channelName[12];
+char     rxChannelName[12];
+ModulationMode_t  channelModulation;
+BK4819_FilterBandwidth_t channelBandwidth;
+void     LoadValidMemoryChannels(void);
+void     LaunchScanBands(void);
 bool isInitialized = false;
 bool isListening = true;
 bool monitorMode = false;
@@ -97,7 +98,8 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              dbMin: -130,
                              dbMax: 10,
                              scanList: S_SCAN_LIST_ALL,
-                             scanListEnabled: {0}};
+                             scanListEnabled: {0},
+                             bandEnabled: {0}};
 
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
@@ -1556,27 +1558,26 @@ void APP_RunSpectrum(Mode mode) {
     ResetModifiers();
   }
   appMode = mode;
-  if(mode==SCAN_BAND_MODE) {}
+  if(mode==SCAN_BAND_MODE) 
+  {
+    LaunchScanBands();
+  }
 
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
   
-    if(mode==SCAN_RANGE_MODE) {
-      currentFreq = initialFreq = gScanRangeStart;
-      for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
-        if(scanStepValues[i] >= gTxVfo->StepFrequency) {
-          settings.scanStepIndex = i;
-          break;
-        }
+  if(mode==SCAN_RANGE_MODE) {
+    currentFreq = initialFreq = gScanRangeStart;
+    for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
+      if(scanStepValues[i] >= gTxVfo->StepFrequency) {
+        settings.scanStepIndex = i;
+        break;
       }
     }
-    else
-  
-
+  }
+  else
   currentFreq = initialFreq = gTxVfo->pRX->Frequency;
-
   BackupRegisters();
-
   ResetInterrupts();
 
   // turn of GREEN LED if spectrum was started during active RX
@@ -1608,6 +1609,29 @@ void APP_RunSpectrum(Mode mode) {
     Tick();
   }
 }
+
+void LaunchScanBands(void)
+{
+  bool bandsEnabled = false;
+  
+  // loop through all bandlists
+  for (int bl=1; bl <= 16; bl++) {
+    // skip disabled scanlist
+    if (bl <= 15 && !settings.bandEnabled[bl-1])
+      continue;
+
+    // valid scanlist is enabled
+    if (bl <= 15 && settings.bandEnabled[bl-1])
+      bandsEnabled = true;
+    
+    // break if some lists were enabled, else scan all channels
+    if (bl > 15 && bandsEnabled)
+      break;
+
+    
+  }
+}
+
 
   void LoadValidMemoryChannels(void)
   {
