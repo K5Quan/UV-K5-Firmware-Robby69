@@ -332,11 +332,11 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  /*if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
-    }*/
+    }
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -1556,6 +1556,8 @@ void APP_RunSpectrum(Mode mode) {
     ResetModifiers();
   }
   appMode = mode;
+  if(mode==SCAN_BAND_MODE) {}
+
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
   
