@@ -101,7 +101,6 @@ typedef enum Mode {
   FREQUENCY_MODE,
   CHANNEL_MODE,
   SCAN_RANGE_MODE
-  SCAN_BAND_MODE,
 } Mode;
 
 typedef enum StepsCount {
