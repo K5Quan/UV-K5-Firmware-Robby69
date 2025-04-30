@@ -1556,6 +1556,8 @@ void APP_RunSpectrum(Mode mode) {
     ResetModifiers();
   }
   appMode = mode;
+  if(mode==SCAN_BAND_MODE) {}
+
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
   
