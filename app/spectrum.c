@@ -23,22 +23,20 @@ uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history s
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
 #define Bottom_print 51 //Robby69
-  Mode appMode;
-  #define UHF_NOISE_FLOOR 40
-  #define MAX_ATTENUATION 160
-  #define ATTENUATE_STEP  10
-  bool    isNormalizationApplied;
-  uint8_t  gainOffset[129];
-  uint8_t  attenuationOffset[129];
-  uint8_t scanChannel[MR_CHANNEL_LAST+3];
-  uint8_t scanChannelsCount;
-  void ToggleScanList();
-  void ToggleNormalizeRssi(bool on);
-  static void LoadSettings();
-  static void SaveSettings();
-  static bool gWasReceiving = false; // zylka
-
-
+Mode appMode;
+#define UHF_NOISE_FLOOR 40
+#define MAX_ATTENUATION 160
+#define ATTENUATE_STEP  10
+bool    isNormalizationApplied;
+uint8_t  gainOffset[129];
+uint8_t  attenuationOffset[129];
+uint8_t scanChannel[MR_CHANNEL_LAST+3];
+uint8_t scanChannelsCount;
+void ToggleScanList();
+void ToggleNormalizeRssi(bool on);
+static void LoadSettings();
+static void SaveSettings();
+  
 const uint16_t RSSI_MAX_VALUE = 65535;
 
 #define SQUELCH_OFF_DELAY 100 //Robby69
@@ -106,7 +104,7 @@ uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = 100;
 uint32_t freqHistory[100]; //Robby69
-uint8_t freqCount[100];     // nowa tablica liczników - zylka
+uint8_t freqCount[100] = {0};     // nowa tablica liczników - zylka
 uint8_t indexFd = 1;
 uint8_t indexFs = 1;
 bool ShowHistory = false;
@@ -321,9 +319,6 @@ uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency)
 	return S_STEP_25_0kHz;
 }
 
-
-
-
 uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
@@ -335,11 +330,11 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  /*if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
-    }*/
+    }
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -355,6 +350,22 @@ static void ToggleAudio(bool on) {
     AUDIO_AudioPathOff();
   }
 }
+
+void FillfreqHistory(){ //Robby69
+  uint8_t i;
+  bool found = 0;
+  for (i=1;i < FMaxNumb;i++) 
+    {if (freqHistory[i] == peak.f) 
+      {found=1;
+      freqCount[i]++;}
+    }
+  if (!found) {
+    freqHistory[indexFs] = peak.f;
+    freqCount[indexFs]=1;
+    indexFd = indexFs;
+    indexFs++;}
+  if (indexFs > FMaxNumb) indexFs = 1;
+  }
 
 static void ToggleRX(bool on) {
   isListening = on;
@@ -379,7 +390,7 @@ static void ToggleRX(bool on) {
   ToggleAFBit(on);
 
   if (on)
-  {
+  { FillfreqHistory();
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
@@ -484,79 +495,6 @@ static void UpdatePeakInfoForce() {
   LookupChannelInfo();
   //AutoTriggerLevel(); //Robby69
 }
-// void FillfreqHistory(){ //Robby69
-// uint8_t i;
-// bool found = 0;
-// for (i=1;i < FMaxNumb;i++) {if (freqHistory[i] == peak.f) found=1;}
-// if (!found) {
-	// freqHistory[indexFs] = peak.f;
-	// indexFd = indexFs;
-	// indexFs++;}
-// if (indexFs > FMaxNumb) indexFs = 1;
-// }
-
-//- void FillfreqHistory() { //Robby69 edit zylka
-  //  Jeśli nowa częstotliwość jest już na pozycji 1, zakończ
-    // if (freqHistory[1] == peak.f) {
-        // return;
-    // }
-    
- //-   Przesuń wszystkie istniejące wpisy w prawo (indeks 1 → 2, 2 → 3, itd.)
-    // for (uint8_t i = FMaxNumb - 1; i > 1; i--) {
-        // freqHistory[i] = freqHistory[i - 1];
-    // }
-    
-//-    Zapisz nową częstotliwość pod indeksem 1
-    // freqHistory[1] = peak.f;
-// }
-
-void FillfreqHistory() { // edit zylka
-    // Sprawdź czy częstotliwość istnieje w historii (indeksy 1..FMaxNumb-1)
-    bool found = false;
-    uint8_t foundIndex = 0;
-    
-    for (uint8_t i = 1; i < FMaxNumb; i++) {
-        if (freqHistory[i] == peak.f) {
-            found = true;
-            foundIndex = i;
-            break;
-        }
-    }
-
-    if (found) {
-        // Przesuń istniejący wpis na pozycję 1 i zwiększ licznik
-        uint8_t oldCount = freqCount[foundIndex];
-        
-        // Przesuń elementy w lewo (usuń duplikat)
-        for (uint8_t i = foundIndex; i < FMaxNumb - 1; i++) {
-            freqHistory[i] = freqHistory[i + 1];
-            freqCount[i] = freqCount[i + 1];
-        }
-        freqHistory[FMaxNumb - 1] = 0;
-        freqCount[FMaxNumb - 1] = 0;
-
-        // Przesuń wszystkie wpisy w prawo
-        for (uint8_t i = FMaxNumb - 1; i > 1; i--) {
-            freqHistory[i] = freqHistory[i - 1];
-            freqCount[i] = freqCount[i - 1];
-        }
-
-        // Wstaw na pozycję 1 z zaktualizowanym licznikiem
-        freqHistory[1] = peak.f;
-        freqCount[1] = oldCount + 1;
-    } else {
-        // Przesuń wszystkie wpisy w prazo
-        for (uint8_t i = FMaxNumb - 1; i > 1; i--) {
-            freqHistory[i] = freqHistory[i - 1];
-            freqCount[i] = freqCount[i - 1];
-        }
-        
-        // Wstaw nową częstotliwość z licznikiem 1
-        freqHistory[1] = peak.f;
-        freqCount[1] = 1;
-    }
-}
-
 
 
 
@@ -568,14 +506,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
-  
-   bool isReceiving = rssi > settings.rssiTriggerLevelH;
-  if (isReceiving && !gWasReceiving) {
-    FillfreqHistory(); // Tylko raz na rozpoczęcie transmisji
-  }
-  gWasReceiving = isReceiving; //zylka
-  
-  if (rssi > settings.rssiTriggerLevelH) FillfreqHistory();
+ // if (rssi > settings.rssiTriggerLevelH) FillfreqHistory();
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -923,40 +854,21 @@ static void DrawF(uint32_t f) {
 
 
 
-//	if (f > 0){
-//    //Robby69 show history 
-//		if(isKnownChannel) {sprintf(String, "%u: %s",indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);}
-//	    else 	
-//        {
-//			// if(GetScanStep() ==  833) {
-//            // uint32_t base = f/2500*2500;
-//            // int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-//            // f = base + (chno * 833) + (chno == 3);
-//            // }
-//            sprintf(String, "%u: %u.%05u",indexFd, f / 100000, f % 100000);
-//          }
-//    if (ShowHistory)
-//    UI_PrintStringSmall(String, 1, 1, 2); 
-//    }
-  
-    if (f > 0){  // edit zylka
-if(isKnownChannel) {
-    if(freqCount[indexFd] > 0) {
-        sprintf(String, "%u: %s (%u)", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
-    } else {
-        sprintf(String, "%u: %s", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name);
+	if (f > 0){
+    //Robby69 show history 
+    if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
+	    else 	
+        {
+			 if(GetScanStep() ==  833) {
+            uint32_t base = f/2500*2500;
+            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+            f = base + (chno * 833) + (chno == 3);
+            }
+        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+          }
+    if (ShowHistory)
+    UI_PrintStringSmall(String, 1, 1, 2); 
     }
-}
-
-        
-        if (ShowHistory)
-            UI_PrintStringSmall(String, 1, 1, 2); 
-    }
-	
-	
-
-
-
   
 //Robby show CTCSS or DCS
 	if (refresh == 0){
@@ -965,15 +877,15 @@ if(isKnownChannel) {
 		refresh = 1;
 		if (scanResult == BK4819_CSS_RESULT_CDCSS){
 			Code = DCS_GetCdcssCode(cdcssFreq);
-			refresh = 100;
-			if (Code != 0xFF) {sprintf(StringC, "D%03oN", DCS_Options[Code]);}}
+			refresh = 50;
+			if (Code != 0xFF) {sprintf(StringC, " D%03oN", DCS_Options[Code]);}}
 	
 		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
 			Code = DCS_GetCtcssCode(ctcssFreq);
-			refresh = 100;
+			refresh = 50;
 			sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
 			
-	GUI_DisplaySmallest(StringC, 100, 15, false, true);
+	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
 
 	if (isKnownChannel && isListening) {
@@ -1150,8 +1062,8 @@ static void OnKeyDown(uint8_t key) {
    ToggleNormalizeRssi(!isNormalizationApplied);
     break;
   case KEY_8:
-	uint8_t i;
-	for (i=1;i < FMaxNumb;i++) {freqHistory[i] =0;} //Reset History table
+	memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
+  memset(freqCount, 0, sizeof(freqCount));
 	indexFd = 1;
   indexFs = 1;
   ShowHistory = false;
