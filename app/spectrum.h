@@ -100,7 +100,8 @@ typedef enum State {
 typedef enum Mode {
   FREQUENCY_MODE,
   CHANNEL_MODE,
-  SCAN_RANGE_MODE
+  SCAN_RANGE_MODE,
+  SCAN_BAND_MODE,
 } Mode;
 
 typedef enum StepsCount {
@@ -160,6 +161,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
+  bool bandEnabled[15];
 } SpectrumSettings;
 
 typedef struct KeyboardState {
