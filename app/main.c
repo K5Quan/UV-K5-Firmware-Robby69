@@ -210,13 +210,13 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 
 		case KEY_5:
+			if(beep) {
 				ACTION_RunSpectrum();
 				gRequestDisplayScreen = DISPLAY_MAIN;
 			}
 			else {
 				toggle_chan_scanlist();
 			}
-
 			break;
 
 		case KEY_6:
