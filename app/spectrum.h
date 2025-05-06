@@ -161,6 +161,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
+  bool bandEnabled[15];
 } SpectrumSettings;
 
 typedef struct KeyboardState {

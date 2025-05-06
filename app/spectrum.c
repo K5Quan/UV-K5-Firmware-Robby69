@@ -412,9 +412,19 @@ static void ResetScanStats() {
 static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
-  scanInfo.f = GetFStart();
-  scanInfo.scanStep = GetScanStep();
-  scanInfo.measurementsCount = GetStepsCount();
+  if(appMode==SCAN_BAND_MODE)
+    {
+      scanInfo.f = 4000000;
+      scanInfo.scanStep = 1000;
+      scanInfo.measurementsCount = 512;
+    }
+  else
+  {
+    scanInfo.f = GetFStart();
+    scanInfo.scanStep = GetScanStep();
+    scanInfo.measurementsCount = GetStepsCount();
+  }
+  
   if(appMode==CHANNEL_MODE)
     scanInfo.measurementsCount++;
 }
@@ -439,6 +449,10 @@ static void ResetModifiers() {
 
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels();
+  }
+  if(appMode==SCAN_BAND_MODE)
+  {
+    LaunchScanBands();
   }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
