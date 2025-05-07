@@ -39,11 +39,14 @@
 #include <stdint.h>
 #include <string.h>
 
+
+
 #ifdef ENABLE_SPECTRUM_ARROW
 static const uint8_t DrawingEndY = 40; //Robby69 40
 #else
 static const uint8_t DrawingEndY = 50; //Robby69 48  55
 #endif
+
 
 static const uint8_t U8RssiMap[] = {
     121, 115, 109, 103, 97, 91, 85, 79, 73, 63,
@@ -116,7 +119,6 @@ typedef enum ScanStep {
   S_STEP_0_1kHz,
   S_STEP_0_5kHz,
   S_STEP_1_0kHz,
-
   S_STEP_2_5kHz,
   S_STEP_5_0kHz,
   S_STEP_6_25kHz,
@@ -146,6 +148,27 @@ typedef enum ScanList {
   S_SCAN_LIST_ALL
 } ScanList;
 
+typedef struct bandparameters {
+  uint32_t Startfrequency; // Start frequency in MHz /100
+  uint16_t  bandstepcount; // Band step count
+  ScanStep scanStepIndex;
+  uint16_t rssiTriggerLevel;
+  uint16_t rssiTriggerLevelH;
+  BK4819_FilterBandwidth_t bw;
+  BK4819_FilterBandwidth_t listenBw;
+  int dbMin;
+  int dbMax;  
+  ModulationMode_t modulationType;
+} BandSettings;
+
+BandSettings bandSettings[3] = {
+//Startfrequency    bandstepcount   scanStepIndex     rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+  {44600625,        16,             S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+  {14400000,        200,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+  {43000000,        300,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
+};
+
+
 typedef struct SpectrumSettings {
   uint32_t frequencyChangeStep;  
   StepsCount stepsCount;
@@ -161,7 +184,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
-  bool bandEnabled[15];
+  //bool bandEnabled[15];
 } SpectrumSettings;
 
 typedef struct KeyboardState {

@@ -99,7 +99,8 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              dbMax: 10,
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0},
-                             bandEnabled: {0}};
+                             //bandEnabled: {0}
+                            };
 
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
@@ -257,6 +258,15 @@ uint16_t GetStepsCount()
   }
   if(appMode==SCAN_RANGE_MODE) {
     return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
+  }
+  if (appMode==SCAN_BAND_MODE) {
+    //add all the steps in the bands
+    uint16_t AllActiveBandStepcount = 0;
+    for (int bl=1; bl <= 15; bl++) {
+       if (settings.scanListEnabled[bl-1])
+          AllActiveBandStepcount += bandSettings[bl-1].bandstepcount;
+    }
+    return AllActiveBandStepcount;
   }
   return 128 >> settings.stepsCount;
 }
@@ -426,11 +436,15 @@ static void ResetScanStats() {
 static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
+  u_int8_t test_band = 0;
   if(appMode==SCAN_BAND_MODE)
     {
-      scanInfo.f = 4000000;
-      scanInfo.scanStep = 1000;
-      scanInfo.measurementsCount = 512;
+      if (test_band++ < 10)
+        {scanInfo.f = 4000000;
+        scanInfo.scanStep = 1000;
+        scanInfo.measurementsCount = 512;
+        }
+
     }
   else
   {
@@ -1638,11 +1652,11 @@ void LaunchScanBands(void)
   // loop through all bandlists
   for (int bl=1; bl <= 16; bl++) {
     // skip disabled scanlist
-    if (bl <= 15 && !settings.bandEnabled[bl-1])
+    if (bl <= 15 && !settings.scanListEnabled[bl-1])
       continue;
 
     // valid scanlist is enabled
-    if (bl <= 15 && settings.bandEnabled[bl-1])
+    if (bl <= 15 && settings.scanListEnabled[bl-1])
       bandsEnabled = true;
     
     // break if some lists were enabled, else scan all channels
