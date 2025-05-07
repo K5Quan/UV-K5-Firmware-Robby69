@@ -159,14 +159,9 @@ typedef struct bandparameters {
   int dbMin;
   int dbMax;  
   ModulationMode_t modulationType;
-} BandSettings;
+} bandparameters;
 
-BandSettings bandSettings[3] = {
-//Startfrequency    bandstepcount   scanStepIndex     rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
-  {44600625,        16,             S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-  {14400000,        200,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-  {43000000,        300,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
-};
+
 
 
 typedef struct SpectrumSettings {

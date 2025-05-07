@@ -102,6 +102,14 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              //bandEnabled: {0}
                             };
 
+bandparameters BParams[3] = {
+  //Startfrequency    bandstepcount   scanStepIndex     rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+    {44600625,        16,             S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {14400000,        200,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {43000000,        300,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
+  };
+
+
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
@@ -264,7 +272,7 @@ uint16_t GetStepsCount()
     uint16_t AllActiveBandStepcount = 0;
     for (int bl=1; bl <= 15; bl++) {
        if (settings.scanListEnabled[bl-1])
-          AllActiveBandStepcount += bandSettings[bl-1].bandstepcount;
+          AllActiveBandStepcount += BParams[bl-1].bandstepcount;
     }
     return AllActiveBandStepcount;
   }
@@ -432,18 +440,20 @@ static void ResetScanStats() {
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
 }
+uint8_t test_band = 0;
 
 static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
-  u_int8_t test_band = 0;
+  
   if(appMode==SCAN_BAND_MODE)
     {
       if (test_band++ < 10)
-        {scanInfo.f = 4000000;
+        {scanInfo.f = 44600625;
         scanInfo.scanStep = 1000;
         scanInfo.measurementsCount = 512;
         }
+        else test_band = 10;
 
     }
   else
