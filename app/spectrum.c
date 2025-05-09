@@ -46,15 +46,14 @@ static uint32_t initialFreq;
 static char String[32];
 static char StringC[10];
 uint32_t lastPeakFrequency;
-bool     isKnownChannel = false;
-int      channel;
-int      latestChannel;
-char     channelName[12];
-char     rxChannelName[12];
+bool isKnownChannel = false;
+int  channel;
+int  latestChannel;
+char channelName[12];
+char rxChannelName[12];
 ModulationMode_t  channelModulation;
 BK4819_FilterBandwidth_t channelBandwidth;
-void     LoadValidMemoryChannels(void);
-void     LaunchScanBands(void);
+void LoadValidMemoryChannels(void);
 bool isInitialized = false;
 bool isListening = true;
 bool monitorMode = false;
@@ -267,7 +266,7 @@ uint16_t GetStepsCount()
   if(appMode==SCAN_RANGE_MODE) {
     return (2+(gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
   }
-  if (appMode==SCAN_BAND_MODE) {
+  /*if (appMode==SCAN_BAND_MODE) {
     //add all the steps in the bands
     uint16_t AllActiveBandStepcount = 0;
     for (int bl=1; bl <= 15; bl++) {
@@ -275,7 +274,7 @@ uint16_t GetStepsCount()
           AllActiveBandStepcount += BParams[bl-1].bandstepcount;
     }
     return AllActiveBandStepcount;
-  }
+  }*/
   return 128 >> settings.stepsCount;
 }
 
@@ -371,13 +370,14 @@ static void ToggleAudio(bool on) {
   }
 }
 
-void FillfreqHistory(){ //Robby69
+void FillfreqHistory(bool count){ //Robby69
   uint8_t i;
   bool found = 0;
   for (i=1;i < FMaxNumb;i++) 
     {if (freqHistory[i] == peak.f) 
       {found=1;
-      freqCount[i]++;}
+        if (count)freqCount[i]++;
+      }
     }
   if (!found) {
     freqHistory[indexFs] = peak.f;
@@ -410,7 +410,7 @@ static void ToggleRX(bool on) {
   ToggleAFBit(on);
 
   if (on)
-  { FillfreqHistory();
+  { FillfreqHistory(true);
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
@@ -447,14 +447,34 @@ static void InitScan() {
   scanInfo.i = 0;
   
   if(appMode==SCAN_BAND_MODE)
-    {
-      if (test_band++ < 10)
-        {scanInfo.f = 44600625;
-        scanInfo.scanStep = 1000;
-        scanInfo.measurementsCount = 512;
+    {++test_band;
+      if (test_band == 1)
+        {scanInfo.f = 14400000;
+        scanInfo.scanStep = 500;
+        scanInfo.measurementsCount = 128;
+        settings.scanStepIndex= S_STEP_5_0kHz;
+        gScanRangeStart = scanInfo.f;
+        gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
         }
-        else test_band = 10;
-
+      if (test_band == 2)
+        {scanInfo.f = 44600625;
+         scanInfo.scanStep = 625;
+         settings.scanStepIndex= S_STEP_6_25kHz;
+         scanInfo.measurementsCount = 256;
+         gScanRangeStart = scanInfo.f;
+         gScanRangeStop = gScanRangeStart + scanInfo.scanStep*100 * scanInfo.measurementsCount;
+        }
+      if (test_band ==3)
+        {scanInfo.f = 10000000;
+         scanInfo.scanStep = 5000;
+         scanInfo.measurementsCount = 64;
+          settings.scanStepIndex= S_STEP_100_0kHz; //wrong
+         test_band = 0;
+         gScanRangeStart = scanInfo.f;
+         gScanRangeStop = gScanRangeStart + scanInfo.scanStep*100 * scanInfo.measurementsCount;
+        }
+    redrawStatus = true;
+    redrawScreen = true;
     }
   else
   {
@@ -488,10 +508,6 @@ static void ResetModifiers() {
   if(appMode==CHANNEL_MODE){
       LoadValidMemoryChannels();
   }
-  if(appMode==SCAN_BAND_MODE)
-  {
-    LaunchScanBands();
-  }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   isBlacklistApplied = false;
@@ -524,9 +540,6 @@ static void UpdateScanInfo() {
   }
 }
 
-
-
-
 static void UpdatePeakInfoForce() {
   peak.t = 0;
   peak.rssi = scanInfo.rssiMax;
@@ -536,8 +549,6 @@ static void UpdatePeakInfoForce() {
   //AutoTriggerLevel(); //Robby69
 }
 
-
-
 static void UpdatePeakInfo() {
   if (peak.f == 0 || peak.t >= 1024 || peak.rssi < scanInfo.rssiMax)
     UpdatePeakInfoForce();
@@ -546,7 +557,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
- // if (rssi > settings.rssiTriggerLevelH) FillfreqHistory();
+    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -830,7 +841,7 @@ static void DrawStatus() {
   GUI_DisplaySmallest(String, 0, 1, true, true);
 
   // display scanlists
-  if(appMode==CHANNEL_MODE) {
+  if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
     switch(waitingForScanListNumber) {
       case 2:
         sprintf(String, "SL ===============");
@@ -1003,7 +1014,7 @@ static void DrawNums() {
     }
     else
     {
-      sprintf(String, "%u.%02uk", GetScanStep() / 100, GetScanStep() % 100);
+      sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
       GUI_DisplaySmallest(String, 0, 7, false, true);
     }
 
@@ -1025,7 +1036,7 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
 
-  if(appMode==SCAN_RANGE_MODE){
+  if(appMode==SCAN_RANGE_MODE || appMode==SCAN_BAND_MODE){
     sprintf(String, "%u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000); //Robby69 was %u.%05u
     GUI_DisplaySmallest(String, 0, Bottom_print, false, true);
  
@@ -1087,19 +1098,13 @@ static void OnKeyDown(uint8_t key) {
     UpdateDBMax(false);
     break;
   case KEY_1:
-    if(appMode!=CHANNEL_MODE)
-    {
-      UpdateScanStep(true);
-    }
+    if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
     break;
   case KEY_7:
-    if(appMode!=CHANNEL_MODE)
-    {
-      UpdateScanStep(false);
-    }
+    if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}
     break;
   case KEY_2:
-   ToggleNormalizeRssi(!isNormalizationApplied);
+    ToggleNormalizeRssi(!isNormalizationApplied);
     break;
   case KEY_8:
 	memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
@@ -1109,46 +1114,50 @@ static void OnKeyDown(uint8_t key) {
   ShowHistory = false;
   ToggleBacklight();
   break;
+  
   case KEY_UP:
-
   ShowHistory = true;
   indexFd++;
 	if(freqHistory[indexFd]==0)indexFd--;
 	if (indexFd > FMaxNumb) indexFd = 1;	  
 	
     if(appMode==FREQUENCY_MODE)
-    {
-
-      UpdateCurrentFreq(true);
-    }
+    {UpdateCurrentFreq(true);}
     break;
   case KEY_DOWN:
     ShowHistory = true;
     indexFd--;
     if (indexFd < 1) indexFd = 1;
-
-
     if(appMode==FREQUENCY_MODE)
-    {
-
-      UpdateCurrentFreq(false);
-    }
+    {UpdateCurrentFreq(false);}
     break;
+  
   case KEY_SIDE1:
     Blacklist();
     break;
+  
   case KEY_STAR:
-	UpdateRssiTriggerLevel(true);
+	  UpdateRssiTriggerLevel(true);
     break;
+  
   case KEY_F:
     UpdateRssiTriggerLevel(false);
     break;
+  
+  case KEY_4:
+    if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE)
+    {
+      waitingForScanListNumber = 1;
+      redrawStatus = true;
+    }
+    else if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
+    break;
+
   case KEY_5:
 
-    if(appMode==FREQUENCY_MODE)
-  
-      FreqInput();
-    if (appMode==CHANNEL_MODE) {
+    if(appMode==FREQUENCY_MODE) FreqInput();
+    
+    if (appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
       waitingForScanListNumber = 2;
       redrawStatus = true;
     }
@@ -1159,18 +1168,7 @@ static void OnKeyDown(uint8_t key) {
   case KEY_6:
     ToggleListeningBW();
     break;
-  case KEY_4:
-    if(appMode==CHANNEL_MODE)
-    {
-      // ToggleScanList();
-      waitingForScanListNumber = 1;
-      redrawStatus = true;
-    }
-    else if (appMode!=SCAN_RANGE_MODE)
-    {
-      ToggleStepsCount();
-    }
-    break;
+  
   case KEY_SIDE2: //Robby69
   SquelchBarKeyMode += 1; //Robby69
 	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
@@ -1603,14 +1601,8 @@ void APP_RunSpectrum(Mode mode) {
     ResetModifiers();
   }
   appMode = mode;
-  if(mode==SCAN_BAND_MODE) 
-  {
-    LaunchScanBands();
-  }
-
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
-  
   if(mode==SCAN_RANGE_MODE) {
     currentFreq = initialFreq = gScanRangeStart;
     for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
@@ -1655,30 +1647,7 @@ void APP_RunSpectrum(Mode mode) {
   }
 }
 
-void LaunchScanBands(void)
-{
-  bool bandsEnabled = false;
-  
-  // loop through all bandlists
-  for (int bl=1; bl <= 16; bl++) {
-    // skip disabled scanlist
-    if (bl <= 15 && !settings.scanListEnabled[bl-1])
-      continue;
-
-    // valid scanlist is enabled
-    if (bl <= 15 && settings.scanListEnabled[bl-1])
-      bandsEnabled = true;
-    
-    // break if some lists were enabled, else scan all channels
-    if (bl > 15 && bandsEnabled)
-      break;
-
-    
-  }
-}
-
-
-  void LoadValidMemoryChannels(void)
+void LoadValidMemoryChannels(void)
   {
     memset(scanChannel,0,sizeof(scanChannel));
     scanChannelsCount = 0;
