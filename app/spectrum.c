@@ -101,11 +101,23 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              //bandEnabled: {0}
                             };
 
-bandparameters BParams[3] = {
-  //Startfrequency    bandstepcount   scanStepIndex     rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
-    {44600625,        16,             S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {14400000,        200,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {43000000,        300,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
+bandparameters BParams[15] = {
+  //Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+    {10100000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10200000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10300000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10400000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10500000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10600000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10700000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10800000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {10900000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11000000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11100000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11200000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11300000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11400000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {11500000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
   };
 
 
@@ -440,41 +452,33 @@ static void ResetScanStats() {
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
 }
-uint8_t test_band = 0;
 
 static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
   
   if(appMode==SCAN_BAND_MODE)
-    {++test_band;
-      if (test_band == 1)
-        {scanInfo.f = 14400000;
-        scanInfo.scanStep = 500;
-        scanInfo.measurementsCount = 128;
-        settings.scanStepIndex= S_STEP_5_0kHz;
-        gScanRangeStart = scanInfo.f;
-        gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
-        }
-      if (test_band == 2)
-        {scanInfo.f = 44600625;
-         scanInfo.scanStep = 625;
-         settings.scanStepIndex= S_STEP_6_25kHz;
-         scanInfo.measurementsCount = 256;
-         gScanRangeStart = scanInfo.f;
-         gScanRangeStop = gScanRangeStart + scanInfo.scanStep*100 * scanInfo.measurementsCount;
-        }
-      if (test_band ==3)
-        {scanInfo.f = 10000000;
-         scanInfo.scanStep = 5000;
-         scanInfo.measurementsCount = 64;
-          settings.scanStepIndex= S_STEP_100_0kHz; //wrong
-         test_band = 0;
-         gScanRangeStart = scanInfo.f;
-         gScanRangeStop = gScanRangeStart + scanInfo.scanStep*100 * scanInfo.measurementsCount;
-        }
-    redrawStatus = true;
-    redrawScreen = true;
+    {
+      static uint8_t CurrentScanBand = 0;
+      if (++CurrentScanBand > 15)CurrentScanBand=0;
+      for (int i=0; i < 16; i++) 
+      {
+        int bl = (CurrentScanBand + i) % 16;
+        if (settings.scanListEnabled[bl-1])
+          {
+            scanInfo.f = BParams[bl-1].Startfrequency;
+            scanInfo.scanStep = scanStepValues[BParams[bl-1].scanStep];;
+            settings.scanStepIndex= BParams[bl-1].scanStep;
+            scanInfo.measurementsCount = BParams[bl-1].bandstepcount;
+            gScanRangeStart = scanInfo.f;
+            gScanRangeStop = gScanRangeStart + BParams[bl-1].scanStep * scanInfo.measurementsCount;    
+            break;
+          }
+      }
+    
+    
+    //redrawStatus = true;
+    //redrawScreen = true;
     }
   else
   {

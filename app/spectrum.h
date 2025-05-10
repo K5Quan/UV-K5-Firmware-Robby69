@@ -151,7 +151,7 @@ typedef enum ScanList {
 typedef struct bandparameters {
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint16_t  bandstepcount; // Band step count
-  ScanStep scanStepIndex;
+  ScanStep scanStep;
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
   BK4819_FilterBandwidth_t bw;
