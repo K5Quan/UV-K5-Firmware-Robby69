@@ -13,7 +13,7 @@ struct FrequencyBandInfo {
     uint32_t middle;
 };
 
-bool isBlacklistApplied;
+bool isblacklistApplied;
 
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
@@ -72,10 +72,10 @@ ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
 
 
-#define BLACKLIST_SIZE 200
-static uint16_t blacklistFreqs[BLACKLIST_SIZE];
+#define blACKLIST_SIZE 200
+static uint16_t blacklistFreqs[blACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
-static bool IsBlacklisted(uint16_t idx);
+static bool Isblacklisted(uint16_t idx);
 static uint8_t CurrentScanIndex();
 
 char     latestScanListName[12];
@@ -104,7 +104,26 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 
 bandparameters BParams[15] = {
   // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
-    {"1 CB",          2696000,         44,             S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"1",             44600000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"2",             44700000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"3",             44800000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"4",             44900000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"5",             45000000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"6",             45100000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"7",             45200000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"8",             45300000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"9",             45400000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"10",            45500000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"11",            45600000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"12",            45700000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"13",            45800000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"14",            45900000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"15",            46000000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_AM}
+   };
+
+/*bandparameters BParams[15] = {
+  // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+    {"1 CB",          2696000,         64,             S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"2 HAM 50",      5000000,         202,            S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"3 FM",          8750000,         205,            S_STEP_100_0kHz,  150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"4 HAM 144",     14400000,        161,            S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
@@ -119,7 +138,7 @@ bandparameters BParams[15] = {
     {"",              11100000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"",              11200000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"",              11400000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
-   };
+   };*/
 
 
 uint32_t fMeasure = 0;
@@ -450,28 +469,42 @@ static void ResetScanStats() {
 static void InitScan() {
   ResetScanStats();
   scanInfo.i = 0;
-  
-  if(appMode==SCAN_BAND_MODE)
-    {
-      if (CurrentScanBand++ > 16) CurrentScanBand=1;
-      for (int i=0; i < 16; i++) 
-      {
-        bl = ((CurrentScanBand + i) % 16)-1;
-        if (settings.scanListEnabled[bl])
-          {
+  if (appMode == SCAN_BAND_MODE) {
+    if (CurrentScanBand++ > 14) CurrentScanBand = 0;  // Reset if needed
+    for (int i = 0; i < 15; i++) {
+        bl = (CurrentScanBand + i) % 15;  // Ensures bl ∈ [0, 14]
+        if (settings.scanListEnabled[bl]) {
             scanInfo.f = BParams[bl].Startfrequency;
-            scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];;
-            settings.scanStepIndex= BParams[bl].scanStep;
+            scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
+            settings.scanStepIndex = BParams[bl].scanStep;
             scanInfo.measurementsCount = BParams[bl].bandstepcount;
+            gScanRangeStart = scanInfo.f;
+            gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
+            break;
+        }
+    }
+}
+  /*if(appMode==SCAN_BAND_MODE)
+    {
+      for (int i=0; i < 15; i++) 
+      {
+        if (CurrentScanBand++ > 16) CurrentScanBand=1;
+        bl = ((CurrentScanBand + i) % 15);
+        if (settings.scanListEnabled[bl-1])
+          {
+            scanInfo.f = BParams[bl-1].Startfrequency;
+            scanInfo.scanStep = scanStepValues[BParams[bl-1].scanStep];;
+            settings.scanStepIndex= BParams[bl-1].scanStep;
+            scanInfo.measurementsCount = BParams[bl-1].bandstepcount;
             gScanRangeStart = scanInfo.f;
             gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
 			      break;
           }
       }
     
-    redrawStatus = true;
-    redrawScreen = true;
-    }
+    //redrawStatus = true;
+    //redrawScreen = true;
+    }*/
   else
   {
     scanInfo.f = GetFStart();
@@ -506,7 +539,7 @@ static void ResetModifiers() {
   }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  isBlacklistApplied = false;
+  isblacklistApplied = false;
   //AutoTriggerLevel();
   RelaunchScan();
   
@@ -752,13 +785,13 @@ static void UpdateFreqInput(KEY_Code_t key) {
   redrawScreen = true;
 }
 
-static void Blacklist() {
+static void blacklist() {
 
   blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
   rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
 
   rssiHistory[peak.i] = RSSI_MAX_VALUE;
-  isBlacklistApplied = true;
+  isblacklistApplied = true;
   ResetPeak();
   ToggleRX(false);
   ResetScanStats();
@@ -778,7 +811,7 @@ static uint8_t CurrentScanIndex()
   
 }
 
-static bool IsBlacklisted(uint16_t idx)
+static bool Isblacklisted(uint16_t idx)
 {
   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
     if(blacklistFreqs[i] == idx)
@@ -935,7 +968,7 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
     if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%s", BParams[bl].BandName);
+        {sprintf(String, "%u", CurrentScanBand); //BParams[bl].BandName);
         UI_PrintStringSmallBold(String, 1, 127, 1);}
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
@@ -1042,8 +1075,8 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
 
-  if(isBlacklistApplied){
-    sprintf(String, "BL");
+  if(isblacklistApplied){
+    sprintf(String, "bl");
     GUI_DisplaySmallest(String, 67, Bottom_print, false, true);
   }
 }
@@ -1131,7 +1164,7 @@ static void OnKeyDown(uint8_t key) {
     break;
   
   case KEY_SIDE1:
-    Blacklist();
+    blacklist();
     break;
   
   case KEY_STAR:
@@ -1440,7 +1473,7 @@ bool HandleUserInput() {
 static void Scan() {
   if (rssiHistory[scanInfo.i] != RSSI_MAX_VALUE
 
-  && !IsBlacklisted(scanInfo.i)
+  && !Isblacklisted(scanInfo.i)
 
   ) {
     SetF(scanInfo.f);
