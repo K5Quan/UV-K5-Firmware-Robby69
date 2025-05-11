@@ -149,6 +149,7 @@ typedef enum ScanList {
 } ScanList;
 
 typedef struct bandparameters {
+  char BandName[10];
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint16_t  bandstepcount; // Band step count
   ScanStep scanStep;
