@@ -27,7 +27,7 @@
 void ACTION_Power(void);
 void ACTION_Monitor(void);
 void ACTION_Scan(bool bRestart);
-void ACTION_RunSpectrum(void);
+void ACTION_RunSpectrum(uint8_t Last_state);
 #ifdef ENABLE_VOX
 	void ACTION_Vox(void);
 #endif

@@ -151,13 +151,8 @@ typedef enum ScanList {
 typedef struct bandparameters {
   char BandName[10];
   uint32_t Startfrequency; // Start frequency in MHz /100
-  uint16_t  bandstepcount; // Band step count
+  uint32_t Stopfrequency; // Stop frequency in MHz /100
   ScanStep scanStep;
-  uint16_t rssiTriggerLevel;
-  uint16_t rssiTriggerLevelH;
-  BK4819_FilterBandwidth_t bw;
-  BK4819_FilterBandwidth_t listenBw;
-  int dbMin;
   int dbMax;  
   ModulationMode_t modulationType;
 } bandparameters;
@@ -180,7 +175,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
-  //bool bandEnabled[15];
+  bool bandEnabled[15];
 } SpectrumSettings;
 
 typedef struct KeyboardState {

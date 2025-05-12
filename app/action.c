@@ -251,9 +251,10 @@ void ACTION_Scan(bool bRestart)
 	}
 #endif
 
-void ACTION_RunSpectrum(void)
+void ACTION_RunSpectrum(uint8_t Last_state)
 {
 	// if scanRangeStart then we enter in scan range mode	
+	if (Last_state ==2) APP_RunSpectrum(SCAN_BAND_MODE);
 	if(gScanRangeStart)	APP_RunSpectrum(SCAN_RANGE_MODE);
 	else APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
 }
@@ -417,7 +418,7 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 				ACTION_NextBandwidth(gTxVfo->CHANNEL_BANDWIDTH, gTxVfo->Modulation != MODULATION_AM);
 			break;
 		case ACTION_OPT_SPECTRUM:
-			ACTION_RunSpectrum();
+			ACTION_RunSpectrum(1);
 			break;
 #ifdef ENABLE_BLMIN_TMP_OFF
 		case ACTION_OPT_BLMIN_TMP_OFF:

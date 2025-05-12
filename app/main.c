@@ -212,7 +212,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 		case KEY_5:
 			if (beep)
 			{
-				ACTION_RunSpectrum();
+				ACTION_RunSpectrum(1);
 				gRequestDisplayScreen = DISPLAY_MAIN;
 			}
 			else {
