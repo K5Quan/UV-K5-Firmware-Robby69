@@ -13,7 +13,7 @@ struct FrequencyBandInfo {
     uint32_t middle;
 };
 
-bool isblacklistApplied;
+bool isBlacklistApplied;
 
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
@@ -72,10 +72,10 @@ ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
 
 
-#define blACKLIST_SIZE 200
-static uint16_t blacklistFreqs[blACKLIST_SIZE];
+#define BLACKLIST_SIZE 200
+static uint16_t blacklistFreqs[BLACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
-static bool Isblacklisted(uint16_t idx);
+static bool IsBlacklisted(uint16_t idx);
 static uint8_t CurrentScanIndex();
 
 char     latestScanListName[12];
@@ -103,13 +103,14 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                             };
 
 bandparameters BParams[15] = {
-  // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
-    {"1",             44600000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"2",             44700000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+
+ /* // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+    {"1",             44600000,         16,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"2",             44700000,         64,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"3",             44800000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"4",             44900000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"5",             45000000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"6",             45100000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"4",             44900000,         256,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"5",             45000000,         512,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
+    {"6",             45100000,         1024,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"7",             45200000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"8",             45300000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"9",             45400000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
@@ -119,26 +120,27 @@ bandparameters BParams[15] = {
     {"13",            45800000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"14",            45900000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
     {"15",            46000000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_AM}
-   };
-
-/*bandparameters BParams[15] = {
-  // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
-    {"1 CB",          2696000,         64,             S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"2 HAM 50",      5000000,         202,            S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"3 FM",          8750000,         205,            S_STEP_100_0kHz,  150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"4 HAM 144",     14400000,        161,            S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"5 HAM 430",     43000000,        1000,           S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"6 AERO",        13600000,        3041,           S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_AM},
-    {"7 PMR",         44600625,        16,             S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              10700000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              10700000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              10800000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              10900000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              11000000,        128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              11100000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              11200000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM},
-    {"",              11400000,        128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30,   MODULATION_FM}
    };*/
+
+
+
+  // BandName         Startfrequency    bandstepcount   scanStep          rssiTriggerLevel    rssiTriggerLevelH   bw                      listenBw               dbMin dbMax  modulationType
+    {"1 CB",          2696000,          44,             S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -20   ,MODULATION_AM},
+    {"2 HAM 50",      5000000,          256,            S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -20   ,MODULATION_FM},
+    {"3 FM",          8750000,          205,            S_STEP_100_0kHz,  150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"4 HAM 144",     14400000,         161,            S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -20   ,MODULATION_FM},
+    {"5 HAM 430",     43000000,         1000,           S_STEP_10_0kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"6 AERO",        11800000,         3041,           S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_AM},
+    {"7 PMR",         44600625,         16,             S_STEP_12_5kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"8 LPD",         43300000,         128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              10700000,         128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              10800000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              10900000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              11000000,         128,            S_STEP_6_25kHz,   150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              11100000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              11200000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM},
+    {"",              11400000,         128,            S_STEP_5_0kHz,    150,                150,                BK4819_FILTER_BW_WIDE,  BK4819_FILTER_BW_WIDE, -130, -30   ,MODULATION_FM}
+   };
 
 
 uint32_t fMeasure = 0;
@@ -154,6 +156,8 @@ uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
 char freqInputString[11];
+
+static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
 
 uint8_t menuState = 0;
 uint16_t listenT = 0;
@@ -466,59 +470,56 @@ static void ResetScanStats() {
   scanInfo.fPeak = 0;
 }
 
-static void InitScan() {
-  ResetScanStats();
-  scanInfo.i = 0;
-  if (appMode == SCAN_BAND_MODE) {
-    if (CurrentScanBand++ > 14) CurrentScanBand = 0;  // Reset if needed
-    for (int i = 0; i < 15; i++) {
-        bl = (CurrentScanBand + i) % 15;  // Ensures bl ∈ [0, 14]
-        if (settings.scanListEnabled[bl]) {
-            scanInfo.f = BParams[bl].Startfrequency;
-            scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
-            settings.scanStepIndex = BParams[bl].scanStep;
-            scanInfo.measurementsCount = BParams[bl].bandstepcount;
-            gScanRangeStart = scanInfo.f;
-            gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
-            break;
+static bool InitScan() {
+    ResetScanStats();
+    scanInfo.i = 0;
+    bool scanInitializedSuccessfully = false;
+
+    if (appMode == SCAN_BAND_MODE) {
+        uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
+        while (checkedBandCount < 15) { // Sprawdź wszystkie 15 pasm co najwyżej raz
+            if (settings.scanListEnabled[nextBandToScanIndex]) {
+                bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
+                
+                // Ustaw parametry skanowania dla BParams[bl]
+                scanInfo.f = BParams[bl].Startfrequency;
+                scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
+                settings.scanStepIndex = BParams[bl].scanStep; // Aktualizuj globalny, jeśli potrzebne
+                scanInfo.measurementsCount = BParams[bl].bandstepcount;
+                gScanRangeStart = scanInfo.f;
+                gScanRangeStop = gScanRangeStart + (uint32_t)scanInfo.scanStep * scanInfo.measurementsCount;
+                settings.modulationType = BParams[bl].modulationType;
+                RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
+                BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+                BK4819_SetFilterBandwidth(BParams[bl].listenBw, false); // Ustaw BW dla pasma
+                nextBandToScanIndex = (nextBandToScanIndex + 1) % 15; // Przygotuj indeks na następne wywołanie
+                scanInitializedSuccessfully = true;
+                redrawStatus = true; // Te flagi mogą być potrzebne tutaj
+                redrawScreen = true;
+                settings.rssiTriggerLevel = BParams[bl].rssiTriggerLevel;
+                settings.rssiTriggerLevelH = BParams[bl].rssiTriggerLevelH;
+                settings.dbMin = BParams[bl].dbMin;
+                settings.dbMax = BParams[bl].dbMax;
+                break; // Znaleziono aktywne pasmo, przerwij pętlę while
+            }
+            nextBandToScanIndex = (nextBandToScanIndex + 1) % 15; // Przejdź do następnego pasma
+            checkedBandCount++;
         }
+    } else {
+        // Logika dla innych trybów
+        scanInfo.f = GetFStart();
+        scanInfo.scanStep = GetScanStep();
+        scanInfo.measurementsCount = GetStepsCount();
+        scanInitializedSuccessfully = true;
     }
-}
-  /*if(appMode==SCAN_BAND_MODE)
-    {
-      for (int i=0; i < 15; i++) 
-      {
-        if (CurrentScanBand++ > 16) CurrentScanBand=1;
-        bl = ((CurrentScanBand + i) % 15);
-        if (settings.scanListEnabled[bl-1])
-          {
-            scanInfo.f = BParams[bl-1].Startfrequency;
-            scanInfo.scanStep = scanStepValues[BParams[bl-1].scanStep];;
-            settings.scanStepIndex= BParams[bl-1].scanStep;
-            scanInfo.measurementsCount = BParams[bl-1].bandstepcount;
-            gScanRangeStart = scanInfo.f;
-            gScanRangeStop = gScanRangeStart + scanInfo.scanStep * scanInfo.measurementsCount;
-			      break;
-          }
-      }
-    
-    //redrawStatus = true;
-    //redrawScreen = true;
-    }*/
-  else
-  {
-    scanInfo.f = GetFStart();
-    scanInfo.scanStep = GetScanStep();
-    scanInfo.measurementsCount = GetStepsCount();
-  }
-  
-  if(appMode==CHANNEL_MODE)
+	if(appMode==CHANNEL_MODE)
     scanInfo.measurementsCount++;
+    return scanInitializedSuccessfully;
 }
 
 static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +30, 0, RSSI_MAX_VALUE); //Robby69 +8
+  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +50, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
 }
@@ -539,7 +540,7 @@ static void ResetModifiers() {
   }
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  isblacklistApplied = false;
+  isBlacklistApplied = false;
   //AutoTriggerLevel();
   RelaunchScan();
   
@@ -785,13 +786,13 @@ static void UpdateFreqInput(KEY_Code_t key) {
   redrawScreen = true;
 }
 
-static void blacklist() {
+static void Blacklist() {
 
   blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
   rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
 
   rssiHistory[peak.i] = RSSI_MAX_VALUE;
-  isblacklistApplied = true;
+  isBlacklistApplied = true;
   ResetPeak();
   ToggleRX(false);
   ResetScanStats();
@@ -811,7 +812,7 @@ static uint8_t CurrentScanIndex()
   
 }
 
-static bool Isblacklisted(uint16_t idx)
+static bool IsBlacklisted(uint16_t idx)
 {
   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
     if(blacklistFreqs[i] == idx)
@@ -968,7 +969,7 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
     if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%u", CurrentScanBand); //BParams[bl].BandName);
+        {sprintf(String, "%s", BParams[bl].BandName);
         UI_PrintStringSmallBold(String, 1, 127, 1);}
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
@@ -1075,8 +1076,8 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
 
-  if(isblacklistApplied){
-    sprintf(String, "bl");
+  if(isBlacklistApplied){
+    sprintf(String, "BL");
     GUI_DisplaySmallest(String, 67, Bottom_print, false, true);
   }
 }
@@ -1164,7 +1165,7 @@ static void OnKeyDown(uint8_t key) {
     break;
   
   case KEY_SIDE1:
-    blacklist();
+    Blacklist();
     break;
   
   case KEY_STAR:
@@ -1473,7 +1474,7 @@ bool HandleUserInput() {
 static void Scan() {
   if (rssiHistory[scanInfo.i] != RSSI_MAX_VALUE
 
-  && !Isblacklisted(scanInfo.i)
+  && !IsBlacklisted(scanInfo.i)
 
   ) {
     SetF(scanInfo.f);
@@ -1658,12 +1659,14 @@ void APP_RunSpectrum(Mode mode) {
 
 
   ToggleRX(true), ToggleRX(false); // hack to prevent noise when squelch off
-  RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
-  BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
-  settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
-  RADIO_SetModulation(settings.modulationType = MODULATION_FM);
-  BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
-  AutoAdjustFreqChangeStep();
+  if (appMode != SCAN_BAND_MODE){
+      RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
+      BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
+      settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
+      RADIO_SetModulation(settings.modulationType = MODULATION_FM);
+      BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
+      AutoAdjustFreqChangeStep();
+      }
 
   RelaunchScan();
 
@@ -1730,7 +1733,6 @@ void LoadValidMemoryChannels(void)
     ResetModifiers();
   }
 
-  // 2024 by kamilsss655  -> https://github.com/kamilsss655
   // flattens spectrum by bringing all the rssi readings to the peak value
   void ToggleNormalizeRssi(bool on)
   {

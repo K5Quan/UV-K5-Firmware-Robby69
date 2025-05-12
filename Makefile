@@ -1,4 +1,4 @@
-AUTHOR_STRING := ROBBY69
+AUTHOR_STRING := ROBZYL
 VERSION_STRING := 4.40b
 
 # compile options (see README.md for descriptions)
