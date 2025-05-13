@@ -24,6 +24,8 @@ ENABLE_PWRON_PASSWORD         := 0
 ENABLE_DTMF			          := 0
 
 # ---- CUSTOM MODS ----
+BAND_ROBBY	                            := 1 //Only one band at a time
+BAND_ZYLKA		                        := 0
 ENABLE_BIG_FREQ                         := 1
 ENABLE_SMALL_BOLD                       := 1
 ENABLE_KEEP_MEM_NAME                    := 1
@@ -243,6 +245,12 @@ CFLAGS += -Wextra
 CFLAGS += -DPRINTF_INCLUDE_CONFIG_H
 CFLAGS += -DAUTHOR_STRING=\"$(AUTHOR_STRING)\" -DVERSION_STRING=\"$(VERSION_STRING)\"
 
+ifeq ($(BAND_ROBBY),1)
+	CFLAGS  += -DBAND_ROBBY
+endif
+ifeq ($(BAND_ZYLKA),1)
+	CFLAGS  += -DBAND_ZYLKA
+endif
 ifeq ($(ENABLE_SPECTRUM),1)
 CFLAGS += -DENABLE_SPECTRUM
 endif

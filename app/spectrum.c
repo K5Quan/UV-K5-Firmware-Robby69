@@ -101,7 +101,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanListEnabled: {0},
                              bandEnabled: {0}
                             };
-
+#ifdef BAND_ROBBY
 bandparameters BParams[15] = {
   // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
     {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
@@ -119,7 +119,27 @@ bandparameters BParams[15] = {
     {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
    }; 
+#endif
 
+#ifdef BAND_ZYLKA
+bandparameters BParams[15] = {
+  // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
+    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
+    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz, -20    ,MODULATION_FM},
+    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
+    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
+    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
+    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"",              11100000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
+    {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
+    {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
+   }; 
+#endif
 
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
