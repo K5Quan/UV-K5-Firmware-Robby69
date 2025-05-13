@@ -256,7 +256,7 @@ void ACTION_RunSpectrum(uint8_t Last_state)
 	// if scanRangeStart then we enter in scan range mode	
 	if (Last_state ==2) APP_RunSpectrum(SCAN_BAND_MODE);
 	if(gScanRangeStart)	APP_RunSpectrum(SCAN_RANGE_MODE);
-	else APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
+	if (Last_state ==1) APP_RunSpectrum(IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE));
 }
 
 void ACTION_SwitchDemodul(void)

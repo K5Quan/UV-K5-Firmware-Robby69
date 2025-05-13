@@ -309,6 +309,7 @@ static void DeInitSpectrum() {
   gScanRangeStart = 0;
   uint8_t Last_state = 0; //Spectrum Not Active
   EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
+  
 }
 
 static void ExitAndCopyToVfo() {
@@ -1607,7 +1608,7 @@ void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   LoadSettings();//Robby69
   uint8_t Last_state = 1; //Spectrum Active
-  if (appMode == SCAN_BAND_MODE) Last_state =2;
+  if (mode == SCAN_BAND_MODE) Last_state =2;
   
   EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
   
