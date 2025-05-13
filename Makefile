@@ -51,8 +51,7 @@ ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
-ENABLE_BAND_ROBBY	                    := 1 //Only one band at a time
-ENABLE_BAND_ZYLKA	                    := 0
+
 
 #############################################################
 
@@ -265,12 +264,6 @@ ifeq ($(ENABLE_UART),1)
 endif
 ifeq ($(ENABLE_BIG_FREQ),1)
 	CFLAGS  += -DENABLE_BIG_FREQ
-endif
-ifeq ($(ENABLE_BAND_ROBBY),1)
-	CFLAGS  += -DENABLE_BAND_ROBBY
-endif
-ifeq ($(ENABLE_BAND_ZYLKA),1)
-	CFLAGS  += -DENABLE_BAND_ZYLKA
 endif
 ifeq ($(ENABLE_SMALL_BOLD),1)
 	CFLAGS  += -DENABLE_SMALL_BOLD

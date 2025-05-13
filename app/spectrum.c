@@ -101,27 +101,8 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanListEnabled: {0},
                              bandEnabled: {0}
                             };
-//#ifdef ENABLE_BAND_ROBBY
-bandparameters BParams[15] = {
-  // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
-    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz, -20    ,MODULATION_FM},
-    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
-    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
-    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
-    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"BLACKS",         1000000,        100000000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
-    {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
-    {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
-   }; 
-//#endif
 
-#ifdef ENABLE_BAND_ZYLKA
+/*
 bandparameters BParams[15] = {
   // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
     {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
@@ -138,8 +119,28 @@ bandparameters BParams[15] = {
     {"",              11100000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
-   }; 
-#endif
+    }; 
+*/
+
+bandparameters BParams[15] = {
+    // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
+    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
+    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz, -20    ,MODULATION_FM},
+    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
+    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
+    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
+    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"",               1400000,          1800000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
+    {"",               2000000,          2500000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM},
+    {"",               2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM}
+    }; 
+
+
 
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
@@ -864,20 +865,23 @@ static void DrawSpectrum()
 static void DrawStatus() {
   sprintf(String, "%d/%d", settings.dbMin, settings.dbMax);
   GUI_DisplaySmallest(String, 0, 1, true, true);
-
+  static char list[2];
   // display scanlists
   if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
+    if(appMode==CHANNEL_MODE) sprintf(list,"SL");
+    if(appMode==SCAN_BAND_MODE) sprintf(list,"BD");
     switch(waitingForScanListNumber) {
       case 2:
-        sprintf(String, "SL ===============");
+        sprintf(String, "%s ===============",list);
         break;      
       case 1:
-        sprintf(String, "SL _______________");
+        sprintf(String, "%s _______________",list);
         break;
       default:
-        sprintf(String, "SL                ");
+        sprintf(String, "%s                ",list);
         break;
     }
+
 
     char Number[2];
     bool slEnabled = false;
@@ -1479,7 +1483,7 @@ static void Scan() {
   && !IsBlacklisted(scanInfo.i)
 
   ) {
-    if (scanInfo.f/260000*260000 == scanInfo.f) //Robby69 remove all 26Mhz multiples
+    if (scanInfo.f/260000*260000 != scanInfo.f) //Robby69 remove all 26Mhz multiples
       SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
