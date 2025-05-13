@@ -52,7 +52,7 @@ static const uint8_t U8RssiMap[] = {
     121, 115, 109, 103, 97, 91, 85, 79, 73, 63,
 };
 
-static const uint16_t scanStepValues[] = {1, 10, 50, 100, 250, 500, 625, 833, 1000, 1250, 2500, 10000,10000};
+static const uint16_t scanStepValues[] = {1, 10, 50, 100, 250, 500, 625, 833, 1000, 1250, 2500, 10000, 50000};
 
 static const uint16_t scanStepBWRegValues[] = {
     //     RX  RXw TX  BW
@@ -123,7 +123,7 @@ typedef enum ScanStep {
   S_STEP_12_5kHz,
   S_STEP_25_0kHz,
   S_STEP_100_0kHz,
-  S_STEP_1MHz,
+  S_STEP_500kHz,
 } ScanStep;
 
 typedef enum ScanList {

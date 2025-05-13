@@ -101,7 +101,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanListEnabled: {0},
                              bandEnabled: {0}
                             };
-#ifdef BAND_ROBBY
+//#ifdef ENABLE_BAND_ROBBY
 bandparameters BParams[15] = {
   // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
     {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
@@ -115,13 +115,13 @@ bandparameters BParams[15] = {
     {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
     {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"BLACKSEARCH",    1000000,        100000000,       S_STEP_1MHz,    -30    ,MODULATION_FM},
+    {"BLACKS",         1000000,        100000000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
     {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
    }; 
-#endif
+//#endif
 
-#ifdef BAND_ZYLKA
+#ifdef ENABLE_BAND_ZYLKA
 bandparameters BParams[15] = {
   // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
     {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
@@ -289,7 +289,7 @@ static void ResetPeak() {
 
 
 // scan step in 0.01khz
-uint16_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
+uint32_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
 uint16_t GetStepsCount() 
 { 
