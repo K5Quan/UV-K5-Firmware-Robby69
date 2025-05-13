@@ -808,6 +808,7 @@ static uint8_t CurrentScanIndex()
 
 static bool IsBlacklisted(uint16_t idx)
 {
+
   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
     if(blacklistFreqs[i] == idx)
       return true;
@@ -1478,7 +1479,8 @@ static void Scan() {
   && !IsBlacklisted(scanInfo.i)
 
   ) {
-    SetF(scanInfo.f);
+    if (scanInfo.f/260000*260000 == scanInfo.f) //Robby69 remove all 26Mhz multiples
+      SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
   }
