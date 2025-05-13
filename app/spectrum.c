@@ -115,7 +115,7 @@ bandparameters BParams[15] = {
     {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
     {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"",              11100000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
+    {"BLACKSEARCH",    1000000,        100000000,       S_STEP_1MHz,    -30    ,MODULATION_FM},
     {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
    }; 
