@@ -125,20 +125,20 @@ bandparameters BParams[15] = {
 
 bandparameters BParams[15] = {
     // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
-    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz, -20    ,MODULATION_FM},
-    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
-    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
-    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
-    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"",               1400000,          1800000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
-    {"",               2000000,          2500000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM},
-    {"",               2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM}
+    {"26-28MHz",         2651500,          2830500,       S_STEP_5_0kHz,  -30    ,MODULATION_AM},
+    {"144-146MHz",      14400000,         14600000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"430-440MHz",      43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
+    {"118-136MHz",      11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
+    {"446MHz",          44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"433Mhz",          43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"146-170Mhz",      14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"450-470MHz",      45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
+    {"50MHz",            5000000,          5256000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
+    {"MARINE",          15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
+    {"SRD868",          86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
+    {"500M-500k",       10000000,         50000000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
+    {"433M_0.5k",       43200000,         43400000,       S_STEP_0_5kHz,  -30    ,MODULATION_FM},
+    {"",                 2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM}
     }; 
 
 
@@ -380,7 +380,8 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  //if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+  if (fMeasure > 3000000)
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
@@ -601,7 +602,7 @@ static void UpdatePeakInfoForce() {
   peak.f = scanInfo.fPeak;
   peak.i = scanInfo.iPeak;
   LookupChannelInfo();
-  //AutoTriggerLevel(); //Robby69
+  AutoTriggerLevel(); //Robby69
 }
 
 static void UpdatePeakInfo() {
