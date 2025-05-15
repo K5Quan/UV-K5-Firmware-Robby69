@@ -85,6 +85,7 @@ const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6",
   "SL7", "SL8", "SL9", "SL10", "SL11", "SL12", "SL13", "SL14", "SL15", "ALL"};
 const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
+//bool       gWasFKeyPressed  = false;
 
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
@@ -474,6 +475,7 @@ static void ResetScanStats() {
 static bool InitScan() {
     ResetScanStats();
     scanInfo.i = 0;
+    
     bool scanInitializedSuccessfully = false;
 
     if (appMode == SCAN_BAND_MODE) {
@@ -495,6 +497,7 @@ static bool InitScan() {
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
                 settings.dbMax = BParams[bl].dbMax;
+                AutoTriggerLevelbands();
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 15; // Przejdź do następnego pasma
@@ -517,6 +520,33 @@ static void AutoTriggerLevel() {
   settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
+}
+
+static uint16_t AutoTriggerLevelbands(void) {
+  static uint16_t rssiAnalyse;
+  uint16_t topRssi[3] = {0}
+  AnalyseStep = (gScanRangeStop - gScanRangeStart)/10;
+  for (int i = 0; i < 10; ++i) {
+    while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
+      SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
+    }
+    FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
+    SetF(FreqAnalyse);
+    rssiAnalyse = BK4819_GetRSSI();
+
+    if (rssiAnalyse > topRssi[0]) {
+      topRssi[2] = topRssi[1];
+      topRssi[1] = topRssi[0];
+      topRssi[0] = rssiAnalyse;
+      } else 
+      if (rssiAnalyse > topRssi[1]) 
+        {topRssi[1] = rssiAnalyse;
+        }
+     
+    }
+
+  settings.rssiTriggerLevel = clamp(topRssi[2] +10, 0, RSSI_MAX_VALUE);
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -641,7 +671,7 @@ static void UpdateDBMax(bool inc) {
 }
 
 static void UpdateScanStep(bool inc) {
-  if (inc && settings.scanStepIndex < S_STEP_100_0kHz) {
+  if (inc && settings.scanStepIndex < S_STEP_500_0kHz) {
     settings.scanStepIndex++;
   } else if (!inc && settings.scanStepIndex > 0) {
     settings.scanStepIndex--;
