@@ -125,22 +125,22 @@ bandparameters BParams[15] = {
 */
 
 bandparameters BParams[15] = {
-    // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
-    {"26-28MHz",         2651500,          2830500,       S_STEP_5_0kHz,  -30    ,MODULATION_AM},
-    {"144-146MHz",      14400000,         14600000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"430-440MHz",      43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
-    {"118-136MHz",      11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
-    {"446MHz",          44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"433Mhz",          43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"146-170Mhz",      14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"450-470MHz",      45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"50MHz",            5000000,          5256000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
-    {"MARINE",          15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
-    {"SRD868",          86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"500M-500k",       10000000,         50000000,       S_STEP_500_0kHz,  -30    ,MODULATION_FM},
-    {"433M_0.5k",       43200000,         43400000,       S_STEP_0_5kHz,  -30    ,MODULATION_FM},
-    {"",                 2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM},
-    {"",                 2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM}
+    // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
+    {"26-28MHz",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"144-146MHz",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"430-440MHz",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"118-136MHz",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"446MHz",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"433Mhz",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"146-170Mhz",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"450-470MHz",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"50MHz",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"MARINE",          15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"SRD868",          86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"500M-500k",       10000000,         50000000,       S_STEP_500_0kHz, ,MODULATION_FM},
+    {"433M_0.5k",       43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
+    {"",                 2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
+    {"",                25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM}
     }; 
 
 
