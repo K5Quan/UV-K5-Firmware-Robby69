@@ -122,8 +122,8 @@ typedef enum ScanStep {
   S_STEP_10_0kHz,
   S_STEP_12_5kHz,
   S_STEP_25_0kHz,
-  S_STEP_100_0kHz,
-  S_STEP_500_0kHz,
+  S_STEP_100kHz,
+  S_STEP_500kHz,
 } ScanStep;
 
 typedef enum ScanList {
@@ -146,11 +146,10 @@ typedef enum ScanList {
 } ScanList;
 
 typedef struct bandparameters { //Memory cost is 80+32+32+8?+ 8+8 = 168,  168 x 15 = 2520 bits
-  char BandName[10];
+  char BandName[7];
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint32_t Stopfrequency; // Stop frequency in MHz /100
   ScanStep scanStep;
-  int dbMax;  
   ModulationMode_t modulationType;
 } bandparameters;
 

@@ -126,21 +126,21 @@ bandparameters BParams[15] = {
 
 bandparameters BParams[15] = {
     // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
-    {"26-28MHz",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"144-146MHz",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"430-440MHz",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"118-136MHz",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"446MHz",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"433Mhz",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"146-170Mhz",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"450-470MHz",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"50MHz",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"MARINE",          15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"SRD868",          86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"500M-500k",       10000000,         50000000,       S_STEP_500_0kHz, ,MODULATION_FM},
-    {"433M_0.5k",       43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
-    {"",                 2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
-    {"",                25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM}
+    {"26-28",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"144-146",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"430-440",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"118-136",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"446",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"433",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"146-170",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"450-470",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"50",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"156-162",      15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"868-870",      86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"500",          10000000,         50000000,       S_STEP_500kHz,    MODULATION_FM},
+    {"433",          43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
+    {"",              2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
+    {"",             25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM}
     }; 
 
 
@@ -526,22 +526,20 @@ static void AutoTriggerLevel() {
 }
 
 static void AutoTriggerLevelbands(void) {
-  static uint16_t rssiAnalyse;
-  static uint16_t topRssi = 0;
-  static uint16_t minRssi = 0;
-  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/128;
-  for (int i = 0; i < 128; ++i) {
+  uint16_t rssiAnalyse = 0;
+  uint16_t topRssi = 0;
+  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/16;
+  for (int i = 0; i < 16; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
       SetF(FreqAnalyse);
       while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
-  sprintf(String, "topRssi %d", topRssi);
-  GUI_DisplaySmallest(String, 0, 40, false, true);
-  settings.rssiTriggerLevel = clamp(topRssi, 0, RSSI_MAX_VALUE);
+  
+  settings.rssiTriggerLevel = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
+  //settings.rssiTriggerLevelH = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -666,7 +664,7 @@ static void UpdateDBMax(bool inc) {
 }
 
 static void UpdateScanStep(bool inc) {
-  if (inc && settings.scanStepIndex < S_STEP_500_0kHz) {
+  if (inc && settings.scanStepIndex < S_STEP_500kHz) {
     settings.scanStepIndex++;
   } else if (!inc && settings.scanStepIndex > 0) {
     settings.scanStepIndex--;
@@ -1000,7 +998,7 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
     if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%u:%s",bl+1,BParams[bl].BandName);
+        {sprintf(String, "%u:%sMHz",bl+1,BParams[bl].BandName);
         UI_PrintStringSmallBold(String, 1, 127, 1);}
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
