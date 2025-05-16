@@ -104,26 +104,6 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              bandEnabled: {0}
                             };
 
-/*
-bandparameters BParams[15] = {
-  // BandName         Startfrequency    Stopfrequency   scanStep        dbMax  modulationType
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,  -20    ,MODULATION_AM},
-    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz, -20    ,MODULATION_FM},
-    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
-    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz, -30    ,MODULATION_AM},
-    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz, -30    ,MODULATION_FM},
-    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz, -20    ,MODULATION_FM},
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
-    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"",              11100000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
-    {"",              11200000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM},
-    {"",              11400000,         128,            S_STEP_5_0kHz,  -30    ,MODULATION_FM}
-    }; 
-*/
-
 bandparameters BParams[15] = {
     // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
     {"26-28",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
@@ -499,7 +479,6 @@ static bool InitScan() {
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
-                //settings.dbMax = BParams[bl].dbMax;
                 AutoTriggerLevelbands();
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
@@ -646,13 +625,6 @@ static void UpdateRssiTriggerLevel(bool inc) {
 }
 
 static void UpdateDBMax(bool inc) {
-  /*if (SquelchBarKeyMode ==0)
-    //{
-    if (inc && settings.dbMin <= 0) {settings.dbMin += 5;}
-      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMin -= 5;}
-        else {return;}
-    }
-  else*/
     if (inc && settings.dbMax <= 100) {settings.dbMax += 5;} 
       else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
            else {return;}
@@ -1804,16 +1776,7 @@ typedef struct {
   uint16_t rssiTriggerLevelH;
   int8_t dbMax;
   int8_t dbMin;
-  
-  //uint32_t gScanRangeStart;
-  //uint32_t gScanRangeStop;
   Mode appMode;
-  //StepsCount stepsCount;
-  //ScanStep scanStepIndex;
-  //uint32_t frequencyChangeStep;  
-  //BK4819_FilterBandwidth_t bw;
-  //BK4819_FilterBandwidth_t listenBw;
-  
 } SettingsEEPROM;
 
   
@@ -1823,52 +1786,26 @@ void LoadSettings()
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
-  
-  // Extraction des flags
   for (int i = 0; i < 15; i++) {
       settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;
       settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;
   }
-  
-  // Copie des autres champs
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  //gScanRangeStart = eepromData.gScanRangeStart;
-  //gScanRangeStop = eepromData.gScanRangeStop;
   appMode = eepromData.appMode;
-  //settings.stepsCount = eepromData.stepsCount;
-  //settings.scanStepIndex = eepromData.scanStepIndex;
-  //settings.frequencyChangeStep = eepromData.frequencyChangeStep;
-  //settings.bw = eepromData.bw;
-  //settings.listenBw = eepromData.listenBw;
-  settings.dbMin = eepromData.dbMin;
   settings.dbMax = eepromData.dbMax;
   }
 
 void SaveSettings() 
 {
   SettingsEEPROM eepromData = {0};
-  
-  // Pack 15 boolean flags
   for (int i = 0; i < 15; i++) {
       if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);
       if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);
       }
-    
-  // Copie des autres champs
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
-  //eepromData.gScanRangeStart = gScanRangeStart;
-  //eepromData.gScanRangeStop = gScanRangeStop;
   eepromData.appMode = appMode;
-  //eepromData.stepsCount = settings.stepsCount;
-  //eepromData.scanStepIndex = settings.scanStepIndex;
-  //eepromData.frequencyChangeStep = settings.frequencyChangeStep;
-  //eepromData.bw = settings.bw;
-  //eepromData.listenBw = settings.listenBw;
-  eepromData.dbMin = settings.dbMin;
   eepromData.dbMax = settings.dbMax;
-  
-  // Écriture de toutes les données
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 }
