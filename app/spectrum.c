@@ -36,6 +36,8 @@ void ToggleScanList();
 void ToggleNormalizeRssi(bool on);
 static void LoadSettings();
 static void SaveSettings();
+static void AutoTriggerLevel(void);
+static void AutoTriggerLevelbands(void);
   
 const uint16_t RSSI_MAX_VALUE = 65535;
 
@@ -70,7 +72,6 @@ State currentState = SPECTRUM, previousState = SPECTRUM;
 PeakInfo peak;
 ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
-
 
 #define BLACKLIST_SIZE 200
 static uint16_t blacklistFreqs[BLACKLIST_SIZE];
@@ -136,8 +137,9 @@ bandparameters BParams[15] = {
     {"50MHz",            5000000,          5256000,       S_STEP_10_0kHz, -30    ,MODULATION_FM},
     {"MARINE",          15605000,         16200000,       S_STEP_25_0kHz, -30    ,MODULATION_FM},
     {"SRD868",          86800000,         87000000,       S_STEP_6_25kHz, -30    ,MODULATION_FM},
-    {"500M-500k",       10000000,         50000000,       S_STEP_500kHz,  -30    ,MODULATION_FM},
+    {"500M-500k",       10000000,         50000000,       S_STEP_500_0kHz,  -30    ,MODULATION_FM},
     {"433M_0.5k",       43200000,         43400000,       S_STEP_0_5kHz,  -30    ,MODULATION_FM},
+    {"",                 2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM},
     {"",                 2500000,          3000000,       S_STEP_5_0kHz,  -30    ,MODULATION_FM}
     }; 
 
@@ -497,7 +499,7 @@ static bool InitScan() {
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
-                settings.dbMax = BParams[bl].dbMax;
+                //settings.dbMax = BParams[bl].dbMax;
                 AutoTriggerLevelbands();
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
@@ -523,31 +525,22 @@ static void AutoTriggerLevel() {
   }
 }
 
-static uint16_t AutoTriggerLevelbands(void) {
+static void AutoTriggerLevelbands(void) {
   static uint16_t rssiAnalyse;
-  uint16_t topRssi[3] = {0}
-  AnalyseStep = (gScanRangeStop - gScanRangeStart)/10;
-  for (int i = 0; i < 10; ++i) {
-    while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
-      SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
-    }
-    FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
-    SetF(FreqAnalyse);
+  static uint16_t topRssi = 0;
+  static uint16_t minRssi = 0;
+  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/80;
+  for (int i = 0; i < 80; ++i) {
+      uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
+      SetF(FreqAnalyse);
+      while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
     rssiAnalyse = BK4819_GetRSSI();
-
-    if (rssiAnalyse > topRssi[0]) {
-      topRssi[2] = topRssi[1];
-      topRssi[1] = topRssi[0];
-      topRssi[0] = rssiAnalyse;
-      } else 
-      if (rssiAnalyse > topRssi[1]) 
-        {topRssi[1] = rssiAnalyse;
-        }
-     
+    if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
+    if (rssiAnalyse < minRssi) minRssi = rssiAnalyse;
     }
 
-  settings.rssiTriggerLevel = clamp(topRssi[2] +10, 0, RSSI_MAX_VALUE);
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  settings.rssiTriggerLevel = clamp(topRssi, 0, RSSI_MAX_VALUE);
+	settings.rssiTriggerLevelH = clamp(minRssi, 0, RSSI_MAX_VALUE);
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -602,7 +595,7 @@ static void UpdatePeakInfoForce() {
   peak.f = scanInfo.fPeak;
   peak.i = scanInfo.iPeak;
   LookupChannelInfo();
-  AutoTriggerLevel(); //Robby69
+  //AutoTriggerLevel(); //Robby69
 }
 
 static void UpdatePeakInfo() {

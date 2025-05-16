@@ -123,7 +123,7 @@ typedef enum ScanStep {
   S_STEP_12_5kHz,
   S_STEP_25_0kHz,
   S_STEP_100_0kHz,
-  S_STEP_500kHz,
+  S_STEP_500_0kHz,
 } ScanStep;
 
 typedef enum ScanList {
