@@ -383,11 +383,11 @@ uint16_t GetRssi() {
   }
   rssi = BK4819_GetRSSI();
   //if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-  if (fMeasure > 3000000)
+  /*if (fMeasure > 3000000)
     {
       // Increase perceived RSSI for UHF bands to imitate radio squelch
       rssi+=UHF_NOISE_FLOOR;
-    }
+    }*/
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -537,7 +537,7 @@ static void AutoTriggerLevelbands(void) {
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
   
-  settings.rssiTriggerLevel = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(topRssi+20, 0, RSSI_MAX_VALUE);
   //settings.rssiTriggerLevelH = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
