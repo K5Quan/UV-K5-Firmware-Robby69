@@ -529,18 +529,17 @@ static void AutoTriggerLevelbands(void) {
   static uint16_t rssiAnalyse;
   static uint16_t topRssi = 0;
   static uint16_t minRssi = 0;
-  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/80;
-  for (int i = 0; i < 80; ++i) {
+  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/20;
+  for (int i = 0; i < 20; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
       SetF(FreqAnalyse);
       while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
     rssiAnalyse = BK4819_GetRSSI();
     if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
-    if (rssiAnalyse < minRssi) minRssi = rssiAnalyse;
     }
 
-  settings.rssiTriggerLevel = clamp(topRssi, 0, RSSI_MAX_VALUE);
-	settings.rssiTriggerLevelH = clamp(minRssi, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
 // resets modifiers like blacklist, attenuation, normalization
