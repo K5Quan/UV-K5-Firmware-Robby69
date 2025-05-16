@@ -165,8 +165,8 @@ typedef struct SpectrumSettings {
   uint16_t rssiTriggerLevelH;
   BK4819_FilterBandwidth_t bw;
   BK4819_FilterBandwidth_t listenBw;
-  int dbMin;
-  int dbMax;  
+  int16_t dbMin;
+  int16_t dbMax;  
   ModulationMode_t modulationType;
   bool backlightAlwaysOn;
   int scanList;

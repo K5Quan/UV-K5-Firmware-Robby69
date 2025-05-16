@@ -515,10 +515,8 @@ static void AutoTriggerLevelbands(void) {
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
-  
-  settings.rssiTriggerLevel = clamp(topRssi+20, 0, RSSI_MAX_VALUE);
-  //settings.rssiTriggerLevelH = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  settings.rssiTriggerLevel = clamp(topRssi+10, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -970,7 +968,7 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
     if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%u:%sMHz",bl+1,BParams[bl].BandName);
+        {sprintf(String, "%u:%sM",bl+1,BParams[bl].BandName);
         UI_PrintStringSmallBold(String, 1, 127, 1);}
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
@@ -1772,10 +1770,9 @@ void LoadValidMemoryChannels(void)
 typedef struct {
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t bandListFlags;
+  int16_t dbMax;
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  int8_t dbMax;
-  int8_t dbMin;
   Mode appMode;
 } SettingsEEPROM;
 
