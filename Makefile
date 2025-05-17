@@ -51,6 +51,8 @@ ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
+ENABLE_FR_BAND							:= 1
+ENABLE_PL_BAND							:= 0
 
 
 #############################################################
@@ -371,6 +373,12 @@ ifeq ($(ENABLE_ENCRYPTION),1)
 endif
 ifeq ($(ENABLE_SCANNER),1)
 	CFLAGS  += -DENABLE_SCANNER
+endif
+ifeq ($(ENABLE_FR_BAND),1)
+	CFLAGS  += -DENABLE_FR_BAND
+endif
+ifeq ($(ENABLE_PL_BAND),1)
+	CFLAGS  += -DENABLE_PL_BAND
 endif
 LDFLAGS =
 ifeq ($(ENABLE_CLANG),0)

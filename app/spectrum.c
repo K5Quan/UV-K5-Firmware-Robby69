@@ -6,6 +6,75 @@
 #include "ui/helper.h"
 #include "common.h"
 #include "action.h"
+uint8_t bank = 0;
+
+
+
+
+
+
+
+
+#ifdef ENABLE_FR_BAND
+bandparameters BParams[30] = {
+    // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
+    {"26-28",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"144-146",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"430-440",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"118-136",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"446",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"433",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"146-170",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"450-470",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"50",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"156-162",      15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"868-870",      86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"500",          10000000,         50000000,       S_STEP_500kHz,    MODULATION_FM},
+    {"433",          43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
+    {"14",              2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
+    {"15",             25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM},
+    {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
+    {"POGOTOWIE",     16852500,         16937500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"POLICJA",       17200000,         17397500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"PSP",           14866250,         14933750,       S_STEP_25_0kHz,   MODULATION_FM},
+    }; 
+
+#endif
+
+#ifdef ENABLE_PL_BAND
+bandparameters BParams[30] = {
+    // BandName       Startfrequency    Stopfrequency   scanStep        modulationType
+    {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
+    {"POGOTOWIE",     16852500,         16937500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"POLICJA",       17200000,         17397500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"PSP",           14866250,         14933750,       S_STEP_25_0kHz,   MODULATION_FM}
+    }; 
+#endif
+
+
 
 struct FrequencyBandInfo {
     uint32_t lower;
@@ -18,7 +87,7 @@ bool isBlacklistApplied;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
-uint8_t SquelchBarKeyMode = 2; //Robby69 change keys between audio and history squelch
+uint8_t SquelchBarKeyMode = 0; //Robby69 change keys between audio and history squelch
 
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 
@@ -104,27 +173,6 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              bandEnabled: {0}
                             };
 
-bandparameters BParams[15] = {
-    // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
-    {"26-28",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"144-146",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"430-440",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"118-136",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"446",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"433",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"146-170",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"450-470",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"50",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"156-162",      15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"868-870",      86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"500",          10000000,         50000000,       S_STEP_500kHz,    MODULATION_FM},
-    {"433",          43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
-    {"",              2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
-    {"",             25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM}
-    }; 
-
-
-
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
@@ -138,7 +186,7 @@ uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
 char freqInputString[11];
-
+bandparameters BParams[30];
 static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
 
 uint8_t menuState = 0;
@@ -463,7 +511,7 @@ static bool InitScan() {
 
     if (appMode == SCAN_BAND_MODE) {
         uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
-        while (checkedBandCount < 15) { // Sprawdź wszystkie 15 pasm co najwyżej raz
+        while (checkedBandCount < 30) { // Sprawdź wszystkie 15 pasm co najwyżej raz
             if (settings.bandEnabled[nextBandToScanIndex]) {
                 bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
                 scanInfo.f = BParams[bl].Startfrequency;
@@ -475,14 +523,14 @@ static bool InitScan() {
                 settings.modulationType = BParams[bl].modulationType;
                 RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
                 BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
-                nextBandToScanIndex = (nextBandToScanIndex + 1) % 15; // Przygotuj indeks na następne wywołanie
+                nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przygotuj indeks na następne wywołanie
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
                 AutoTriggerLevelbands();
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
-            nextBandToScanIndex = (nextBandToScanIndex + 1) % 15; // Przejdź do następnego pasma
+            nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przejdź do następnego pasma
             checkedBandCount++;
         }
     } else {
@@ -515,8 +563,10 @@ static void AutoTriggerLevelbands(void) {
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
-  settings.rssiTriggerLevel = clamp(topRssi+10, 0, RSSI_MAX_VALUE);
-  settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  if (SquelchBarKeyMode==0){
+    settings.rssiTriggerLevel = clamp(topRssi, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  }
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -608,18 +658,19 @@ static void ClampRssiTriggerLevel()
 
 static void UpdateRssiTriggerLevel(bool inc) {
 	if (inc){	
-		if (SquelchBarKeyMode == 0) {settings.rssiTriggerLevelH +=5;}
+		if (SquelchBarKeyMode == 2) {settings.rssiTriggerLevelH +=5;}
 		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel +=5;}
-		if (SquelchBarKeyMode == 2) {
+		if (SquelchBarKeyMode == 0) {
 			settings.rssiTriggerLevelH +=5;
 			settings.rssiTriggerLevel +=5;}}
 	else {
-		if (SquelchBarKeyMode == 0) {settings.rssiTriggerLevelH -=5;}
+		if (SquelchBarKeyMode == 2) {settings.rssiTriggerLevelH -=5;}
 		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel -=5;}
-		if (SquelchBarKeyMode == 2) {
+		if (SquelchBarKeyMode == 0) {
 			settings.rssiTriggerLevelH -=5;
 		settings.rssiTriggerLevel  -=5;}}
   ClampRssiTriggerLevel();
+  
 }
 
 static void UpdateDBMax(bool inc) {
@@ -862,7 +913,7 @@ static void DrawStatus() {
   // display scanlists
   if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
     if(appMode==CHANNEL_MODE) sprintf(list,"SL");
-    if(appMode==SCAN_BAND_MODE) sprintf(list,"BD");
+    if(appMode==SCAN_BAND_MODE) sprintf(list,"B%u",bank);
     switch(waitingForScanListNumber) {
       case 2:
         sprintf(String, "%s ===============",list);
@@ -880,7 +931,7 @@ static void DrawStatus() {
     bool slEnabled = false;
     for (int i = 1; i <= 15; i++) {
       if (appMode == SCAN_BAND_MODE){
-        if (settings.bandEnabled[i-1]) {
+        if (settings.bandEnabled[bank*15+i-1]) {
           slEnabled = true;
           sprintf(Number, "%d", i % 10);
           String[i+2] = Number[0];
@@ -968,7 +1019,7 @@ static void DrawF(uint32_t f) {
 	GUI_DisplaySmallest(StringC, 102, 14, false, true);
   refresh--;
     if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%u:%sM",bl+1,BParams[bl].BandName);
+        {sprintf(String, "%u:%s",bl+1,BParams[bl].BandName);
         UI_PrintStringSmallBold(String, 1, 127, 1);}
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
@@ -1200,9 +1251,10 @@ static void OnKeyDown(uint8_t key) {
     ToggleListeningBW();
     break;
   
-  case KEY_SIDE2: //Robby69
-  SquelchBarKeyMode += 1; //Robby69
-	if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
+  case KEY_SIDE2: 
+    SquelchBarKeyMode += 1;
+	  if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
+    bank = (SquelchBarKeyMode != 0) ? 1 : 0;
     break;
   case KEY_PTT:
     ExitAndCopyToVfo();
@@ -1768,11 +1820,12 @@ void LoadValidMemoryChannels(void)
 
 
 typedef struct {
+  uint32_t bandListFlags;
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
-  uint16_t bandListFlags;
   int16_t dbMax;
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
+  uint8_t bank;
   Mode appMode;
 } SettingsEEPROM;
 
@@ -1783,26 +1836,24 @@ void LoadSettings()
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
-  for (int i = 0; i < 15; i++) {
-      settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;
-      settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;
-  }
+  for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
+  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
+  bank = eepromData.bank;
   }
 
 void SaveSettings() 
 {
   SettingsEEPROM eepromData = {0};
-  for (int i = 0; i < 15; i++) {
-      if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);
-      if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);
-      }
+  for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
+  for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
+  eepromData.bank = bank;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 }

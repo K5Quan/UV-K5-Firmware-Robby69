@@ -146,15 +146,12 @@ typedef enum ScanList {
 } ScanList;
 
 typedef struct bandparameters { //Memory cost is 80+32+32+8?+ 8+8 = 168,  168 x 15 = 2520 bits
-  char BandName[7];
+  char BandName[9];
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint32_t Stopfrequency; // Stop frequency in MHz /100
   ScanStep scanStep;
   ModulationMode_t modulationType;
 } bandparameters;
-
-
-
 
 typedef struct SpectrumSettings {
   uint32_t frequencyChangeStep;  
@@ -171,7 +168,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
-  bool bandEnabled[15];
+  bool bandEnabled[30];
 } SpectrumSettings;
 
 typedef struct KeyboardState {
