@@ -7,8 +7,7 @@
 #include "common.h"
 #include "action.h"
 uint8_t bank = 0;
-
-
+bool AutoTriggerLevelbandsMode = 0;
 
 
 
@@ -527,7 +526,7 @@ static bool InitScan() {
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
-                AutoTriggerLevelbands();
+                if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przejdź do następnego pasma
@@ -563,10 +562,9 @@ static void AutoTriggerLevelbands(void) {
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
-  if (SquelchBarKeyMode==0){
-    settings.rssiTriggerLevel = clamp(topRssi, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevel = clamp(topRssi+20, 0, RSSI_MAX_VALUE);
     settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-  }
+  
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -913,34 +911,36 @@ static void DrawStatus() {
   // display scanlists
   if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
     if(appMode==CHANNEL_MODE) sprintf(list,"SL");
-    if(appMode==SCAN_BAND_MODE) sprintf(list,"B%u",bank);
+    if(appMode==SCAN_BAND_MODE) sprintf(list,"B");
     switch(waitingForScanListNumber) {
       case 2:
-        sprintf(String, "%s ===============",list);
+        sprintf(String, "%s================",list);
         break;      
       case 1:
-        sprintf(String, "%s _______________",list);
+        sprintf(String, "%s________________",list);
         break;
       default:
-        sprintf(String, "%s                ",list);
+        sprintf(String, "%s",list);
         break;
     }
 
 
-    char Number[2];
+    char Number[5];
     bool slEnabled = false;
-    for (int i = 1; i <= 15; i++) {
-      if (appMode == SCAN_BAND_MODE){
-        if (settings.bandEnabled[bank*15+i-1]) {
+    if (appMode == SCAN_BAND_MODE){
+      for (int i = 1; i <= 30; i++) {
+        if (settings.bandEnabled[i-1]) {
           slEnabled = true;
-          sprintf(Number, "%d", i % 10);
-          String[i+2] = Number[0];
-        }}
+          sprintf(Number, "%d.", i);
+          strcat(String, Number);
+        }}}
       else
+      for (int i = 1; i <= 15; i++) {
         if (settings.scanListEnabled[i-1]) {
         slEnabled = true;
         sprintf(Number, "%d", i % 10);
-        String[i+2] = Number[0];
+        strcat(String, Number);
+        //String[i+2] = Number[0];
       }
     }
     if (slEnabled || waitingForScanListNumber)
@@ -1254,7 +1254,7 @@ static void OnKeyDown(uint8_t key) {
   case KEY_SIDE2: 
     SquelchBarKeyMode += 1;
 	  if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
-    bank = (SquelchBarKeyMode != 0) ? 1 : 0;
+    bank = !bank;
     break;
   case KEY_PTT:
     ExitAndCopyToVfo();
@@ -1782,7 +1782,7 @@ void LoadValidMemoryChannels(void)
     if (appMode == SCAN_BAND_MODE)
       {
       if (single) memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
-        settings.bandEnabled[scanListNumber-1] = !settings.bandEnabled[scanListNumber-1];
+        settings.bandEnabled[bank*15+scanListNumber-1] = !settings.bandEnabled[bank*15+scanListNumber-1];
       }
       else {
         if (single) memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
