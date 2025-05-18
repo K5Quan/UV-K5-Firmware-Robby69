@@ -6,8 +6,9 @@
 #include "ui/helper.h"
 #include "common.h"
 #include "action.h"
-uint8_t bank = 0;
 bool AutoTriggerLevelbandsMode = 0;
+
+
 
 
 
@@ -133,6 +134,7 @@ bool newScanStart = true;
 bool preventKeypress = true;
 bool audioState = true;
 uint8_t waitingForScanListNumber = 0;
+static int scanListNumber =0;
 uint8_t bl;
 uint8_t CurrentScanBand = 1;
 State currentState = SPECTRUM, previousState = SPECTRUM;
@@ -905,48 +907,33 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
-  sprintf(String, "%d/%d", settings.dbMin, settings.dbMax);
-  GUI_DisplaySmallest(String, 0, 1, true, true);
-  static char list[2];
+  sprintf(String,"%d",settings.dbMax);
+  GUI_DisplaySmallest(String, 0,6, true, true);
   // display scanlists
-  if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
-    if(appMode==CHANNEL_MODE) sprintf(list,"SL");
-    if(appMode==SCAN_BAND_MODE) sprintf(list,"B");
-    switch(waitingForScanListNumber) {
-      case 2:
-        sprintf(String, "%s================",list);
-        break;      
-      case 1:
-        sprintf(String, "%s________________",list);
-        break;
-      default:
-        sprintf(String, "%s",list);
-        break;
-    }
-
-
-    char Number[5];
-    bool slEnabled = false;
+  char Number[5]={0};
+  if (waitingForScanListNumber == 0){
     if (appMode == SCAN_BAND_MODE){
+      sprintf(String,"B");
       for (int i = 1; i <= 30; i++) {
-        if (settings.bandEnabled[i-1]) {
-          slEnabled = true;
-          sprintf(Number, "%d.", i);
-          strcat(String, Number);
+          if (settings.bandEnabled[i-1]) {
+            sprintf(Number, "%d.", i);
+            strcat(String, Number);
+          }}}
+    else
+        {sprintf(String,"SL");
+        for (int i = 1; i <= 15; i++) {
+          if (settings.scanListEnabled[i-1]) {
+            sprintf(Number, "%d.", i);
+            strcat(String, Number);
         }}}
-      else
-      for (int i = 1; i <= 15; i++) {
-        if (settings.scanListEnabled[i-1]) {
-        slEnabled = true;
-        sprintf(Number, "%d", i % 10);
-        strcat(String, Number);
-        //String[i+2] = Number[0];
-      }
-    }
-    if (slEnabled || waitingForScanListNumber)
-      GUI_DisplaySmallest(String, 42, 1, true, true);
+    GUI_DisplaySmallest(String, 0,0, true, true);
   }
-
+  if (waitingForScanListNumber == 1){
+    sprintf(Number, "%u-",scanListNumber/10);
+    strcat(String,Number);
+    GUI_DisplaySmallest(String, 0, 0, true, true);
+  }
+  
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
   uint16_t voltage = (gBatteryVoltages[0] + gBatteryVoltages[1] + gBatteryVoltages[2] +
@@ -1087,17 +1074,17 @@ static void DrawNums() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 0, 1, false, true);
+    GUI_DisplaySmallest(String, 0, 12, false, true);
 
     if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 0, 7, false, true);
+      GUI_DisplaySmallest(String, 0, 18, false, true);
     }
     else
     {
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 0, 7, false, true);
+      GUI_DisplaySmallest(String, 0, 18, false, true);
     }
 
   }
@@ -1146,66 +1133,59 @@ static void DrawRssiTriggerLevel() {
 }
 
 static void OnKeyDown(uint8_t key) {
-  if (!isListening)
-    BACKLIGHT_TurnOn();
 
-  if (waitingForScanListNumber > 0) {
-    int scanListNumber = 0;
+  if (!isListening) BACKLIGHT_TurnOn();
 
-    if (key == KEY_0)
-      scanListNumber = 10;
-    else if (key <= KEY_9)
-      scanListNumber = key;
-    else if (key == KEY_STAR)
-      scanListNumber = 11;
-    else if (key == KEY_F)
-      scanListNumber = 12;
-    else if (key >= KEY_MENU && key <= KEY_DOWN)
-      scanListNumber = key + 3;
-    
-    if (scanListNumber > 0)
-      ToggleScanList(scanListNumber, waitingForScanListNumber - 1);
-
-    waitingForScanListNumber = 0;
+  if ((waitingForScanListNumber ==3) && (key <= KEY_9)) //KEY_5 first number 1x to 9x
+    {scanListNumber += key*10;
+    waitingForScanListNumber = 1;
+    ToggleScanList(scanListNumber, 1);
     redrawStatus = true;
-
-    return;
-  }
-
-  switch (key) {
-  case KEY_3:
-    UpdateDBMax(true);
-    break;
-  case KEY_9:
-    UpdateDBMax(false);
-    break;
-  case KEY_1:
-    if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
-    break;
-  case KEY_7:
-    if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}
-    break;
-  case KEY_2:
-    ToggleNormalizeRssi(!isNormalizationApplied);
-    break;
-  case KEY_8:
-	memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
-  memset(freqCount, 0, sizeof(freqCount));
-	indexFd = 1;
-  indexFs = 1;
-  ShowHistory = false;
-  ToggleBacklight();
-  break;
+    return;}
   
-  case KEY_UP:
-  ShowHistory = true;
-  indexFd++;
-	if(freqHistory[indexFd]==0)indexFd--;
-	if (indexFd > FMaxNumb) indexFd = 1;	  
-	
-    if(appMode==FREQUENCY_MODE)
-    {UpdateCurrentFreq(true);}
-    break;
+    if ((waitingForScanListNumber ==2) && (key <= KEY_9)) //KEY_4 first number 1x to 9x
+    {scanListNumber += key*10;
+    waitingForScanListNumber = 1;
+    redrawStatus = true;
+    return;}
+
+    if ((waitingForScanListNumber ==1) && (key <= KEY_9)) //second number units
+      {scanListNumber += key;
+      waitingForScanListNumber = 0;
+      ToggleScanList(scanListNumber, 0);
+      scanListNumber=0;}
+
+    switch (key) {
+     case KEY_3:
+       UpdateDBMax(true);
+       break;
+     case KEY_9:
+       UpdateDBMax(false);
+       break;
+     case KEY_1:
+       if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
+       break;
+     case KEY_7:
+       if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}
+       break;
+     case KEY_2:
+       ToggleNormalizeRssi(!isNormalizationApplied);
+       break;
+     case KEY_8:
+      memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
+      memset(freqCount, 0, sizeof(freqCount));
+      indexFd = 1;
+      indexFs = 1;
+      ShowHistory = false;
+      ToggleBacklight();
+      break;
+    case KEY_UP:
+      ShowHistory = true;
+      indexFd++;
+	    if(freqHistory[indexFd]==0)indexFd--;
+	    if (indexFd > FMaxNumb) indexFd = 1;	  
+	    if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+      break;
   case KEY_DOWN:
     ShowHistory = true;
     indexFd--;
@@ -1229,7 +1209,7 @@ static void OnKeyDown(uint8_t key) {
   case KEY_4:
     if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE)
     {
-      waitingForScanListNumber = 1;
+      waitingForScanListNumber = 2;
       redrawStatus = true;
     }
     else if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
@@ -1240,7 +1220,7 @@ static void OnKeyDown(uint8_t key) {
     if(appMode==FREQUENCY_MODE) FreqInput();
     
     if (appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
-      waitingForScanListNumber = 2;
+      waitingForScanListNumber = 3;
       redrawStatus = true;
     }
     break;
@@ -1254,7 +1234,6 @@ static void OnKeyDown(uint8_t key) {
   case KEY_SIDE2: 
     SquelchBarKeyMode += 1;
 	  if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
-    bank = !bank;
     break;
   case KEY_PTT:
     ExitAndCopyToVfo();
@@ -1781,12 +1760,12 @@ void LoadValidMemoryChannels(void)
   {
     if (appMode == SCAN_BAND_MODE)
       {
-      if (single) memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
-        settings.bandEnabled[bank*15+scanListNumber-1] = !settings.bandEnabled[bank*15+scanListNumber-1];
+      if (single ==1) memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
+        else settings.bandEnabled[scanListNumber-1] = !settings.bandEnabled[scanListNumber-1];
       }
       else {
-        if (single) memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
-        settings.scanListEnabled[scanListNumber-1] = !settings.scanListEnabled[scanListNumber-1];
+        if (single==1) memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
+        else settings.scanListEnabled[scanListNumber-1] = !settings.scanListEnabled[scanListNumber-1];
       LoadValidMemoryChannels();
       }
     ResetModifiers();
@@ -1825,7 +1804,6 @@ typedef struct {
   int16_t dbMax;
   uint16_t rssiTriggerLevel;
   uint16_t rssiTriggerLevelH;
-  uint8_t bank;
   Mode appMode;
 } SettingsEEPROM;
 
@@ -1840,9 +1818,12 @@ void LoadSettings()
   for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+ /////////////////////////////////////
+  settings.rssiTriggerLevel = 65000;
+  settings.rssiTriggerLevelH = 65000;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
-  bank = eepromData.bank;
+  
   }
 
 void SaveSettings() 
@@ -1854,6 +1835,5 @@ void SaveSettings()
   eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
-  eepromData.bank = bank;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 }
