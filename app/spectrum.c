@@ -908,7 +908,7 @@ static void DrawSpectrum()
 
 static void DrawStatus() {
   sprintf(String,"%d",settings.dbMax);
-  GUI_DisplaySmallest(String, 0,6,false,true);
+  GUI_DisplaySmallest(String, 0,7,false,true);
   // display scanlists
   char Number[5]={0};
   if (waitingForScanListNumber == 0){
@@ -933,6 +933,11 @@ static void DrawStatus() {
     
     GUI_DisplaySmallest(String, 0, 0, true, true);
   }
+  
+  /////// Test
+  sprintf(String, "%d",settings.rssiTriggerLevel);
+  GUI_DisplaySmallest(String, 0, 30, false, true);
+  ///////
   
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -1074,17 +1079,17 @@ static void DrawNums() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 0, 7, false, true);
+    GUI_DisplaySmallest(String, 0, 14, false, true);
 
     if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 0, 14, false, true);
+      GUI_DisplaySmallest(String, 0, 21, false, true);
     }
     else
     {
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 0, 14, false, true);
+      GUI_DisplaySmallest(String, 0, 21, false, true);
     }
 
   }
