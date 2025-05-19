@@ -907,6 +907,7 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
+  String = {0};
   sprintf(String,"%d",settings.dbMax);
   GUI_DisplaySmallest(String, 0,7,false,true);
   // display scanlists
@@ -928,13 +929,17 @@ static void DrawStatus() {
         }}}
     GUI_DisplaySmallest(String, 0,0, true, true);
   }
+  if (waitingForScanListNumber == 2||3){
+    sprintf(String, "--");
+    GUI_DisplaySmallest(String, 0, 0, true, true);
+  }
   if (waitingForScanListNumber == 1){
     sprintf(String, "%u-",scanListNumber/10);
-    
     GUI_DisplaySmallest(String, 0, 0, true, true);
   }
   
   /////// Test
+  String = {0};
   sprintf(String, "%d",settings.rssiTriggerLevel);
   GUI_DisplaySmallest(String, 0, 30, false, true);
   ///////
