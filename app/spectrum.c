@@ -908,7 +908,7 @@ static void DrawSpectrum()
 
 static void DrawStatus() {
   sprintf(String,"%d",settings.dbMax);
-  GUI_DisplaySmallest(String, 0,6, true, true);
+  GUI_DisplaySmallest(String, 0,6,false,true);
   // display scanlists
   char Number[5]={0};
   if (waitingForScanListNumber == 0){
@@ -929,8 +929,8 @@ static void DrawStatus() {
     GUI_DisplaySmallest(String, 0,0, true, true);
   }
   if (waitingForScanListNumber == 1){
-    sprintf(Number, "%u-",scanListNumber/10);
-    strcat(String,Number);
+    sprintf(String, "%u-",scanListNumber/10);
+    
     GUI_DisplaySmallest(String, 0, 0, true, true);
   }
   
@@ -1074,17 +1074,17 @@ static void DrawNums() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 0, 12, false, true);
+    GUI_DisplaySmallest(String, 0, 7, false, true);
 
     if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 0, 18, false, true);
+      GUI_DisplaySmallest(String, 0, 14, false, true);
     }
     else
     {
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 0, 18, false, true);
+      GUI_DisplaySmallest(String, 0, 14, false, true);
     }
 
   }
@@ -1234,6 +1234,7 @@ static void OnKeyDown(uint8_t key) {
   case KEY_SIDE2: 
     SquelchBarKeyMode += 1;
 	  if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
+    AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;
     break;
   case KEY_PTT:
     ExitAndCopyToVfo();
@@ -1818,9 +1819,6 @@ void LoadSettings()
   for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
- /////////////////////////////////////
-  settings.rssiTriggerLevel = 65000;
-  settings.rssiTriggerLevelH = 65000;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
   
