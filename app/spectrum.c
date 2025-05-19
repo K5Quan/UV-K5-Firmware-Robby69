@@ -116,6 +116,7 @@ static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[32];
 static char StringC[10];
+static char Stringdb[5];
 uint32_t lastPeakFrequency;
 bool isKnownChannel = false;
 int  channel;
@@ -907,9 +908,7 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
-  String = {0};
-  sprintf(String,"%d",settings.dbMax);
-  GUI_DisplaySmallest(String, 0,7,false,true);
+
   // display scanlists
   char Number[5]={0};
   if (waitingForScanListNumber == 0){
@@ -939,11 +938,13 @@ static void DrawStatus() {
   }
   
   /////// Test
-  String = {0};
   sprintf(String, "%d",settings.rssiTriggerLevel);
   GUI_DisplaySmallest(String, 0, 30, false, true);
   ///////
   
+  sprintf(Stringdb,"%d",settings.dbMax);
+  GUI_DisplaySmallest(Stringdb, 0,40,false,true);
+
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
   uint16_t voltage = (gBatteryVoltages[0] + gBatteryVoltages[1] + gBatteryVoltages[2] +
@@ -1153,19 +1154,20 @@ static void OnKeyDown(uint8_t key) {
     redrawStatus = true;
     return;}
   
-    if ((waitingForScanListNumber ==2) && (key <= KEY_9)) //KEY_4 first number 1x to 9x
+  if ((waitingForScanListNumber ==2) && (key <= KEY_9)) //KEY_4 first number 1x to 9x
     {scanListNumber += key*10;
     waitingForScanListNumber = 1;
     redrawStatus = true;
     return;}
 
-    if ((waitingForScanListNumber ==1) && (key <= KEY_9)) //second number units
+  if ((waitingForScanListNumber ==1) && (key <= KEY_9)) //second number units
       {scanListNumber += key;
       waitingForScanListNumber = 0;
       ToggleScanList(scanListNumber, 0);
-      scanListNumber=0;}
+      scanListNumber=0;
+      return;}
 
-    switch (key) {
+  switch (key) {
      case KEY_3:
        UpdateDBMax(true);
        break;
