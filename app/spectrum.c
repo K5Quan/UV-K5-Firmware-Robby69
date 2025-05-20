@@ -1804,12 +1804,12 @@ void LoadValidMemoryChannels(void)
 
 
 typedef struct {
-  uint32_t bandListFlags;
-  uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
-  int16_t dbMax;
+	uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint16_t rssiTriggerLevel;
-  uint16_t rssiTriggerLevelH;
-  Mode appMode;
+	uint16_t rssiTriggerLevelH;
+	int16_t dbMax;
+  uint32_t bandListFlags;
+	Mode appMode;
 } SettingsEEPROM;
 
   
@@ -1820,9 +1820,10 @@ void LoadSettings()
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
-  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
-  settings.rssiTriggerLevel = clamp(eepromData.rssiTriggerLevel,0,255);
-  settings.rssiTriggerLevelH = clamp(eepromData.rssiTriggerLevelH,0,255);
+  //for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
+  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = 0;}
+  settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
+  settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
   }
