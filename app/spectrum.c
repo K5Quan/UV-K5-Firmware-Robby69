@@ -17,22 +17,22 @@ bool AutoTriggerLevelbandsMode = 0;
 
 #ifdef ENABLE_FR_BAND
 bandparameters BParams[30] = {
-    // BandName         Startfrequency    Stopfrequency   scanStep          modulationType
-    {"26-28",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"144-146",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"430-440",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"118-136",      11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"446",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"433",          43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"146-170",      14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"450-470",      45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"50",            5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"156-162",      15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"868-870",      86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"500",          10000000,         50000000,       S_STEP_500kHz,    MODULATION_FM},
-    {"433",          43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
-    {"14",              2500000,          3000000,       S_STEP_5_0kHz,    MODULATION_FM},
-    {"15",             25000000,         30000000,       S_STEP_5_0kHz,    MODULATION_FM},
+    // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
+    {"26-28",          2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"144-146",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"430-440",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"118-136",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"446",           44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"433",           43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"146-170",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"450-470",       45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"50",             5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"156-162",       15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"868-870",       86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"500",           10000000,         50000000,       S_STEP_500kHz,    MODULATION_FM},
+    {"433",           43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM},
+    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
     {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
@@ -42,8 +42,8 @@ bandparameters BParams[30] = {
     {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"PKP FAST",      15050000,         15197500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"PKP MAX",       15000000,         15600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
     {"POGOTOWIE",     16852500,         16937500,       S_STEP_25_0kHz,   MODULATION_FM},
     {"POLICJA",       17200000,         17397500,       S_STEP_25_0kHz,   MODULATION_FM},
@@ -56,21 +56,8 @@ bandparameters BParams[30] = {
 bandparameters BParams[30] = {
     // BandName       Startfrequency    Stopfrequency   scanStep        modulationType
     {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"AIR",           11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"PMR",           44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"LPD",           43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"DMR UHF",       45000000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"HAM 50",         5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
-    {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
-    {"POGOTOWIE",     16852500,         16937500,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"POLICJA",       17200000,         17397500,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"PSP",           14866250,         14933750,       S_STEP_25_0kHz,   MODULATION_FM}
+    {"10-11m",         2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM}
+
     }; 
 #endif
 
