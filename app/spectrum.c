@@ -6,7 +6,7 @@
 #include "ui/helper.h"
 #include "common.h"
 #include "action.h"
-bool AutoTriggerLevelbandsMode = 0;
+bool AutoTriggerLevelbandsMode = 1;
 
 
 
@@ -168,7 +168,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
                              modulationType: false,
-                             dbMin: -130,
+                             dbMin: -128,
                              dbMax: 10,
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0},
@@ -565,7 +565,7 @@ static void AutoTriggerLevelbands(void) {
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
     }
-    settings.rssiTriggerLevel = clamp(topRssi+20, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevel = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
     settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
   
 }
@@ -908,42 +908,36 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
-
+  redrawStatus = true;
   // display scanlists
   char Number[5]={0};
   if (waitingForScanListNumber == 0){
     if (appMode == SCAN_BAND_MODE){
-      sprintf(String,"B");
+      sprintf(String,"B ");
       for (int i = 1; i <= 30; i++) {
           if (settings.bandEnabled[i-1]) {
-            sprintf(Number, "%d.", i);
+            sprintf(Number, "%u.", i);
             strcat(String, Number);
           }}}
     else
-        {sprintf(String,"SL");
+        {sprintf(String,"SL ");
         for (int i = 1; i <= 15; i++) {
           if (settings.scanListEnabled[i-1]) {
-            sprintf(Number, "%d.", i);
+            sprintf(Number, "%u.", i);
             strcat(String, Number);
         }}}
-    GUI_DisplaySmallest(String, 0,0, true, true);
+    GUI_DisplaySmallest(String, 0,1, true, true);
   }
   if (waitingForScanListNumber == 2||3){
     sprintf(String, "--");
-    GUI_DisplaySmallest(String, 0, 0, true, true);
+    GUI_DisplaySmallest(String, 0, 1, true, true);
   }
   if (waitingForScanListNumber == 1){
     sprintf(String, "%u-",scanListNumber/10);
-    GUI_DisplaySmallest(String, 0, 0, true, true);
+    GUI_DisplaySmallest(String, 0, 1, true, true);
   }
   
-  /////// Test
-  sprintf(String, "%d",settings.rssiTriggerLevel);
-  GUI_DisplaySmallest(String, 0, 30, false, true);
-  ///////
-  
-  sprintf(Stringdb,"%d",settings.dbMax);
-  GUI_DisplaySmallest(Stringdb, 0,40,false,true);
+
 
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -967,6 +961,8 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
 	uint8_t Code;
+    sprintf(Stringdb,"%d",settings.dbMax);
+    GUI_DisplaySmallest(Stringdb, 0,0,false,true);
 	if (f > 0){
 
     if(GetScanStep() ==  833) {
@@ -1085,17 +1081,17 @@ static void DrawNums() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 0, 14, false, true);
+    GUI_DisplaySmallest(String, 0, 6, false, true);
 
     if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 0, 21, false, true);
+      GUI_DisplaySmallest(String, 0, 12, false, true);
     }
     else
     {
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 0, 21, false, true);
+      GUI_DisplaySmallest(String, 0, 12, false, true);
     }
 
   }
@@ -1812,12 +1808,12 @@ void LoadValidMemoryChannels(void)
 
 
 typedef struct {
-  uint32_t bandListFlags;
+  Mode appMode;
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   int16_t dbMax;
-  uint16_t rssiTriggerLevel;
-  uint16_t rssiTriggerLevelH;
-  Mode appMode;
+  //uint16_t rssiTriggerLevel;
+  //uint16_t rssiTriggerLevelH;
+  uint32_t bandListFlags;
 } SettingsEEPROM;
 
   
@@ -1829,8 +1825,8 @@ void LoadSettings()
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
-  settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
-  settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+  //settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
+  //settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
   
@@ -1841,8 +1837,8 @@ void SaveSettings()
   SettingsEEPROM eepromData = {0};
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
-  eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
-  eepromData.rssiTriggerLevelH = settings.rssiTriggerLevelH;
+  //eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
+  //eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
