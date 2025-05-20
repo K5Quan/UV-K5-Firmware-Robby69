@@ -1808,34 +1808,42 @@ typedef struct {
   uint16_t rssiTriggerLevel;
 	uint16_t rssiTriggerLevelH;
 	int16_t dbMax;
-  uint32_t bandListFlags;
 	Mode appMode;
 } SettingsEEPROM;
 
-  
+typedef struct {
+  uint32_t bandListFlags;
+} SettingsEEPROM2;
+
+
 void LoadSettings()
 {
   SettingsEEPROM eepromData = {0};
+  SettingsEEPROM2 eepromData2 = {0};
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
-  //for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
-  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = 0;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
+  
+  EEPROM_ReadBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
+  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData2.bandListFlags >> i) & 0x01;}
   }
 
 void SaveSettings() 
 {
   SettingsEEPROM eepromData = {0};
+  SettingsEEPROM2 eepromData2 = {0};
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
-  for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
+
+  for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData2.bandListFlags |= (1 << i);}
+  EEPROM_WriteBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
 }
