@@ -69,5 +69,5 @@ void EEPROM_WriteBuffer(uint16_t Address, const void *pBuffer, const bool safe)
 	}
 
 	// give the EEPROM time to burn the data in (apparently takes 5ms)
-	SYSTEM_DelayMs(8);
+	SYSTEM_DelayMs(20); //Robby69 was 8
 }

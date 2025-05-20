@@ -158,8 +158,8 @@ typedef struct SpectrumSettings {
   StepsCount stepsCount;
   ScanStep scanStepIndex;
   uint16_t scanDelay;
-  uint8_t rssiTriggerLevel;
-  uint8_t rssiTriggerLevelH;
+  uint16_t rssiTriggerLevel;
+  uint16_t rssiTriggerLevelH;
   BK4819_FilterBandwidth_t bw;
   BK4819_FilterBandwidth_t listenBw;
   int16_t dbMin;
@@ -168,7 +168,7 @@ typedef struct SpectrumSettings {
   bool backlightAlwaysOn;
   int scanList;
   bool scanListEnabled[15];
-  bool bandEnabled[30];
+  bool bandEnabled[32];
 } SpectrumSettings;
 
 typedef struct KeyboardState {
