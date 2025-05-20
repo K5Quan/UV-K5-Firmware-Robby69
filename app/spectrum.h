@@ -158,8 +158,8 @@ typedef struct SpectrumSettings {
   StepsCount stepsCount;
   ScanStep scanStepIndex;
   uint16_t scanDelay;
-  uint16_t rssiTriggerLevel;
-  uint16_t rssiTriggerLevelH;
+  uint8_t rssiTriggerLevel;
+  uint8_t rssiTriggerLevelH;
   BK4819_FilterBandwidth_t bw;
   BK4819_FilterBandwidth_t listenBw;
   int16_t dbMin;

@@ -108,7 +108,7 @@ static void SaveSettings();
 static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
   
-const uint16_t RSSI_MAX_VALUE = 65535;
+const uint16_t RSSI_MAX_VALUE = 160; //Robby69 from the datasheet
 
 #define SQUELCH_OFF_DELAY 100 //Robby69
 
@@ -162,8 +162,8 @@ const uint8_t modTypeReg47Values[] = {1, 7, 5};
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
                              frequencyChangeStep: 80000,
-                             rssiTriggerLevel: 150,
-							               rssiTriggerLevelH: 150,
+                             rssiTriggerLevel: 100,
+							               rssiTriggerLevelH: 100,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_WIDE,
@@ -555,8 +555,8 @@ static void AutoTriggerLevel() {
 }
 
 static void AutoTriggerLevelbands(void) {
-  uint16_t rssiAnalyse = 0;
-  uint16_t topRssi = 0;
+  uint8_t rssiAnalyse = 0;
+  uint8_t topRssi = 0;
   uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/16;
   for (int i = 0; i < 16; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
@@ -669,7 +669,7 @@ static void UpdateRssiTriggerLevel(bool inc) {
 		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel -=5;}
 		if (SquelchBarKeyMode == 0) {
 			settings.rssiTriggerLevelH -=5;
-		settings.rssiTriggerLevel  -=5;}}
+		  settings.rssiTriggerLevel  -=5;}}
   ClampRssiTriggerLevel();
   
 }
@@ -1239,10 +1239,14 @@ static void OnKeyDown(uint8_t key) {
     ToggleListeningBW();
     break;
   
-  case KEY_SIDE2: 
-    SquelchBarKeyMode += 1;
-	  if (SquelchBarKeyMode > 2) SquelchBarKeyMode =0;
-    AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;
+    case KEY_SIDE2:
+      if (kbd.counter == 3) { // short press        
+        SquelchBarKeyMode += 1;
+      if (SquelchBarKeyMode > 2) {SquelchBarKeyMode = 0;}
+        } else if (kbd.counter == 16) { // long press
+          AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
+      break;
+
     break;
   case KEY_PTT:
     ExitAndCopyToVfo();
@@ -1808,12 +1812,12 @@ void LoadValidMemoryChannels(void)
 
 
 typedef struct {
-  Mode appMode;
   uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   int16_t dbMax;
-  //uint16_t rssiTriggerLevel;
-  //uint16_t rssiTriggerLevelH;
+  uint8_t rssiTriggerLevel;
+  uint8_t rssiTriggerLevelH;
   uint32_t bandListFlags;
+  Mode appMode;
 } SettingsEEPROM;
 
   
@@ -1825,8 +1829,8 @@ void LoadSettings()
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
-  //settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
-  //settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+  settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
+  settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
   
@@ -1837,9 +1841,9 @@ void SaveSettings()
   SettingsEEPROM eepromData = {0};
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
-  //eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
-  //eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
+  eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
+  eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
-  EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
+  EEPROM_WriteBuffer(0x1D20, &eepromData, sizeof(eepromData));
 }
