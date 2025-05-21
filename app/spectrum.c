@@ -951,11 +951,11 @@ static void DrawF(uint32_t f) {
 	uint8_t Code;
   if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
       sprintf(String, "--");
-      GUI_DisplaySmallest(String, 0,1, true, true);}
+      UI_PrintStringSmall(String, 1,127,4);}
 
   if (waitingForScanListNumber == 1){
     sprintf(String, "%u-",scanListNumber/10);
-    GUI_DisplaySmallest(String, 0,1, true, true);}
+    UI_PrintStringSmall(String, 1,127,4);}
     
 	if (f > 0){
 
@@ -1238,10 +1238,10 @@ static void OnKeyDown(uint8_t key) {
     break;
   
     case KEY_SIDE2:
-      if (kbd.counter == 3) { // short press        
+      if (kbd.counter < 4) { // short press        
         SquelchBarKeyMode += 1;
       if (SquelchBarKeyMode > 2) {SquelchBarKeyMode = 0;}
-        } else if (kbd.counter == 16) { // long press
+        } else if (kbd.counter >= 4) { // long press
           AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
       break;
 
