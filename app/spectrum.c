@@ -949,7 +949,13 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
 	uint8_t Code;
-    
+  if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
+      sprintf(String, "--");
+      GUI_DisplaySmallest(String, 0,1, true, true);}
+
+  if (waitingForScanListNumber == 1){
+    sprintf(String, "%u-",scanListNumber/10);
+    GUI_DisplaySmallest(String, 0,1, true, true);}
     
 	if (f > 0){
 
@@ -1239,7 +1245,6 @@ static void OnKeyDown(uint8_t key) {
           AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
       break;
 
-    break;
   case KEY_PTT:
     ExitAndCopyToVfo();
     break;
