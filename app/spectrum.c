@@ -144,6 +144,7 @@ const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6",
 const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
 //bool       gWasFKeyPressed  = false;
+uint16_t BPRssiTriggerLevel[32]={0};
 
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_25_0kHz,
@@ -516,6 +517,7 @@ static bool InitScan() {
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
+                  else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przejdź do następnego pasma
@@ -543,7 +545,7 @@ static void AutoTriggerLevel() {
 static void AutoTriggerLevelbands(void) {
   uint8_t rssiAnalyse = 0;
   uint8_t topRssi[3] = {0};
-  static AnalyseSize = 32;
+  static uint8_t AnalyseSize = 32;
   uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/AnalyseSize;
   for (int i = 0; i < AnalyseSize; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
@@ -665,6 +667,8 @@ static void UpdateRssiTriggerLevel(bool inc) {
 			settings.rssiTriggerLevelH -=5;
 		  settings.rssiTriggerLevel  -=5;}}
   ClampRssiTriggerLevel();
+  BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
+
   
 }
 
@@ -925,15 +929,6 @@ static void DrawStatus() {
     String[pos] = '\0';  // Null-terminate the string
     GUI_DisplaySmallest(String, 0,1, true, true);
 
- /* if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
-      sprintf(String, "--");
-      GUI_DisplaySmallest(String, 0,1, true, true);}
-
-  if (waitingForScanListNumber == 1){
-    sprintf(String, "%u-",scanListNumber/10);
-    GUI_DisplaySmallest(String, 0,1, true, true);}*/
-
-
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
   uint16_t voltage = (gBatteryVoltages[0] + gBatteryVoltages[1] + gBatteryVoltages[2] +
@@ -963,7 +958,7 @@ static void DrawF(uint32_t f) {
   if (waitingForScanListNumber == 1){
     sprintf(String, "%u-",scanListNumber/10);
     UI_PrintStringSmall(String, 1,127,4);}
-    
+  
 	if (f > 0){
 
     if(GetScanStep() ==  833) {
@@ -1247,8 +1242,8 @@ static void OnKeyDown(uint8_t key) {
     case KEY_SIDE2:
       if (kbd.counter < 4) { // short press        
         SquelchBarKeyMode += 1;
-      if (SquelchBarKeyMode > 2) {SquelchBarKeyMode = 0;}
-        } else if (kbd.counter >= 4) { // long press
+      if (SquelchBarKeyMode == 3) {SquelchBarKeyMode = 0;}
+        } else if (kbd.counter == 16) { // long press
           AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
       break;
 
@@ -1825,6 +1820,7 @@ typedef struct {
 
 typedef struct {
   uint32_t bandListFlags;
+  //uint8_t BPRssiTriggerLevel[32];
 } SettingsEEPROM2;
 
 
@@ -1842,7 +1838,9 @@ void LoadSettings()
   settings.dbMax = eepromData.dbMax;
   
   EEPROM_ReadBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
-  for (int i = 0; i < 30; i++) {settings.bandEnabled[i] = (eepromData2.bandListFlags >> i) & 0x01;}
+  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData2.bandListFlags >> i) & 0x01;
+   BPRssiTriggerLevel[i] = settings.rssiTriggerLevel;
+    }
   }
 
 void SaveSettings() 
@@ -1856,6 +1854,9 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 
-  for (int i = 0; i < 30; i++) {if (settings.bandEnabled[i]) eepromData2.bandListFlags |= (1 << i);}
+  for (int i = 0; i < 32; i++) 
+  {if (settings.bandEnabled[i]) eepromData2.bandListFlags |= (1 << i);
+  //eepromData2.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];
+  }
   EEPROM_WriteBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
 }
