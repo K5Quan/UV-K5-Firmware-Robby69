@@ -1805,8 +1805,8 @@ void LoadValidMemoryChannels(void)
 
 typedef struct {
 	uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
-  uint16_t rssiTriggerLevel;
-	uint16_t rssiTriggerLevelH;
+  uint8_t rssiTriggerLevel;
+	uint8_t rssiTriggerLevelH;
 	int16_t dbMax;
 	Mode appMode;
 } SettingsEEPROM;
