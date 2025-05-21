@@ -1124,8 +1124,8 @@ static void DrawNums() {
 }
 
 static void DrawRssiTriggerLevel() {
-  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE || monitorMode)
-    return;
+  //if (settings.rssiTriggerLevel == RSSI_MAX_VALUE || monitorMode)
+  //  return;
   uint8_t y = Rssi2Y(settings.rssiTriggerLevel);
   for (uint8_t x = 0; x < 128; x += 2) {
     PutPixel(x, y, true);
