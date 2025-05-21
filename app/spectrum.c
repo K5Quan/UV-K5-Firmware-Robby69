@@ -1132,10 +1132,11 @@ static void DrawRssiTriggerLevel() {
   for (uint8_t x = 0; x < 128; x += 2) {
     PutPixel(x, y, true);
   }
+  if (ShowHistory) {
   y = Rssi2Y(settings.rssiTriggerLevelH);
   for (uint8_t x = 0; x < 128; x += 6) {
     PutPixel(x, y, true);
-  }
+  }}
 }
 
 static void OnKeyDown(uint8_t key) {
@@ -1242,7 +1243,8 @@ static void OnKeyDown(uint8_t key) {
     case KEY_SIDE2:
       if (kbd.counter < 4) { // short press        
         SquelchBarKeyMode += 1;
-      if (SquelchBarKeyMode == 3) {SquelchBarKeyMode = 0;}
+      if (SquelchBarKeyMode == 3) {SquelchBarKeyMode = 0;
+      if (!ShowHistory)SquelchBarKeyMode = 0;}
         } else if (kbd.counter == 16) { // long press
           AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
       break;
