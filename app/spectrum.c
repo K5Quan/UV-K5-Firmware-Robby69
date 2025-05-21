@@ -542,16 +542,23 @@ static void AutoTriggerLevel() {
 
 static void AutoTriggerLevelbands(void) {
   uint8_t rssiAnalyse = 0;
-  uint8_t topRssi = 0;
-  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/16;
-  for (int i = 0; i < 16; ++i) {
+  uint8_t topRssi[3] = {0};
+  static AnalyseSize = 32;
+  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/AnalyseSize;
+  for (int i = 0; i < AnalyseSize; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
       SetF(FreqAnalyse);
       while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
       rssiAnalyse = BK4819_GetRSSI();
-      if (rssiAnalyse > topRssi) topRssi = rssiAnalyse;
-    }
-    settings.rssiTriggerLevel = clamp(topRssi+30, 0, RSSI_MAX_VALUE);
+      
+      if (rssiAnalyse > topRssi[0]) {
+        topRssi[2] = topRssi[1];
+        topRssi[1] = topRssi[0];
+        topRssi[0] = rssiAnalyse;
+        }
+        else if (rssiAnalyse > topRssi[1]) {topRssi[1] = rssiAnalyse;}
+  }
+    settings.rssiTriggerLevel = clamp(topRssi[2] + 20, 0, RSSI_MAX_VALUE);
     settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
   
 }
