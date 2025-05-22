@@ -9,3 +9,4 @@ Chirp/test1M.csv
 compiled-firmware/firmware
 compiled-firmware/firmware.bin
 compiled-firmware/firmware.packed.bin
+compiled-firmware/firmware.ld
