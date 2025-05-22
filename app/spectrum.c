@@ -1564,7 +1564,7 @@ static void UpdateScan() {
 
   UpdatePeakInfo();
       
-  if (IsPeakOverLevel()) {
+  if (IsPeakOverLevel() && !SCAN_BAND_MODE) { //Robby69 test
     ToggleRX(true);
     TuneToPeak();
 	return;
