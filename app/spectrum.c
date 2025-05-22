@@ -291,7 +291,8 @@ static void SetF(uint32_t f) {
 
 // Spectrum related
 
-bool IsPeakOverLevel() { return peak.rssi >= settings.rssiTriggerLevel; }
+bool IsPeakOverLevel() {return peak.rssi >= settings.rssiTriggerLevel; }
+
 bool IsPeakOverLevelH() { return peak.rssi >= settings.rssiTriggerLevelH; }
 
 static void ResetInterrupts()
@@ -588,8 +589,8 @@ static void ResetModifiers() {
 }
 
 static void RelaunchScan() {
-  InitScan();
   ResetPeak();
+  InitScan();
   ToggleRX(false);
   //settings.rssiTriggerLevel = RSSI_MAX_VALUE; //Robby69
   preventKeypress = true;
@@ -1563,7 +1564,7 @@ static void UpdateScan() {
 
   UpdatePeakInfo();
       
-  if (IsPeakOverLevel() ) {
+  if (IsPeakOverLevel()) {
     ToggleRX(true);
     TuneToPeak();
 	return;
@@ -1642,6 +1643,7 @@ static void Tick() {
     HandleUserInput();
   }
   if (newScanStart) {
+    ResetPeak();
     InitScan();
     newScanStart = false;
   }
@@ -1815,7 +1817,7 @@ typedef struct {
 	uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
   uint8_t rssiTriggerLevel;
 	uint8_t rssiTriggerLevelH;
-	int16_t dbMax;
+	int8_t dbMax;
 	Mode appMode;
 } SettingsEEPROM;
 
