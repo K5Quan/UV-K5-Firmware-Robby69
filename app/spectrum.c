@@ -39,18 +39,18 @@ bandparameters BParams[30] = {
 bandparameters BParams[30] = {
     // BandName       Startfrequency    Stopfrequency   scanStep        modulationType
     {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-	{"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-	{"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-	{"AIR 8.33k",     11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
-	{"DMR-VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-	{"DMR-UHF1",      45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
-	{"DMR-UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
-	{"50-52MHz",       5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-	{"Remote433",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
-	{"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
-	{"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
-	{"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
-	{"17MHz",          1740000,          1780000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR 8.33k",     11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
+    {"DMR-VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR-UHF1",      45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR-UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
+    {"50-52MHz",       5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"Remote433",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
+    {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"17MHz",          1740000,          1780000,       S_STEP_5_0kHz,    MODULATION_AM},
     {"PKP FAST",      15050000,         15197500,       S_STEP_25_0kHz,   MODULATION_FM},
     {"PKP MAX",       15000000,         15600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
