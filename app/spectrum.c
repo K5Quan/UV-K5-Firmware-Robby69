@@ -1822,15 +1822,19 @@ typedef struct {
 } SettingsEEPROM;
 
 typedef struct {
-  uint32_t bandListFlags;
-  //uint8_t BPRssiTriggerLevel[32];
+  uint8_t BPRssiTriggerLevel[32];
 } SettingsEEPROM2;
+
+typedef struct {
+  uint32_t bandListFlags;
+} SettingsEEPROM3;
 
 
 void LoadSettings()
 {
-  SettingsEEPROM eepromData = {0};
+  SettingsEEPROM  eepromData  = {0};
   SettingsEEPROM2 eepromData2 = {0};
+  SettingsEEPROM3 eepromData3 = {0};
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
@@ -1841,15 +1845,18 @@ void LoadSettings()
   settings.dbMax = eepromData.dbMax;
   
   EEPROM_ReadBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
-  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData2.bandListFlags >> i) & 0x01;
-   BPRssiTriggerLevel[i] = settings.rssiTriggerLevel;
-    }
+  for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData2.BPRssiTriggerLevel[i];}
+  
+  EEPROM_ReadBuffer(0x1D20, &eepromData3, sizeof(eepromData3));
+  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData3.bandListFlags >> i) & 0x01;}
   }
 
 void SaveSettings() 
 {
-  SettingsEEPROM eepromData = {0};
+  SettingsEEPROM  eepromData  = {0};
   SettingsEEPROM2 eepromData2 = {0};
+  SettingsEEPROM3 eepromData3 = {0};
+  
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
@@ -1857,9 +1864,11 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
 
-  for (int i = 0; i < 32; i++) 
-  {if (settings.bandEnabled[i]) eepromData2.bandListFlags |= (1 << i);
-  //eepromData2.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];
-  }
-  EEPROM_WriteBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
+  for (int j = 0; j < 32; j+= 16)
+    {for (int i = 0; i < 16; i++) { eepromData2.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
+    EEPROM_WriteBuffer(0x1D20+j, &eepromData2, sizeof(eepromData2));}
+  
+  for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData3.bandListFlags |= (1 << i);}
+    EEPROM_WriteBuffer(0x1D30, &eepromData3, sizeof(eepromData3));
+  
 }
