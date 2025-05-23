@@ -55,16 +55,16 @@ void EEPROM_WriteBuffer(uint16_t Address, const void *pBuffer, const bool safe)
 {
 	if (pBuffer == NULL || (safe && Address >= EEPROM_WRITE_MAX_ADDR))
 		return;
-#define WriteSize 32
-	uint8_t buffer[WriteSize];
-	EEPROM_ReadBuffer(Address, buffer, WriteSize); //Robby69 was 8
-	if (memcmp(pBuffer, buffer, WriteSize) != 0)
+
+	uint8_t buffer[8];
+	EEPROM_ReadBuffer(Address, buffer, 8); //Robby69 was 8
+	if (memcmp(pBuffer, buffer, 8) != 0)
 	{
 		I2C_Start();
 		I2C_Write(0xA0);
 		I2C_Write((Address >> 8) & 0xFF);
 		I2C_Write((Address >> 0) & 0xFF);
-		I2C_WriteBuffer(pBuffer, WriteSize);
+		I2C_WriteBuffer(pBuffer, 8);
 		I2C_Stop();
 	}
 

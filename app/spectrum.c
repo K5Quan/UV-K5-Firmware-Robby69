@@ -1814,27 +1814,20 @@ void LoadValidMemoryChannels(void)
 
 
 typedef struct {
-	uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
-  uint8_t rssiTriggerLevel;
-	uint8_t rssiTriggerLevelH;
-	int8_t dbMax;
-	Mode appMode;
+    // Block 1 (0x1D10 - 0x1D1F)
+    uint8_t BPRssiTriggerLevel[32]; // 32 bytes of trigger levels
+    uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
+    uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
+    uint8_t rssiTriggerLevel;
+    uint8_t rssiTriggerLevelH;
+    int8_t dbMax;
+    Mode appMode;
 } SettingsEEPROM;
-
-typedef struct {
-  uint8_t BPRssiTriggerLevel[32];
-} SettingsEEPROM2;
-
-typedef struct {
-  uint32_t bandListFlags;
-} SettingsEEPROM3;
 
 
 void LoadSettings()
 {
   SettingsEEPROM  eepromData  = {0};
-  SettingsEEPROM2 eepromData2 = {0};
-  SettingsEEPROM3 eepromData3 = {0};
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
@@ -1843,32 +1836,22 @@ void LoadSettings()
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
-  
-  EEPROM_ReadBuffer(0x1D20, &eepromData2, sizeof(eepromData2));
-  for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData2.BPRssiTriggerLevel[i];}
-  
-  EEPROM_ReadBuffer(0x1D20, &eepromData3, sizeof(eepromData3));
-  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData3.bandListFlags >> i) & 0x01;}
+    for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
+  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
   }
 
 void SaveSettings() 
 {
   SettingsEEPROM  eepromData  = {0};
-  SettingsEEPROM2 eepromData2 = {0};
-  SettingsEEPROM3 eepromData3 = {0};
-  
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
   eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
-  EEPROM_WriteBuffer(0x1D10, &eepromData, sizeof(eepromData));
-
-  for (int j = 0; j < 32; j+= 16)
-    {for (int i = 0; i < 16; i++) { eepromData2.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
-    EEPROM_WriteBuffer(0x1D20+j, &eepromData2, sizeof(eepromData2));}
-  
-  for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData3.bandListFlags |= (1 << i);}
-    EEPROM_WriteBuffer(0x1D30, &eepromData3, sizeof(eepromData3));
+  for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
+  for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
+  // Write in 8-byte chunks
+  for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
+    EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
   
 }
