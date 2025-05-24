@@ -373,11 +373,10 @@ static void ExitAndCopyToVfo() {
     SETTINGS_SetVfoFrequency(freqHistory[indexFd]); //Robby69
     gRequestSaveChannel = 1;
   }
- 
-  // Additional delay to debounce keys
-SYSTEM_DelayMs(200);
-isInitialized = false;
-DeInitSpectrum();
+    // Additional delay to debounce keys
+    SYSTEM_DelayMs(200);
+    isInitialized = false;
+    DeInitSpectrum();
 }
 
 uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency) 
@@ -502,6 +501,7 @@ static bool InitScan() {
         uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
         while (checkedBandCount < 30) { // Sprawdź wszystkie 15 pasm co najwyżej raz
             if (settings.bandEnabled[nextBandToScanIndex]) {
+                int j=0;
                 bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
                 scanInfo.f = BParams[bl].Startfrequency;
                 scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
@@ -509,7 +509,7 @@ static bool InitScan() {
                 gScanRangeStart = BParams[bl].Startfrequency;
                 gScanRangeStop = BParams[bl].Stopfrequency;
                 scanInfo.measurementsCount = GetStepsCount();
-                settings.modulationType = BParams[bl].modulationType;
+                
                 RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
                 BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przygotuj indeks na następne wywołanie
@@ -518,6 +518,8 @@ static bool InitScan() {
                 redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                   else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
+                for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) j++;}
+                  if (j>1) settings.modulationType = BParams[bl].modulationType;
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przejdź do następnego pasma
@@ -1258,6 +1260,9 @@ static void OnKeyDown(uint8_t key) {
     //TuneToPeak();
     break;
   case KEY_EXIT:
+    if (waitingForScanListNumber > 0) 
+    {waitingForScanListNumber = 0; //Exit from band entry mode
+      return;}
     if (menuState) {
       menuState = 0;
       break;
