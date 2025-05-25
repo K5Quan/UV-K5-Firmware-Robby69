@@ -499,7 +499,7 @@ static bool InitScan() {
 
     if (appMode == SCAN_BAND_MODE) {
         uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
-        while (checkedBandCount < 30) { // Sprawdź wszystkie 15 pasm co najwyżej raz
+        while (checkedBandCount < 32) { // Sprawdź wszystkie 15 pasm co najwyżej raz
             if (settings.bandEnabled[nextBandToScanIndex]) {
                 int j=0;
                 bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
@@ -1183,26 +1183,36 @@ static void OnKeyDown(uint8_t key) {
        ToggleNormalizeRssi(!isNormalizationApplied);
        break;
      case KEY_8:
-      memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
+     if ((ShowHistory) &&  (kbd.counter == 16)) //long press
+      {memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
       memset(freqCount, 0, sizeof(freqCount));
       indexFd = 1;
-      indexFs = 1;
-      ShowHistory = false;
+      indexFs = 1;}
+      ShowHistory = !ShowHistory;
       ToggleBacklight();
       break;
     case KEY_UP:
-      ShowHistory = true;
+      if ((!ShowHistory) && (appMode==SCAN_BAND_MODE)) {
+        ToggleScanList(bl, 1);
+        settings.bandEnabled[bl+1]= true;
+        redrawStatus = true;
+        RelaunchScan(); 
+        break;}
       indexFd++;
 	    if(freqHistory[indexFd]==0)indexFd--;
-	    if (indexFd > FMaxNumb) indexFd = 1;	  
-	    if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+	    if (indexFd > FMaxNumb) indexFd = 1;
+      if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
       break;
   case KEY_DOWN:
-    ShowHistory = true;
+      if ((!ShowHistory) && (appMode==SCAN_BAND_MODE)) {
+        ToggleScanList(bl, 1);
+        settings.bandEnabled[bl-1]= true;
+        redrawStatus = true;
+        RelaunchScan(); 
+        break;}
     indexFd--;
     if (indexFd < 1) indexFd = 1;
-    if(appMode==FREQUENCY_MODE)
-    {UpdateCurrentFreq(false);}
+    if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
     break;
   
   case KEY_SIDE1:
@@ -1243,11 +1253,11 @@ static void OnKeyDown(uint8_t key) {
     break;
   
     case KEY_SIDE2:
-      if (kbd.counter < 4) { // short press        
+      if (kbd.counter == 3) { // short press        
         SquelchBarKeyMode += 1;
       if (SquelchBarKeyMode == 3) {SquelchBarKeyMode = 0;
       if (!ShowHistory)SquelchBarKeyMode = 0;}
-        } else if (kbd.counter == 16) { // long press
+        } else { // long press
           AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
       break;
 
