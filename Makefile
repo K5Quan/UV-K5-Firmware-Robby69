@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := 4.40b13P
+VERSION_STRING := 4.40b14
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -51,8 +51,8 @@ ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
-ENABLE_FR_BAND							:= 0
-ENABLE_PL_BAND							:= 1
+ENABLE_FR_BAND							:= 1
+ENABLE_PL_BAND							:= 0
 
 
 #############################################################
