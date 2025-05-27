@@ -93,6 +93,7 @@ typedef enum State {
   SPECTRUM,
   FREQ_INPUT,
   STILL,
+  HISTORY_LIST // DODANO
 } State;
 
 
