@@ -6,7 +6,7 @@
 docker image prune -a --force --filter "until=24h"
 
 
-IMAGE_NAME="uvk5"
+IMAGE_NAME="robzyl"
 rm "${PWD}/compiled-firmware/*"
 echo "Building docker image $IMAGE_NAME"
 if ! docker build -t $DOCKER_NETWORK $IMAGE_NAME .
@@ -15,39 +15,41 @@ then
     exit 1
 fi
 
-FR() {
-    echo "FR compilation..."
-    docker run --rm -v "${PWD}/compiled-firmware/:/app/compiled-firmware" $IMAGE_NAME /bin/bash -c "rm ./compiled-firmware/*; cd /app && make -s \
-        ENABLE_FR_BAND=1 \
-        ENABLE_PL_BAND=0 \
-        TARGET=Robzyl.fr \
-        && cp f4hwn.custom* compiled-firmware/"
-}
-
 PL() {
-    echo "Standard compilation..."
-    docker run --rm -v "${PWD}/compiled-firmware:/app/compiled-firmware" $IMAGE_NAME /bin/bash -c "rm ./compiled-firmware/*; cd /app && make -s \
+    echo "PL compilation..."
+    docker run --rm -v "${PWD}/compiled-firmware:/app/compiled-firmware" $IMAGE_NAME /bin/bash -c "cd /app && make -s \
         ENABLE_FR_BAND=0 \
         ENABLE_PL_BAND=1 \
-        TARGET=Robzyl.pl \
-        && cp f4hwn.standard* compiled-firmware/"
+        TARGET=robzyl.pl \
+        && cp robzyl.pl.packed* compiled-firmware/"
 }
+
+FR() {
+    echo "FR compilation..."
+    docker run --rm -v "${PWD}/compiled-firmware:/app/compiled-firmware" $IMAGE_NAME /bin/bash -c "cd /app && make -s \
+        ENABLE_FR_BAND=1 \
+        ENABLE_PL_BAND=0 \
+        TARGET=robzyl.fr \
+        && cp robzyl.fr.packed* compiled-firmware/"
+}
+
+
 
 
 
 case "$1" in
     FR)
-        fr
+        FR
         ;;
     PL)
-        pl
+        PL
         ;;
     all)
-        fr
-        pl
+        PL
+        FR
         ;;
     *)
-        echo "Usage: $0 {fr|pl|all}"
+        echo "Usage: $0 {FR|PL|all}"
         exit 1
         ;;
 esac
