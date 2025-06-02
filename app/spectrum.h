@@ -93,7 +93,8 @@ typedef enum State {
   SPECTRUM,
   FREQ_INPUT,
   STILL,
-  HISTORY_LIST // DODANO
+  HISTORY_LIST, // DODANO
+  BAND_LIST_SELECT // NOWY STAN
 } State;
 
 
@@ -147,7 +148,7 @@ typedef enum ScanList {
 } ScanList;
 
 typedef struct bandparameters { //Memory cost is 80+32+32+8?+ 8+8 = 168,  168 x 15 = 2520 bits
-  char BandName[10];
+  char BandName[15];
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint32_t Stopfrequency; // Stop frequency in MHz /100
   ScanStep scanStep;

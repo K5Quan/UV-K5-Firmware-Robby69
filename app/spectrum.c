@@ -14,25 +14,30 @@ bool historyListActive = false; // Czy lista historii jest aktywna
 static int historyScrollOffset = 0; // DODAJ TĘ LINIĘ - zylka
 static void RenderHistoryList();
 #define MAX_VISIBLE_HISTORY_LINES 6  //wielkosc listy historia - zylka
+// NOWE ZMIENNE DLA LISTY PASM
+static uint8_t bandListSelectedIndex = 0; // Indeks aktualnie wybranego pasma na liście
+static int bandListScrollOffset = 0;    // Offset przewijania dla listy pasm
+#define MAX_VISIBLE_BAND_LINES 6      // Ile pasm wyświetlać na raz
 
-
+// Deklaracja forward dla nowej funkcji renderującej (jeśli jeszcze nie ma podobnej struktury)
+static void RenderBandSelectList();
 
 
 
 #ifdef ENABLE_FR_BAND
-bandparameters BParams[30] = {
+bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"Citizen Band",   2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
     {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"AIR 8.33k",     11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
-    {"PMR446",        44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"DMR-VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"DMR-UHF1",      45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"DMR-UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
+    {"AIR 25khz",     11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR 8.33khz",   11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
+    {"PMR 446 Mhz",   44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR 146-170",   14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR 450-466",   45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR-466.2-470", 46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
     {"50-52MHz",       5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"Remote433",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
+    {"Remote 433",    43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
     {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM}
@@ -40,7 +45,7 @@ bandparameters BParams[30] = {
 #endif
 
 #ifdef ENABLE_PL_BAND
-bandparameters BParams[30] = {
+bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep        modulationType
     {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
@@ -178,7 +183,7 @@ uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
 char freqInputString[11];
-bandparameters BParams[30];
+bandparameters BParams[32];
 static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
 
 uint8_t menuState = 0;
@@ -533,9 +538,9 @@ static bool InitScan() {
                 
                 RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
                 BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
-                nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przygotuj indeks na następne wywołanie
+                nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przygotuj indeks na następne wywołanie
                 scanInitializedSuccessfully = true;
-                redrawStatus = true; // Te flagi mogą być potrzebne tutaj
+                //redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                   else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
@@ -543,7 +548,7 @@ static bool InitScan() {
                   if (j>1) settings.modulationType = BParams[bl].modulationType;
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
-            nextBandToScanIndex = (nextBandToScanIndex + 1) % 30; // Przejdź do następnego pasma
+            nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przejdź do następnego pasma
             checkedBandCount++;
         }
     } else {
@@ -1158,8 +1163,70 @@ static void DrawRssiTriggerLevel() {
 }
 
 static void OnKeyDown(uint8_t key) {
-
-  if (!isListening) BACKLIGHT_TurnOn();
+    // Existing key handling for other states (SPECTRUM, HISTORY_LIST, etc.)
+    if (!isListening && currentState != HISTORY_LIST && currentState != BAND_LIST_SELECT) {
+        BACKLIGHT_TurnOn();
+    }
+  
+    // NEW HANDLING: Long press of '4' key in SCAN_BAND_MODE
+    if (appMode == SCAN_BAND_MODE && key == KEY_4 && currentState == SPECTRUM) {
+        SetState(BAND_LIST_SELECT);
+        bandListSelectedIndex = 0; // Start from the first band
+        bandListScrollOffset = 0;  // Reset scrolling
+        redrawScreen = true;
+        return; // Key handled
+    }
+	
+    // If we're in band selection mode, use dedicated key logic
+    if (currentState == BAND_LIST_SELECT) {
+        switch (key) {
+            case KEY_UP:
+                if (bandListSelectedIndex > 0) {
+                    bandListSelectedIndex--;
+                    if (bandListSelectedIndex < bandListScrollOffset) {
+                        bandListScrollOffset = bandListSelectedIndex;
+                    }
+                    redrawScreen = true;
+                }
+                break;
+            case KEY_DOWN:
+                // ARRAY_SIZE(BParams) gives the number of defined bands
+                if (bandListSelectedIndex < ARRAY_SIZE(BParams) - 1) {
+                    bandListSelectedIndex++;
+                    if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_BAND_LINES) {
+                        bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_BAND_LINES + 1;
+                    }
+                    redrawScreen = true;
+                }
+                break;
+            case KEY_4: // Band selection
+                if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
+                    // Set the selected band as the only active one for scanning
+                    settings.bandEnabled[bandListSelectedIndex] = !settings.bandEnabled[bandListSelectedIndex]; 
+                    // Reset nextBandToScanIndex so InitScan starts from the selected one
+                    nextBandToScanIndex = bandListSelectedIndex; 
+                }
+                break;
+            case KEY_5:   
+                if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
+                    // Set the selected band as the only active one for scanning
+                    memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled)); // Clear all flags
+                    settings.bandEnabled[bandListSelectedIndex] = true; // Enable selected band
+                    
+                    // Reset nextBandToScanIndex so InitScan starts from the selected one
+                    nextBandToScanIndex = bandListSelectedIndex; 
+                }
+                break;
+            case KEY_EXIT: // Exit band list
+                SetState(SPECTRUM); // Return to band scanning mode
+                redrawScreen = true;
+                redrawStatus = true;
+                break;
+            default:
+                break;
+        }
+        return; // Finish handling if we were in BAND_LIST_SELECT
+    }
 
   if ((waitingForScanListNumber ==3) && (key <= KEY_9)) //KEY_5 first number 1x to 9x
     {scanListNumber += key*10;
@@ -1281,7 +1348,7 @@ indexFd++;
     break;
   
   case KEY_4:
-    if(appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE)
+    if(appMode==CHANNEL_MODE)
     {
       waitingForScanListNumber = 2;
       redrawStatus = true;
@@ -1293,7 +1360,7 @@ indexFd++;
 
     if(appMode==FREQUENCY_MODE) FreqInput();
     
-    if (appMode==CHANNEL_MODE || appMode==SCAN_BAND_MODE) {
+    if (appMode==CHANNEL_MODE ) {
       waitingForScanListNumber = 3;
       redrawStatus = true;
     }
@@ -1330,8 +1397,30 @@ indexFd++;
             break;
   case KEY_MENU:
     SaveSettings(); //Robby69
-    SetState(STILL);//Show radio settings in Spectrum
-    TuneToPeak();
+
+                if (historyListIndex < FMaxNumb && freqHistory[historyListIndex] != 0) {
+                    // Pobierz zaznaczoną częstotliwość
+                    uint32_t selectedFreq = freqHistory[historyListIndex];
+                    
+                    // Ustaw tę częstotliwość jako aktualną dla trybu STILL
+                    currentFreq = selectedFreq; // currentFreq jest używane przez fMeasure [3, s. 199]
+                    fMeasure = selectedFreq;    // fMeasure jest używane w RenderStill i OnKeyDownStill [3, s. 200, 1350]
+                    
+                    // Przejdź do trybu STILL
+                    SetState(STILL); // SetState [3, s. 269], currentState i previousState globalne [3, s. 121]
+                    
+                    // Dodatkowe czynności, które mogą być potrzebne przy przejściu do STILL:
+                    monitorMode = false; // Zresetuj monitorMode (jeśli tak ma działać) [3, s. 135]
+                    menuState = 0;       // Zresetuj menuState dla trybu STILL (jeśli jest używane) [3, s. 217]
+                    
+                    // Ustaw częstotliwość w radiu (ważne dla GetRssi w UpdateStill)
+                    SetF(fMeasure); // [3, s. 312]
+                    
+                    // Wymuś odświeżenie ekranu i statusu
+                    redrawScreen = true;
+                    redrawStatus = true; // redrawStatus globalne [3, s. 136]
+                }
+   
     break;
   case KEY_EXIT:
   
@@ -1567,6 +1656,9 @@ static void Render() {
   case HISTORY_LIST: // DODANO
     RenderHistoryList();
     break;
+  case BAND_LIST_SELECT: // NOWY STAN
+    RenderBandSelectList();
+    break;
   }
 
   ST7565_BlitFullScreen();
@@ -1610,6 +1702,12 @@ bool HandleUserInput() {
                 break;
             case HISTORY_LIST: // DODANO
                 OnKeyDown(kbd.current);
+                break;
+			case BAND_LIST_SELECT: // DODANY BRAKUJĄCY CASE
+                // Jeśli logika dla BAND_LIST_SELECT jest w OnKeyDown:
+                OnKeyDown(kbd.current);
+                // Jeśli masz dedykowaną funkcję, np. OnKeyDownBandListSelect:
+                // OnKeyDownBandListSelect(kbd.current, kbd.counter);
                 break;
         }
         return true;
@@ -1973,7 +2071,13 @@ static void RenderHistoryList() {
 
     // 1. Nagłówek "Historia: (liczba)"
     char headerString[24]; // Bufor na nagłówek
+    #ifdef ENABLE_PL_BAND
     sprintf(headerString, "Historia: (%d)", numValidEntries);
+    #endif
+    
+    #ifdef ENABLE_FR_BAND
+    sprintf(headerString, "History: (%d)", numValidEntries);
+    #endif
     
     // Wyśrodkowanie nagłówka (proste przybliżenie dla UI_PrintStringSmall)
     uint8_t approx_char_width_small = 7; // Przybliżona szerokość znaku dla UI_PrintStringSmall
@@ -2021,7 +2125,7 @@ static void RenderHistoryList() {
             break; 
         }
         
-        char lineBuffer[30]; 
+        char lineBuffer[32]; 
         sprintf(lineBuffer, "%2d: %3u.%05u (%u)", 
                 currentItemIndexInHistory + 1, 
                 freqHistory[currentItemIndexInHistory] / 100000, 
@@ -2044,4 +2148,87 @@ static void RenderHistoryList() {
         }
     }
     // ST7565_BlitFullScreen(); // USUNIĘTE - jest już w głównej funkcji Render()
+}
+
+
+
+static void RenderBandSelectList() {
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
+
+    // 1. Nagłówek
+    #ifdef ENABLE_PL_BAND
+    const char* headerText = "Wybierz Pasmo";
+    #endif
+
+    #ifdef ENABLE_FR_BAND
+    const char* headerText = "Select Bands";
+    #endif
+    
+    // Proste centrowanie dla UI_PrintStringSmall
+    uint8_t header_x = (LCD_WIDTH - (strlen(headerText) * 7)) / 2; 
+    if (header_x < 1) header_x = 1;
+    UI_PrintStringSmall(headerText, header_x, LCD_WIDTH - 1, 0);
+
+    // 2. Parametry listy
+    const int Y_START_LIST = 10;
+    const int LINE_HEIGHT_SMALLEST = 7; // Zakładamy 7
+    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1; // 8
+    // MAX_VISIBLE_BAND_LINES jest zdefiniowane jako 6
+
+    // Korekta bandListScrollOffset, aby był w prawidłowym zakresie
+    int numBands = ARRAY_SIZE(BParams); // Liczba wszystkich zdefiniowanych pasm
+    if (numBands == 0) {
+        GUI_DisplaySmallest("Brak pasm", 10, Y_START_LIST, false, true);
+        return;
+    }
+
+    if (numBands <= MAX_VISIBLE_BAND_LINES) {
+        bandListScrollOffset = 0;
+    } else {
+        if (bandListSelectedIndex < bandListScrollOffset) {
+            bandListScrollOffset = bandListSelectedIndex;
+        } else if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_BAND_LINES) {
+            bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_BAND_LINES + 1;
+        }
+        if (bandListScrollOffset > numBands - MAX_VISIBLE_BAND_LINES) {
+            bandListScrollOffset = numBands - MAX_VISIBLE_BAND_LINES;
+        }
+        if (bandListScrollOffset < 0) {
+             bandListScrollOffset = 0;
+        }
+    }
+
+    // 3. Rysowanie widocznych elementów listy
+    for (int i = 0; i < MAX_VISIBLE_BAND_LINES; i++) { // i to indeks linii na ekranie
+        int currentBandIndexInArray = i + bandListScrollOffset; // Rzeczywisty indeks w BParams
+
+        if (currentBandIndexInArray >= numBands) {
+            break; 
+        }
+        
+        char lineBuffer[20]; 
+        // Wyświetl numer, nazwę pasma i ewentualnie czy jest włączone
+        sprintf(lineBuffer, "%2d:%-9s %s", 
+                currentBandIndexInArray + 1, 
+                BParams[currentBandIndexInArray].BandName,
+                settings.bandEnabled[currentBandIndexInArray] ? "*" : " "); // Gwiazdka dla włączonego pasma
+
+        uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
+        uint8_t x_pos_text = 5; 
+
+        if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
+            if (currentBandIndexInArray == bandListSelectedIndex) {
+                // Można dodać wyróżnienie, np. pogrubienie lub ramkę,
+                // ale na razie proste wyświetlenie
+                // Dla prostoty, użyjemy tego samego stylu, ale można dodać UI_PrintStringSmallBold
+                // lub rysowanie tła/ramki jak w RenderHistoryList
+                char selectedLineBuffer[22];
+                sprintf(selectedLineBuffer, ">%s", lineBuffer); // Dodaj ">" przed zaznaczonym
+                 GUI_DisplaySmallest(selectedLineBuffer, x_pos_text -2, yPosition, false, true);
+            } else {
+                 GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
+            }
+        }
+    }
+    // ST7565_BlitFullScreen(); // USUNIĘTE - jest w Render()
 }
