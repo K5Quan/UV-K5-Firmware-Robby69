@@ -281,6 +281,7 @@ void UI_DisplayMain(void)
 					UI_PrintStringSmall(String, 56, 0, line);
 					sprintf(String, "%3u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
 					UI_PrintStringSmall(String, 56, 0, line + 1);
+					
 				continue;
 			}
 #endif

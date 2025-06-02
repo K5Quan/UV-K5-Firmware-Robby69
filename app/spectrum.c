@@ -78,6 +78,7 @@ struct FrequencyBandInfo {
 };
 
 bool isBlacklistApplied;
+bool saved_params= false;
 
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
@@ -100,7 +101,7 @@ void ToggleScanList();
 void ToggleNormalizeRssi(bool on);
 static void LoadSettings();
 static void SaveSettings();
-static void AutoTriggerLevel(void);
+//static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
   
 const uint16_t RSSI_MAX_VALUE = 160; //Robby69 from the datasheet
@@ -540,7 +541,7 @@ static bool InitScan() {
                 BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przygotuj indeks na następne wywołanie
                 scanInitializedSuccessfully = true;
-                //redrawStatus = true; // Te flagi mogą być potrzebne tutaj
+                redrawStatus = true; // Te flagi mogą być potrzebne tutaj
                 redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                   else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
@@ -563,12 +564,12 @@ static bool InitScan() {
     return scanInitializedSuccessfully;
 }
 
-static void AutoTriggerLevel() {
+/*static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
   settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
-}
+}*/
 
 static void AutoTriggerLevelbands(void) {
   uint8_t rssiAnalyse = 0;
@@ -1144,8 +1145,18 @@ static void DrawNums() {
 
   if(isBlacklistApplied){
     sprintf(String, "BL");
-    GUI_DisplaySmallest(String, 67, Bottom_print, false, true);
+    GUI_DisplaySmallest(String, 60, Bottom_print, false, true);
   }
+  if(saved_params) //Display saved for a while
+      {sprintf(String, "SA");
+      GUI_DisplaySmallest(String, 70, Bottom_print, false, true);
+      saved_params = false;
+      }
+  
+  if(AutoTriggerLevelbandsMode){ //Display status
+    sprintf(String, "AB");
+    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
+    }
 }
 
 static void DrawRssiTriggerLevel() {
@@ -1396,8 +1407,8 @@ indexFd++;
             }
             break;
   case KEY_MENU:
-    SaveSettings(); //Robby69
-
+  if (kbd.counter == 3) SaveSettings(); // short press
+  else {
                 if (historyListIndex < FMaxNumb && freqHistory[historyListIndex] != 0) {
                     // Pobierz zaznaczoną częstotliwość
                     uint32_t selectedFreq = freqHistory[historyListIndex];
@@ -1419,8 +1430,7 @@ indexFd++;
                     // Wymuś odświeżenie ekranu i statusu
                     redrawScreen = true;
                     redrawStatus = true; // redrawStatus globalne [3, s. 136]
-                }
-   
+                }}
     break;
   case KEY_EXIT:
   
@@ -1872,11 +1882,11 @@ static void Tick() {
 void APP_RunSpectrum(Mode mode) {
   // reset modifiers if we launched in a different then previous mode
   LoadSettings();//Robby69
-  uint8_t Last_state = 1; //Spectrum Active
-  if (mode == SCAN_BAND_MODE) Last_state =2;
-  
-  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
-  
+  uint8_t Last_state; 
+  if (mode==SCAN_RANGE_MODE) Last_state =3;
+  if (mode==SCAN_BAND_MODE) Last_state =2;
+  if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) Last_state =1;
+	EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
   if(appMode!=mode){
     ResetModifiers();
   }
@@ -2007,7 +2017,7 @@ void LoadValidMemoryChannels(void)
       memset(gainOffset, 0, sizeof(gainOffset));
       isNormalizationApplied = false;
     }
-    AutoTriggerLevel(); //Robby69
+    //AutoTriggerLevel(); //Robby69
     RelaunchScan();
   }
 
@@ -2021,7 +2031,9 @@ typedef struct {
     uint8_t rssiTriggerLevel;
     uint8_t rssiTriggerLevelH;
     int8_t dbMax;
-    Mode appMode;
+    uint32_t gScanRangeStart;
+    uint32_t gScanRangeStop;
+    //Mode appMode;
 } SettingsEEPROM;
 
 
@@ -2034,7 +2046,9 @@ void LoadSettings()
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  appMode = eepromData.appMode;
+  gScanRangeStart = eepromData.gScanRangeStart;
+  gScanRangeStop = eepromData.gScanRangeStop;
+  //appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
@@ -2046,14 +2060,16 @@ void SaveSettings()
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
-  eepromData.appMode = appMode;
+  eepromData.gScanRangeStart = gScanRangeStart;
+  eepromData.gScanRangeStop = gScanRangeStop;
+  //eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
     EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
-  
+  saved_params= true;
 }
 
 
