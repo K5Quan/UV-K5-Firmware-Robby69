@@ -2042,8 +2042,9 @@ void LoadSettings()
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  gScanRangeStart = eepromData.gScanRangeStart;
-  gScanRangeStop = eepromData.gScanRangeStop;
+  if (!gScanRangeStart)
+    {gScanRangeStart = eepromData.gScanRangeStart;
+    gScanRangeStop = eepromData.gScanRangeStop;}
   settings.dbMax = eepromData.dbMax;
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
