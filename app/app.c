@@ -869,7 +869,7 @@ void APP_Update(void)
 	uint8_t Spectrum_state = 0; //Spectrum Not Active
   	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
 	if (Spectrum_state >0) //WAS SPECTRUM
-		APP_RunSpectrum(Spectrum_state);
+		APP_RunSpectrum(Spectrum_state,gScanRangeStart,gScanRangeStop);
 	
 #ifdef ENABLE_VOICE
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed && gVoiceWriteIndex == 0)

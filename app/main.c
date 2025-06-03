@@ -77,10 +77,8 @@ void toggle_chan_scanlist(void)
 		return;
 	}
 #endif
-	if (++gTxVfo->SCANLIST > 15) //Robby69 Yves mod reduce scanlist was >15
+	if (++gTxVfo->SCANLIST > 15) 
 		gTxVfo->SCANLIST = 0;
-
-
 }
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
@@ -211,20 +209,17 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 		case KEY_5:
 			if (beep) {
-			if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE) && !gScanRangeStart)
-				{toggle_chan_scanlist();
-				APP_RunSpectrum(1); //Channel scan
+				if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE) && !gScanRangeStart) {APP_RunSpectrum(1,gScanRangeStart,gScanRangeStop);} //Channel scan
+				if (gScanRangeStart) APP_RunSpectrum(3,gScanRangeStart,gScanRangeStop); //Range scan
+				if (!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) APP_RunSpectrum(4,gScanRangeStart,gScanRangeStop); //basic spectrum
 			}
-			else if (gScanRangeStart) APP_RunSpectrum(3); //Range scan
-				 else APP_RunSpectrum(4); //basic spectrum
-			}
+			else toggle_chan_scanlist();
 			gRequestDisplayScreen = DISPLAY_MAIN;
 			break;
 
 		case KEY_6:
-			if (beep) 
-				ACTION_Power();
-			else APP_RunSpectrum(2); // Band scan
+			if (beep) APP_RunSpectrum(2,gScanRangeStart,gScanRangeStop); // Band scan
+			else ACTION_Power();
 			break;
 
 		case KEY_7:
