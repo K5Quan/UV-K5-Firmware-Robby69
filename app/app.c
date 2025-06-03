@@ -55,6 +55,7 @@
 #include "misc.h"
 #include "radio.h"
 #include "settings.h"
+#include "spectrum.h"
 #if defined(ENABLE_OVERLAY)
 	#include "sram-overlay.h"
 #endif

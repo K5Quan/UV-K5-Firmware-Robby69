@@ -222,7 +222,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 
 		case KEY_6:
-			if (kbd.counter == 16) //Long press
+			if (beep) 
 				ACTION_Power();
 			else APP_RunSpectrum(2); // Band scan
 			break;
