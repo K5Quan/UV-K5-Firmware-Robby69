@@ -103,11 +103,8 @@ static void LoadSettings();
 static void SaveSettings();
 //static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
-  
 const uint16_t RSSI_MAX_VALUE = 160; //Robby69 from the datasheet
-
 #define SQUELCH_OFF_DELAY 100 //Robby69
-
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[100];
@@ -134,7 +131,7 @@ static int scanListNumber =0;
 uint8_t bl;
 uint8_t CurrentScanBand = 1;
 State currentState = SPECTRUM, previousState = SPECTRUM;
-
+uint8_t Spectrum_state; 
 PeakInfo peak;
 ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
@@ -360,8 +357,8 @@ static void DeInitSpectrum() {
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   gScanRangeStart = 0;
-  uint8_t Last_state = 0; //Spectrum Not Active
-  EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
+  uint8_t Spectrum_state = 0; //Spectrum Not Active
+  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   
 }
 
@@ -1879,21 +1876,21 @@ static void Tick() {
 }
 
 
-void APP_RunSpectrum(Mode mode) {
-  // reset modifiers if we launched in a different then previous mode
+void APP_RunSpectrum(uint8_t Spectrum_state) {
+  Mode mode;
+  // Spectrum_state 1: MR channel, 2: band scan, 3: range scan, 4: basic spectrum, 0: no spectrum
+  if (Spectrum_state == 4) mode = FREQUENCY_MODE ;
+  if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
+  if (Spectrum_state == 2) mode = SCAN_BAND_MODE ;
+  if (Spectrum_state == 1) mode = CHANNEL_MODE ;
+	EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   LoadSettings();//Robby69
-  uint8_t Last_state; 
-  if (mode==SCAN_RANGE_MODE) Last_state =3;
-  if (mode==SCAN_BAND_MODE) Last_state =2;
-  if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) Last_state =1;
-	EEPROM_WriteBuffer(0x1D00, &Last_state, 1);
-  if(appMode!=mode){
-    ResetModifiers();
-  }
+  // reset modifiers if we launched in a different then previous mode
+  if(appMode!=mode){ResetModifiers();}
   appMode = mode;
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
-  if(mode==SCAN_RANGE_MODE) {
+  if(appMode==SCAN_RANGE_MODE) {
     currentFreq = initialFreq = gScanRangeStart;
     for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
       if(scanStepValues[i] >= gTxVfo->StepFrequency) {
@@ -2033,7 +2030,6 @@ typedef struct {
     int8_t dbMax;
     uint32_t gScanRangeStart;
     uint32_t gScanRangeStop;
-    //Mode appMode;
 } SettingsEEPROM;
 
 
@@ -2048,7 +2044,6 @@ void LoadSettings()
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   gScanRangeStart = eepromData.gScanRangeStart;
   gScanRangeStop = eepromData.gScanRangeStop;
-  //appMode = eepromData.appMode;
   settings.dbMax = eepromData.dbMax;
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
@@ -2062,7 +2057,6 @@ void SaveSettings()
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
   eepromData.gScanRangeStart = gScanRangeStart;
   eepromData.gScanRangeStop = gScanRangeStop;
-  //eepromData.appMode = appMode;
   eepromData.dbMax = settings.dbMax;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
@@ -2246,5 +2240,120 @@ static void RenderBandSelectList() {
             }
         }
     }
-    // ST7565_BlitFullScreen(); // USUNIĘTE - jest w Render()
+    /*
+    static void RenderList(bool isHistoryList) {
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
+
+    // Configuration spécifique au type de liste
+    const char* headerText;
+    int numItems;
+    int maxVisibleLines;
+    int* scrollOffset;
+    int* selectedIndex;
+    
+    if (isHistoryList) {
+        // Configuration pour l'historique
+        #ifdef ENABLE_PL_BAND
+        headerText = "Historia: (";
+        #else
+        headerText = "History: (";
+        #endif
+        
+        // Compter les entrées valides
+        numItems = 0;
+        for (int k = 0; k < FMaxNumb; ++k) {
+            if (freqHistory[k] != 0) {
+                numItems++;
+            }
+        }
+        
+        char headerString[24];
+        sprintf(headerString, "%s%d)", headerText, numItems);
+        headerText = headerString;
+        
+        maxVisibleLines = MAX_VISIBLE_HISTORY_LINES;
+        scrollOffset = &historyScrollOffset;
+        selectedIndex = &historyListIndex;
+    } else {
+        // Configuration pour la sélection des bandes
+        #ifdef ENABLE_PL_BAND
+        headerText = "Wybierz Pasmo";
+        #else
+        headerText = "Select Bands";
+        #endif
+        
+        numItems = ARRAY_SIZE(BParams);
+        maxVisibleLines = MAX_VISIBLE_BAND_LINES;
+        scrollOffset = &bandListScrollOffset;
+        selectedIndex = &bandListSelectedIndex;
+    }
+
+    // Centrage du header
+    uint8_t header_x = (LCD_WIDTH - (strlen(headerText) * 7)) / 2; 
+    if (header_x < 1) header_x = 1;
+    UI_PrintStringSmall(headerText, header_x, LCD_WIDTH - 1, 0);
+
+    // Paramètres d'affichage de la liste
+    const int Y_START_LIST = 10;
+    const int LINE_HEIGHT_SMALLEST = 7;
+    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1;
+
+    // Gestion du cas vide
+    if (numItems == 0) {
+        GUI_DisplaySmallest(isHistoryList ? "Brak historii" : "Brak pasm", 
+                            10, Y_START_LIST, false, true);
+        return;
+    }
+
+    // Gestion du défilement
+    if (numItems <= maxVisibleLines) {
+        *scrollOffset = 0;
+    } else {
+        if (*selectedIndex < *scrollOffset) {
+            *scrollOffset = *selectedIndex;
+        } else if (*selectedIndex >= *scrollOffset + maxVisibleLines) {
+            *scrollOffset = *selectedIndex - maxVisibleLines + 1;
+        }
+        
+        *scrollOffset = CLAMP(*scrollOffset, 0, numItems - maxVisibleLines);
+    }
+
+    // Affichage des éléments visibles
+    for (int i = 0; i < maxVisibleLines; i++) {
+        int currentIndex = i + *scrollOffset;
+        if (currentIndex >= numItems) break;
+
+        char lineBuffer[32];
+        if (isHistoryList) {
+            sprintf(lineBuffer, "%2d: %3u.%05u (%u)", 
+                    currentIndex + 1, 
+                    freqHistory[currentIndex] / 100000, 
+                    freqHistory[currentIndex] % 100000, 
+                    freqCount[currentIndex]);
+        } else {
+            sprintf(lineBuffer, "%2d:%-9s %s", 
+                    currentIndex + 1, 
+                    BParams[currentIndex].BandName,
+                    settings.bandEnabled[currentIndex] ? "*" : " ");
+        }
+
+        uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
+        uint8_t x_pos_text = (currentIndex == *selectedIndex) ? 
+                            (isHistoryList ? 15 : 3) : 
+                            (isHistoryList ? 10 : 5);
+
+        if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
+            if (currentIndex == *selectedIndex && !isHistoryList) {
+                char selectedLineBuffer[34];
+                sprintf(selectedLineBuffer, ">%s", lineBuffer);
+                GUI_DisplaySmallest(selectedLineBuffer, x_pos_text, yPosition, false, true);
+            } else {
+                GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
+            }
+        }
+    }
+}
+    */
+
+
 }

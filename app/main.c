@@ -210,19 +210,21 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 
 		case KEY_5:
-			if (beep)
-			{
-				ACTION_RunSpectrum(1);
-				gRequestDisplayScreen = DISPLAY_MAIN;
+			if (beep) {
+			if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE) && !gScanRangeStart)
+				{toggle_chan_scanlist();
+				APP_RunSpectrum(1); //Channel scan
 			}
-			else {
-				toggle_chan_scanlist();
+			else if (gScanRangeStart) APP_RunSpectrum(3); //Range scan
+				 else APP_RunSpectrum(4); //basic spectrum
 			}
+			gRequestDisplayScreen = DISPLAY_MAIN;
 			break;
 
 		case KEY_6:
-			APP_RunSpectrum(SCAN_BAND_MODE);
-			//ACTION_Power();
+			if (kbd.counter == 16) //Long press
+				ACTION_Power();
+			else APP_RunSpectrum(2); // Band scan
 			break;
 
 		case KEY_7:
