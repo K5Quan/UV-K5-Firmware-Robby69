@@ -27,24 +27,33 @@ static void RenderBandSelectList();
 #ifdef ENABLE_FR_BAND
 bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"HAM 144",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"HAM 430",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"AIR 25",        11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"AIR 8.33",      11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
-    {"AIR MIL5",      22500000,         24107500,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"AIR MIL6",      33540000,         33970000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR MIL1",      22500000,         24107500,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR MIL2",      33540000,         33970000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"PMR 446",       44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
     {"PMR 446b",      44600000,         44620000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"FREENET",       14902500,         14911250,       S_STEP_12_5kHz,   MODULATION_FM},
     {"146-170",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"450-466",       45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"466.2-470",     46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
-    {"50-52",          5000000,          5256000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"432-434",       43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
     {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"14MHz",          1400000,          1430000,       S_STEP_5_0kHz,    MODULATION_AM},
     {"17MHz",          1740000,          1780000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"18MHz",          1806800,          1816800,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"21MHz",          2100000,          2145000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"24MHz",          2489000,          2499000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"28MHz",          2800000,          2970000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"50-52MHz",       5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"70 Mhz",         7000000,          7050000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"144 Mhz",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"220Mhz",        22000000,         22500000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"430 Mhz",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"1240MHz",      124000000,        130000000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM}
     }; 
 #endif
@@ -363,7 +372,7 @@ static void DeInitSpectrum() {
   isInitialized = false;
   uint8_t Spectrum_state = 0; //Spectrum Not Active
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
-  
+  currentFreq = initialFreq = gScanRangeStart = 0;
 }
 
 static void ExitAndCopyToVfo() {
@@ -1888,10 +1897,11 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
   if (Spectrum_state == 2) mode = SCAN_BAND_MODE ;
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
-	LoadSettings();
-  gScanRangeStop = gScanRangeStop;
+	
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   
+  LoadSettings();
+
   // reset modifiers if we launched in a different then previous mode
   if(appMode!=mode){ResetModifiers();}
   appMode = mode;
@@ -1906,8 +1916,7 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
       }
     }
   }
-  else
-  currentFreq = initialFreq = gTxVfo->pRX->Frequency;
+   if(appMode==FREQUENCY_MODE) {currentFreq = initialFreq = gTxVfo->pRX->Frequency;}
   BackupRegisters();
   ResetInterrupts();
 
@@ -2035,8 +2044,8 @@ typedef struct {
     uint8_t rssiTriggerLevel;
     uint8_t rssiTriggerLevelH;
     int8_t dbMax;
-    uint32_t gScanRangeStart;
-    uint32_t gScanRangeStop;
+    uint32_t RangeStart;
+    uint32_t RangeStop;
 } SettingsEEPROM;
 
 
@@ -2050,8 +2059,8 @@ void LoadSettings()
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
   if (gScanRangeStart ==0) //load only if not set
-    {gScanRangeStart = eepromData.gScanRangeStart;
-    gScanRangeStop = eepromData.gScanRangeStop;}
+    {gScanRangeStart = eepromData.RangeStart;
+    gScanRangeStop = eepromData.RangeStop;}
   settings.dbMax = eepromData.dbMax;
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
@@ -2063,8 +2072,8 @@ void SaveSettings()
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
   eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
-  eepromData.gScanRangeStart = gScanRangeStart;
-  eepromData.gScanRangeStop = gScanRangeStop;
+  eepromData.RangeStart = gScanRangeStart;
+  eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
