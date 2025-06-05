@@ -115,7 +115,7 @@ void ToggleScanList();
 void ToggleNormalizeRssi(bool on);
 static void LoadSettings();
 static void SaveSettings();
-//static void AutoTriggerLevel(void);
+static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
 const uint16_t RSSI_MAX_VALUE = 160; //Robby69 from the datasheet
 #define SQUELCH_OFF_DELAY 100 //Robby69
@@ -574,12 +574,12 @@ static bool InitScan() {
     return scanInitializedSuccessfully;
 }
 
-/*static void AutoTriggerLevel() {
+static void AutoTriggerLevel() {
   if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
   settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   }
-}*/
+}
 
 static void AutoTriggerLevelbands(void) {
   uint8_t rssiAnalyse = 0;
@@ -608,16 +608,12 @@ static void ResetModifiers() {
     if (rssiHistory[i] == RSSI_MAX_VALUE)
       rssiHistory[i] = 0;
   }
-  memset(blacklistFreqs, 0, sizeof(blacklistFreqs));
-  blacklistFreqsIdx = 0;
-
-  if(appMode==CHANNEL_MODE){
-      LoadValidMemoryChannels();
-  }
+  //memset(blacklistFreqs, 0, sizeof(blacklistFreqs));
+  //blacklistFreqsIdx = 0;
+  //isBlacklistApplied = false;
+  if(appMode==CHANNEL_MODE){LoadValidMemoryChannels();}
   ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
-  isBlacklistApplied = false;
-  //AutoTriggerLevel();
   RelaunchScan();
   
 }
@@ -2030,7 +2026,7 @@ void LoadValidMemoryChannels(void)
       memset(gainOffset, 0, sizeof(gainOffset));
       isNormalizationApplied = false;
     }
-    //AutoTriggerLevel(); //Robby69
+    AutoTriggerLevel(); //Robby69
     RelaunchScan();
   }
 
