@@ -60,5 +60,8 @@ Vous n'avez rien à installer sur votre ordinateur. Tout ce dont vous avez besoi
    - `./Linux_compile-with-docker.sh all` pour compiler toutes les versions  
 7. Ouvrez le dossier `compiled-firmware`  
 8. Faites un clic droit sur `robzyl.fr.packed.bin` OU `robzyl.pl.packed.bin`  
-9. Cliquez sur `Download`, vous devriez maintenant avoir le firmware sur votre ordinateur que vous pouvez ensuite flasher sur votre radio. Vous pouvez utiliser le [flasheur en ligne](https://egzumer.github.io/uvtools)  
+9. Cliquez sur `Download`, vous devriez maintenant avoir le firmware sur votre ordinateur que vous pouvez ensuite flasher sur votre radio. Vous pouvez utiliser le [flasheur en ligne](https://egzumer.github.io/uvtools)
+
+Pour un ajout permanent dans ce GIT, utiliser ENABLE_XXX_BAND (XXX votre pays) et envoyez moi votre tableau.
+Cela permettra de conserver votre tableau pour des futures versions.
 
