@@ -35,7 +35,7 @@
 - La fréquence sélectionnée est copiée dans le VFO lors de la sortie du spectre.
 - Une fréquence enregistrée en mémoire s’affiche avec son nom sur le spectre.
 - 15 SCANLIST utilisables dans le spectre. Limite à 5 dans le scanner, fonctionnement décrit par NUNU.
-- Ajout de l’historique des fréquences :
+- Ajout de l’historique des fréquences : (appui long sur 0)
 	- Lorsqu’un signal est détecté au-dessus de la barre d’historique (en pointillés), il est enregistré dans un tableau.
         	- Utilisez les touches haut/bas pour naviguer dans le tableau.
 	- Deux barres de squelch :
@@ -43,7 +43,22 @@
         	- Une pour le déclenchement audio.
         		- Sélection des barres avec le bouton II sous le PTT :
             		- Par défaut, les 2 barres sont déplacées ensemble,
-            		- Un appui : seule la barre d’historique se déplace,
+               		- Un appui : seule la barre d’historique se déplace,
             		- Un second appui : seule la barre audio se déplace.
 
+- Ajout du scan band, 
+### Méthode de compilation avec Github Codespace pour personaliser les SCAN BANDS:
+
+Vous n'avez rien à installer sur votre ordinateur. Tout ce dont vous avez besoin est un compte Github.
+
+1. Allez sur https://github.com/Robby69400/UV-K5-Firmware-Robby69  
+2. Cliquez sur le bouton vert `Code`  
+3. Changez l'onglet de `Local` à `Codespace`  
+4. Cliquez sur le bouton vert `Create codespace on main`  
+5. Ouvrez `Spectrum.c`, modifiez les options des bandes au début du fichier (32 max) et enregistrez les changements (Cela ne touchera que votre copie)
+6. Dans la fenêtre terminal, exécutez :  
+   - `./Linux_compile-with-docker.sh all` pour compiler toutes les versions  
+7. Ouvrez le dossier `compiled-firmware`  
+8. Faites un clic droit sur `robzyl.fr.packed.bin` OU `robzyl.pl.packed.bin`  
+9. Cliquez sur `Download`, vous devriez maintenant avoir le firmware sur votre ordinateur que vous pouvez ensuite flasher sur votre radio. Vous pouvez utiliser le [flasheur en ligne](https://egzumer.github.io/uvtools)  
 
