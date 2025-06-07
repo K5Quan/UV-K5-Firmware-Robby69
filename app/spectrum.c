@@ -600,7 +600,7 @@ static void ResetModifiers() {
   //blacklistFreqsIdx = 0;
   //isBlacklistApplied = false;
   if(appMode==CHANNEL_MODE){LoadValidMemoryChannels();}
-  ToggleNormalizeRssi(false);
+  //ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   RelaunchScan();
   
