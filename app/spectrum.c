@@ -6,23 +6,7 @@
 #include "ui/helper.h"
 #include "common.h"
 #include "action.h"
-bool AutoTriggerLevelbandsMode = 0;
-
-
-uint8_t historyListIndex = 0; // Aktualnie zaznaczony indeks na liście historii
-bool historyListActive = false; // Czy lista historii jest aktywna
-static int historyScrollOffset = 0; // DODAJ TĘ LINIĘ - zylka
-static void RenderHistoryList();
-#define MAX_VISIBLE_HISTORY_LINES 6  //wielkosc listy historia - zylka
-// NOWE ZMIENNE DLA LISTY PASM
-static uint8_t bandListSelectedIndex = 0; // Indeks aktualnie wybranego pasma na liście
-static int bandListScrollOffset = 0;    // Offset przewijania dla listy pasm
-#define MAX_VISIBLE_BAND_LINES 6      // Ile pasm wyświetlać na raz
-
-// Deklaracja forward dla nowej funkcji renderującej (jeśli jeszcze nie ma podobnej struktury)
-static void RenderBandSelectList();
-
-
+//#include "debugging.h"
 
 #ifdef ENABLE_FR_BAND
 bandparameters BParams[32] = {
@@ -73,7 +57,19 @@ bandparameters BParams[32] = {
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"14MHz",          1400000,          1430000,       S_STEP_5_0kHz,    MODULATION_AM},
     {"17MHz",          1740000,          1780000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"18MHz",          1806800,          1816800,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"21MHz",          2100000,          2145000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"24MHz",          2489000,          2499000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"28MHz",          2800000,          2970000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"50-52MHz",       5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"70 Mhz",         7000000,          7050000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"144 Mhz",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"220Mhz",        22000000,         22500000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"430 Mhz",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"1240MHz",      124000000,        130000000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"PKP FAST",      15050000,         15197500,       S_STEP_25_0kHz,   MODULATION_FM},
     {"PKP MAX",       15000000,         15600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
@@ -83,8 +79,17 @@ bandparameters BParams[32] = {
     }; 
 #endif
 
-
-
+#define MAX_VISIBLE_BAND_LINES 6
+#define MAX_VISIBLE_HISTORY_LINES 6
+#define HISTORY_SIZE 100
+uint8_t historyListIndex = 0;
+bool historyListActive = false;
+static int historyScrollOffset = 0;
+static void RenderHistoryList();
+static uint8_t bandListSelectedIndex = 0;
+static int bandListScrollOffset = 0;
+static void RenderBandSelectList();
+bool AutoTriggerLevelbandsMode = 0;
 struct FrequencyBandInfo {
     uint32_t lower;
     uint32_t upper;
@@ -98,9 +103,7 @@ uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
 uint8_t SquelchBarKeyMode = 0; //Robby69 change keys between audio and history squelch
-
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
-
 #define Bottom_print 51 //Robby69
 Mode appMode;
 #define UHF_NOISE_FLOOR 40
@@ -117,7 +120,7 @@ static void LoadSettings();
 static void SaveSettings();
 static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
-const uint16_t RSSI_MAX_VALUE = 160; //Robby69 from the datasheet
+const uint16_t RSSI_MAX_VALUE = 65535;
 #define SQUELCH_OFF_DELAY 100 //Robby69
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
@@ -149,21 +152,17 @@ uint8_t Spectrum_state;
 PeakInfo peak;
 ScanInfo scanInfo;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
-
 #define BLACKLIST_SIZE 200
 static uint16_t blacklistFreqs[BLACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
 static bool IsBlacklisted(uint16_t idx);
 static uint8_t CurrentScanIndex();
-
 char     latestScanListName[12];
-
 const char *bwOptions[] = {"  25k", "12.5k", "6.25k"};
 const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6", 
   "SL7", "SL8", "SL9", "SL10", "SL11", "SL12", "SL13", "SL14", "SL15", "ALL"};
 const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
-//bool       gWasFKeyPressed  = false;
 uint16_t BPRssiTriggerLevel[32]={0};
 
 SpectrumSettings settings = {stepsCount: STEPS_128,
@@ -185,11 +184,11 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
-const uint8_t FMaxNumb = 100;
-uint32_t freqHistory[100]; //Robby69
-uint8_t freqCount[100] = {0};     // nowa tablica liczników - zylka
-uint8_t indexFd = 0;
-uint8_t indexFs = 0;
+const uint8_t FMaxNumb = HISTORY_SIZE;
+uint32_t freqHistory[HISTORY_SIZE+1];
+uint8_t freqCount[HISTORY_SIZE+1] = {0};
+uint8_t indexFd = 1;
+uint8_t indexFs = 1;
 bool ShowHistory = false;
 uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
@@ -445,36 +444,25 @@ static void ToggleAudio(bool on) {
 void FillfreqHistory(bool count) { //  Robby69
     uint8_t i;
     bool found = false;
-
-    // Sprawdź, czy częstotliwość już istnieje (pętla od 0)
-    for (i = 0; i < FMaxNumb; i++) {
+    for (i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == peak.f) {
             found = true;
-            if (count) {
-                freqCount[i]++;
-            }
-            // Zaktualizuj indexFd, aby wskazywał na znaleziony element, jeśli tak ma działać interfejs
-            // Jeśli ShowHistory używa indexFd do wskazywania ostatnio dodanego/znalezionego:
+            if (count) {freqCount[i]++;}
             indexFd = i; 
-            break; // Przerwij pętlę po znalezieniu
+            break; 
         }
     }
-
     if (!found) {
         freqHistory[indexFs] = peak.f;
-        freqCount[indexFs] = 1; // Zakładając, że freqCount jest poprawnie zarządzane
-        indexFd = indexFs;      // Ustaw indexFd na nowo dodany element
+        freqCount[indexFs] = 1;
+        indexFd = indexFs;
         indexFs++;
-        if (indexFs >= FMaxNumb) { // Poprawne zawijanie dla 0-bazowego indeksu
-            indexFs = 0;
-        }
+        if (indexFs > FMaxNumb) {indexFs = 1;}
     }
-    // Jeśli nie znaleziono, a historia jest pełna i indexFs się zawinął,
-    // indexFd będzie teraz wskazywać na najstarszy nadpisany element.
-    // Można rozważyć, czy indexFd zawsze ma wskazywać na ostatnio *dodany* lub *zaktualizowany* element.
-}
+ }
 
-static void ToggleRX(bool on) {
+
+ static void ToggleRX(bool on) {
   isListening = on;
   BACKLIGHT_TurnOn();
 
@@ -575,10 +563,10 @@ static bool InitScan() {
 }
 
 static void AutoTriggerLevel() {
-  if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
+  //if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
   settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
-  }
+  //}
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -648,7 +636,6 @@ static void UpdatePeakInfoForce() {
   peak.f = scanInfo.fPeak;
   peak.i = scanInfo.iPeak;
   LookupChannelInfo();
-  //AutoTriggerLevel(); //Robby69
 }
 
 static void UpdatePeakInfo() {
@@ -1148,6 +1135,21 @@ static void DrawNums() {
     sprintf(String, "%u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000); //Robby69 was %u.%05u
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
+  
+  if(SquelchBarKeyMode ==0 )
+  { sprintf(String, "HL");
+    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
+  }
+  
+  if(SquelchBarKeyMode ==1 )
+  { sprintf(String, "L");
+    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
+  }
+  
+  if(SquelchBarKeyMode ==2 )
+  { sprintf(String, "H");
+    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
+  }
 
   if(isBlacklistApplied){
     sprintf(String, "BL");
@@ -1161,7 +1163,7 @@ static void DrawNums() {
   
   if(AutoTriggerLevelbandsMode){ //Display status
     sprintf(String, "AB");
-    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
+    GUI_DisplaySmallest(String, 80, Bottom_print, false, true);
     }
 }
 
@@ -1281,38 +1283,42 @@ static void OnKeyDown(uint8_t key) {
        if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}
        break;
      case KEY_2:
-       ToggleNormalizeRssi(!isNormalizationApplied);
+       if (kbd.counter == 3) 
+          {AutoTriggerLevel();
+          SquelchBarKeyMode =0;}
+        else 
+          if(appMode != SCAN_BAND_MODE)ToggleNormalizeRssi(!isNormalizationApplied);
+          else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
        break;
      case KEY_8:
-     if ((ShowHistory) &&  (kbd.counter == 16)) //long press
-      {memset(freqHistory, 0, sizeof(freqHistory)); //Reset History table
-      memset(freqCount, 0, sizeof(freqCount));
-      indexFd = 1;
-      indexFs = 1;}
-      ShowHistory = !ShowHistory;
-      ToggleBacklight();
+      if ((ShowHistory) &&  (kbd.counter == 16)) { //(long press):
+        memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
+        memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0])); // ZMIANA: od pozycji 1
+        indexFd = 1;
+        indexFs = 1;
+      }
+      else ShowHistory = !ShowHistory;
+      //ToggleBacklight();
       break;
     case KEY_UP:
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
-            historyListIndex--;
-            // Przewiń listę w górę, jeśli zaznaczenie wyszło ponad górną krawędź widocznego obszaru
-            if (historyListIndex < historyScrollOffset) {
-                historyScrollOffset = historyListIndex;
-            }
+             historyListIndex--;
+            if (historyListIndex < historyScrollOffset) {historyScrollOffset = historyListIndex;}
             redrawScreen = true;
-                }
-            } else {
-      if ((!ShowHistory) && (appMode==SCAN_BAND_MODE)) {
-        ToggleScanList(bl, 1);
-        settings.bandEnabled[bl+1]= true;
-        redrawStatus = true;
-        RelaunchScan(); 
-        break;}
-indexFd++;
-        if(freqHistory[indexFd]==0 && indexFd > 0) indexFd--; // Zapobiega przejściu na pusty wpis, jeśli nie jest to pierwszy
-        if (indexFd >= FMaxNumb) indexFd = (FMaxNumb > 0) ? FMaxNumb -1 : 0; // Ograniczenie do końca
-        if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+        }
+        } else {
+          if ((!ShowHistory) && (appMode==SCAN_BAND_MODE)) {
+            ToggleScanList(bl, 1);
+            settings.bandEnabled[bl+1]= true;
+            redrawStatus = true;
+            RelaunchScan(); 
+            break;
+          }
+      
+      if(freqHistory[indexFd]==0 && indexFd > 1) indexFd--;
+      if (indexFd > FMaxNumb) indexFd = FMaxNumb ;
+      if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
     }
     break;
   case KEY_DOWN:
@@ -1323,11 +1329,9 @@ indexFd++;
                 numValidEntries++;
             }
         }
-        // Można przewinąć tylko do ostatniego *istniejącego* wpisu
-        if (historyListIndex < numValidEntries - 1 && historyListIndex < FMaxNumb - 1) { 
-            historyListIndex++;
-            // Przewiń listę w dół, jeśli zaznaczenie wyszło poniżej dolnej krawędzi widocznego obszaru
-            if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_HISTORY_LINES) {
+        if (historyListIndex < numValidEntries) { 
+          historyListIndex++;
+          if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_HISTORY_LINES) {
                 historyScrollOffset = historyListIndex - MAX_VISIBLE_HISTORY_LINES + 1;
             }
             redrawScreen = true;
@@ -1340,15 +1344,7 @@ indexFd++;
         RelaunchScan(); 
         break;}
     indexFd--;
-  if (indexFd > 0) { // Zamiast indexFd < 1 lub indexFd < 0
-            indexFd--;
-        } else {
-            // Jeśli indexFd jest już 0, można go zostawić na 0,
-            // lub zawinąć do końca listy, jeśli takie jest oczekiwane zachowanie.
-            // Na przykład: indexFd = (FMaxNumb > 0) ? FMaxNumb - 1 : 0;
-            // Dla uproszczenia, pozostawiamy na 0, jeśli już jest 0.
-            indexFd = 0; 
-        }
+  if (indexFd < 1) {indexFd = 1;}
     if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
 }
             break;
@@ -1393,51 +1389,44 @@ indexFd++;
     case KEY_SIDE2:
       if (kbd.counter == 3) { // short press        
         SquelchBarKeyMode += 1;
-      if (SquelchBarKeyMode == 3) {SquelchBarKeyMode = 0;
-      if (!ShowHistory)SquelchBarKeyMode = 0;}
-        } else { // long press
-          AutoTriggerLevelbandsMode = !AutoTriggerLevelbandsMode;  }
+        if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
+        ShowHistory = 1;
+        } 
       break;
 
         case KEY_PTT:
-            if (currentState == HISTORY_LIST) {
-                if (historyListIndex < FMaxNumb && freqHistory[historyListIndex] != 0) {
-                    currentFreq = freqHistory[historyListIndex];
-                    SetF(currentFreq);
-                    SetState(previousState); // Powrót do poprzedniego stanu
-                    historyListActive = false;
-                    redrawScreen = true;
-                    redrawStatus = true;
-                }
-            } else {
-                ExitAndCopyToVfo();
-            }
+            ExitAndCopyToVfo();
             break;
   case KEY_MENU:
   if (kbd.counter == 3) SaveSettings(); // short press
   else {
-                if (historyListIndex < FMaxNumb && freqHistory[historyListIndex] != 0) {
-                    // Pobierz zaznaczoną częstotliwość
-                    uint32_t selectedFreq = freqHistory[historyListIndex];
-                    
-                    // Ustaw tę częstotliwość jako aktualną dla trybu STILL
-                    currentFreq = selectedFreq; // currentFreq jest używane przez fMeasure [3, s. 199]
-                    fMeasure = selectedFreq;    // fMeasure jest używane w RenderStill i OnKeyDownStill [3, s. 200, 1350]
-                    
-                    // Przejdź do trybu STILL
-                    SetState(STILL); // SetState [3, s. 269], currentState i previousState globalne [3, s. 121]
-                    
-                    // Dodatkowe czynności, które mogą być potrzebne przy przejściu do STILL:
-                    monitorMode = false; // Zresetuj monitorMode (jeśli tak ma działać) [3, s. 135]
-                    menuState = 0;       // Zresetuj menuState dla trybu STILL (jeśli jest używane) [3, s. 217]
-                    
-                    // Ustaw częstotliwość w radiu (ważne dla GetRssi w UpdateStill)
-                    SetF(fMeasure); // [3, s. 312]
-                    
-                    // Wymuś odświeżenie ekranu i statusu
-                    redrawScreen = true;
-                    redrawStatus = true; // redrawStatus globalne [3, s. 136]
-                }}
+        // POPRAWKA: Podobnie dla klawisza MENU
+        int validIndices[FMaxNumb + 1];
+        int validCount = 0;
+        
+        for (int k = 1; k <= FMaxNumb; ++k) {
+            if (freqHistory[k] != 0) {
+                validIndices[validCount] = k;
+                validCount++;
+            }
+        }
+        
+        if (historyListIndex < validCount) {
+            int realIndex = validIndices[historyListIndex];
+            uint32_t selectedFreq = freqHistory[realIndex];
+            
+            currentFreq = selectedFreq;
+            fMeasure = selectedFreq;
+            SetState(STILL);
+            
+            monitorMode = false;
+            menuState = 0;
+            SetF(fMeasure);
+            
+            redrawScreen = true;
+            redrawStatus = true;
+        }
+    }
     break;
   case KEY_EXIT:
   
@@ -1893,14 +1882,17 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
   if (Spectrum_state == 2) mode = SCAN_BAND_MODE ;
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
-	
-  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
-  
-  LoadSettings();
+/*	
+          /////////////////////////DEBUG//////////////////////////
+                char str[64] = "";
+                sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );
+                LogUart(str);
+*/
 
-  // reset modifiers if we launched in a different then previous mode
-  if(appMode!=mode){ResetModifiers();}
+  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+  LoadSettings();
   appMode = mode;
+  ResetModifiers();
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
 
   if(appMode==SCAN_RANGE_MODE) {
@@ -2082,48 +2074,35 @@ void SaveSettings()
 
 
 static void RenderHistoryList() {
-    memset(gFrameBuffer, 0, sizeof(gFrameBuffer)); // Wyczyść bufor ramki [5, 7]
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
 
-    // Oblicz aktualną liczbę ważnych wpisów w historii
     int numValidEntries = 0;
-    for (int k = 0; k < FMaxNumb; ++k) { // FMaxNumb jest zdefiniowane w spectrum.c [1, s. 203]
-        if (freqHistory[k] != 0) { // freqHistory jest globalne [1, s. 204]
+    for (int k = 1; k <= FMaxNumb; ++k) {
+        if (freqHistory[k] != 0) {
             numValidEntries++;
         }
     }
 
-    // 1. Nagłówek "Historia: (liczba)"
-    char headerString[24]; // Bufor na nagłówek
+    char headerString[24];
     #ifdef ENABLE_PL_BAND
     sprintf(headerString, "Historia: (%d)", numValidEntries);
     #endif
-    
     #ifdef ENABLE_FR_BAND
     sprintf(headerString, "History: (%d)", numValidEntries);
     #endif
     
-    // Wyśrodkowanie nagłówka (proste przybliżenie dla UI_PrintStringSmall)
-    uint8_t approx_char_width_small = 7; // Przybliżona szerokość znaku dla UI_PrintStringSmall
+    uint8_t approx_char_width_small = 7;
     uint8_t header_text_width = strlen(headerString) * approx_char_width_small; 
     uint8_t header_x = (LCD_WIDTH - header_text_width) / 2;
-    if (header_x < 1) header_x = 1; // Zabezpieczenie przed rysowaniem poza ekranem
-    UI_PrintStringSmall(headerString, header_x, LCD_WIDTH - 1, 0); // Nagłówek na górze
+    if (header_x < 1) header_x = 1;
+    UI_PrintStringSmall(headerString, header_x, LCD_WIDTH - 1, 0);
 
-    // 2. Parametry listy i logika przewijania
-    const int Y_START_LIST = 10;      // Pozycja Y dla pierwszej linii listy
-    const int LINE_HEIGHT_SMALLEST = 7; // Powinno być 7 (z font.h)
-    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1; // 7 + 1px odstępu = 8
+    const int Y_START_LIST = 10;
+    const int LINE_HEIGHT_SMALLEST = 7;
+    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1;
 
-    // MAX_VISIBLE_HISTORY_LINES jest zdefiniowane jako 6
-
-    if (numValidEntries == 0) {
-        // GUI_DisplaySmallest jest z ui/helper.h (dołączonego przez spectrum.h)
-        GUI_DisplaySmallest("Brak historii", 10, Y_START_LIST, false, true); // Użyj `true` dla bClearLine jak w przykładzie
-        // ST7565_BlitFullScreen(); // USUNIĘTE - jest w głównej funkcji Render()
-        return; 
-    }
-
-    if (numValidEntries <= MAX_VISIBLE_HISTORY_LINES) {
+    
+    if (numValidEntries < MAX_VISIBLE_HISTORY_LINES) {
         historyScrollOffset = 0;
     } else {
         if (historyListIndex < historyScrollOffset) {
@@ -2135,42 +2114,36 @@ static void RenderHistoryList() {
         if (historyScrollOffset > numValidEntries - MAX_VISIBLE_HISTORY_LINES) {
             historyScrollOffset = numValidEntries - MAX_VISIBLE_HISTORY_LINES;
         }
-        if (historyScrollOffset < 0) {
-             historyScrollOffset = 0;
+        if (historyScrollOffset < 0) {historyScrollOffset = 0;}
+    }
+
+    int validIndices[FMaxNumb+1];
+    int validCount = 0;
+    for (int k = 1; k <= FMaxNumb; ++k) {
+        if (freqHistory[k] != 0) {
+            validIndices[validCount] = k;
+            validCount++;
         }
     }
 
-    // 3. Rysowanie widocznych elementów listy
-    for (int i = 0; i < MAX_VISIBLE_HISTORY_LINES; i++) { // `i` to indeks linii na ekranie (0 do 5)
-        int currentItemIndexInHistory = i + historyScrollOffset; // Rzeczywisty indeks w tablicy freqHistory
-
-        if (currentItemIndexInHistory >= numValidEntries || currentItemIndexInHistory >= FMaxNumb) {
-            break; 
-        }
-        
+    for (int i = 0; i < MAX_VISIBLE_HISTORY_LINES; i++) {
+        int displayPosition = i + historyScrollOffset; 
+        if (displayPosition >= numValidEntries || displayPosition >= validCount) {break;}
+        int realArrayIndex = validIndices[displayPosition]; 
         char lineBuffer[32]; 
         sprintf(lineBuffer, "%2d: %3u.%05u (%u)", 
-                currentItemIndexInHistory + 1, 
-                freqHistory[currentItemIndexInHistory] / 100000, 
-                freqHistory[currentItemIndexInHistory] % 100000, 
-                freqCount[currentItemIndexInHistory]); // freqCount jest globalne [1, s. 204]
+                realArrayIndex, 
+                freqHistory[realArrayIndex] / 100000, 
+                freqHistory[realArrayIndex] % 100000, 
+                freqCount[realArrayIndex]);
 
         uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
         uint8_t x_pos_text;
-
-        if (currentItemIndexInHistory == historyListIndex) { // historyListIndex jest globalne [1, s. 10]
-            x_pos_text = 15; // Wcięcie dla zaznaczonej pozycji 
-        } else {
-            x_pos_text = 10; // Normalna pozycja X 
-        }
-
-        // Sprawdzenie, czy linia mieści się na ekranie (Y)
+        if (displayPosition == historyListIndex) {x_pos_text = 25;} else {x_pos_text = 15;}
         if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
-            // Użyj `false, true` dla GUI_DisplaySmallest
             GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
         }
     }
-    // ST7565_BlitFullScreen(); // USUNIĘTE - jest już w głównej funkcji Render()
 }
 
 
@@ -2253,120 +2226,4 @@ static void RenderBandSelectList() {
             }
         }
     }
-    /*
-    static void RenderList(bool isHistoryList) {
-    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-
-    // Configuration spécifique au type de liste
-    const char* headerText;
-    int numItems;
-    int maxVisibleLines;
-    int* scrollOffset;
-    int* selectedIndex;
-    
-    if (isHistoryList) {
-        // Configuration pour l'historique
-        #ifdef ENABLE_PL_BAND
-        headerText = "Historia: (";
-        #else
-        headerText = "History: (";
-        #endif
-        
-        // Compter les entrées valides
-        numItems = 0;
-        for (int k = 0; k < FMaxNumb; ++k) {
-            if (freqHistory[k] != 0) {
-                numItems++;
-            }
-        }
-        
-        char headerString[24];
-        sprintf(headerString, "%s%d)", headerText, numItems);
-        headerText = headerString;
-        
-        maxVisibleLines = MAX_VISIBLE_HISTORY_LINES;
-        scrollOffset = &historyScrollOffset;
-        selectedIndex = &historyListIndex;
-    } else {
-        // Configuration pour la sélection des bandes
-        #ifdef ENABLE_PL_BAND
-        headerText = "Wybierz Pasmo";
-        #else
-        headerText = "Select Bands";
-        #endif
-        
-        numItems = ARRAY_SIZE(BParams);
-        maxVisibleLines = MAX_VISIBLE_BAND_LINES;
-        scrollOffset = &bandListScrollOffset;
-        selectedIndex = &bandListSelectedIndex;
-    }
-
-    // Centrage du header
-    uint8_t header_x = (LCD_WIDTH - (strlen(headerText) * 7)) / 2; 
-    if (header_x < 1) header_x = 1;
-    UI_PrintStringSmall(headerText, header_x, LCD_WIDTH - 1, 0);
-
-    // Paramètres d'affichage de la liste
-    const int Y_START_LIST = 10;
-    const int LINE_HEIGHT_SMALLEST = 7;
-    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1;
-
-    // Gestion du cas vide
-    if (numItems == 0) {
-        GUI_DisplaySmallest(isHistoryList ? "Brak historii" : "Brak pasm", 
-                            10, Y_START_LIST, false, true);
-        return;
-    }
-
-    // Gestion du défilement
-    if (numItems <= maxVisibleLines) {
-        *scrollOffset = 0;
-    } else {
-        if (*selectedIndex < *scrollOffset) {
-            *scrollOffset = *selectedIndex;
-        } else if (*selectedIndex >= *scrollOffset + maxVisibleLines) {
-            *scrollOffset = *selectedIndex - maxVisibleLines + 1;
-        }
-        
-        *scrollOffset = CLAMP(*scrollOffset, 0, numItems - maxVisibleLines);
-    }
-
-    // Affichage des éléments visibles
-    for (int i = 0; i < maxVisibleLines; i++) {
-        int currentIndex = i + *scrollOffset;
-        if (currentIndex >= numItems) break;
-
-        char lineBuffer[32];
-        if (isHistoryList) {
-            sprintf(lineBuffer, "%2d: %3u.%05u (%u)", 
-                    currentIndex + 1, 
-                    freqHistory[currentIndex] / 100000, 
-                    freqHistory[currentIndex] % 100000, 
-                    freqCount[currentIndex]);
-        } else {
-            sprintf(lineBuffer, "%2d:%-9s %s", 
-                    currentIndex + 1, 
-                    BParams[currentIndex].BandName,
-                    settings.bandEnabled[currentIndex] ? "*" : " ");
-        }
-
-        uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
-        uint8_t x_pos_text = (currentIndex == *selectedIndex) ? 
-                            (isHistoryList ? 15 : 3) : 
-                            (isHistoryList ? 10 : 5);
-
-        if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
-            if (currentIndex == *selectedIndex && !isHistoryList) {
-                char selectedLineBuffer[34];
-                sprintf(selectedLineBuffer, ">%s", lineBuffer);
-                GUI_DisplaySmallest(selectedLineBuffer, x_pos_text, yPosition, false, true);
-            } else {
-                GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
-            }
-        }
-    }
-}
-    */
-
-
 }
