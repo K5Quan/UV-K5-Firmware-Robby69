@@ -2070,8 +2070,119 @@ void SaveSettings()
 }
 
 
+// Helper functions for history list
+static uint8_t CountValidHistoryItems() {
+    uint8_t count = 0;
+    for (uint8_t i = 1; i <= FMaxNumb; i++) {
+        if (freqHistory[i] != 0) count++;
+    }
+    return count;
+}
+
+static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
+    uint8_t count = 0;
+    for (uint8_t i = 1; i <= FMaxNumb; i++) {
+        if (freqHistory[i] != 0) {
+            if (count == displayIndex) return i;
+            count++;
+        }
+    }
+    return 1; // Fallback
+}
+
+// Helper functions for each list type
+static void GetBandItemText(uint8_t index, char* buffer) {
+    sprintf(buffer, "%2d:%-9s %s", 
+            index + 1, 
+            BParams[index].BandName,
+            settings.bandEnabled[index] ? "*" : " ");
+}
+
+static void GetHistoryItemText(uint8_t index, char* buffer) {
+    uint8_t realIndex = GetHistoryRealIndex(index);
+    uint32_t frequency = freqHistory[realIndex];
+    int channel = BOARD_gMR_fetchChannel(frequency);
+    
+    if (channel != -1) {
+        sprintf(buffer, "%2d:%3u.%05u(%u) %s", 
+                realIndex, 
+                frequency / 100000,
+                frequency % 100000,
+                freqCount[realIndex],
+                gMR_ChannelFrequencyAttributes[channel].Name);
+    } else {
+        sprintf(buffer, "%2d:%3u.%05u(%u)", 
+                realIndex,
+                frequency / 100000,
+                frequency % 100000,
+                freqCount[realIndex]);
+    }
+}
+
+static void RenderList(const char* title, uint8_t numItems, uint8_t selectedIndex, uint8_t scrollOffset, 
+                      void (*getItemText)(uint8_t index, char* buffer)) {
+    // Clear display buffer
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
+
+    // Draw title (centered)
+    uint8_t titleX = (LCD_WIDTH - (strlen(title) * 7)) / 2;
+    if (titleX < 1) titleX = 1;
+    UI_PrintStringSmall(title, titleX, LCD_WIDTH - 1, 0);
+
+    // List parameters
+    const uint8_t Y_START = 10;
+    const uint8_t LINE_HEIGHT = 8; // 7px font + 1px spacing
+    const uint8_t MAX_LINES = (LCD_HEIGHT - Y_START) / LINE_HEIGHT;
+
+    // Adjust scroll offset if needed
+    if (numItems <= MAX_LINES) {
+        scrollOffset = 0;
+    } else if (selectedIndex < scrollOffset) {
+        scrollOffset = selectedIndex;
+    } else if (selectedIndex >= scrollOffset + MAX_LINES) {
+        scrollOffset = selectedIndex - MAX_LINES + 1;
+    }
+
+    // Draw visible items
+    for (uint8_t i = 0; i < MAX_LINES; i++) {
+        uint8_t itemIndex = i + scrollOffset;
+        if (itemIndex >= numItems) break;
+
+        char itemText[32];
+        getItemText(itemIndex, itemText);
+
+        uint8_t yPos = Y_START + (i * LINE_HEIGHT);
+        
+        // Highlight selected item
+        if (itemIndex == selectedIndex) {
+            char selectedText[34];
+            sprintf(selectedText, ">%s", itemText);
+            GUI_DisplaySmallest(selectedText, 3, yPos, false, true);
+        } else {
+            GUI_DisplaySmallest(itemText, 5, yPos, false, true);
+        }
+    }
+
+    ST7565_BlitFullScreen();
+}
+
+
+
+// Wrapper functions for original calls
+static void RenderBandSelectList() {
+    RenderList("Select Band", ARRAY_SIZE(BParams), 
+              bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
+}
 
 static void RenderHistoryList() {
+    uint8_t validItems = CountValidHistoryItems();
+    RenderList("Frequency History", validItems, 
+              historyListIndex, historyScrollOffset, GetHistoryItemText);
+}
+
+
+
+/*static void RenderHistoryList() {
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
 
     int numValidEntries = 0;
@@ -2254,4 +2365,4 @@ static void RenderBandSelectList() {
             }
         }
     }
-}
+}*/
