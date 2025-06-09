@@ -1182,10 +1182,8 @@ static void DrawRssiTriggerLevel() {
 }
 
 static void OnKeyDown(uint8_t key) {
-    // Existing key handling for other states (SPECTRUM, HISTORY_LIST, etc.)
-    if (!isListening && currentState != HISTORY_LIST && currentState != BAND_LIST_SELECT) {
         BACKLIGHT_TurnOn();
-    }
+  
   
     // NEW HANDLING: Long press of '4' key in SCAN_BAND_MODE
     if (appMode == SCAN_BAND_MODE && key == KEY_4 && currentState == SPECTRUM) {
@@ -2085,23 +2083,28 @@ static void RenderHistoryList() {
 
     char headerString[24];
     #ifdef ENABLE_PL_BAND
-    sprintf(headerString, "Historia: (%d)", numValidEntries);
+    sprintf(headerString, "Historia Czes.(%d)", numValidEntries);
     #endif
     #ifdef ENABLE_FR_BAND
-    sprintf(headerString, "History: (%d)", numValidEntries);
+    sprintf(headerString, "Freq. History(%d)", numValidEntries);
     #endif
-    
-    uint8_t approx_char_width_small = 7;
-    uint8_t header_text_width = strlen(headerString) * approx_char_width_small; 
-    uint8_t header_x = (LCD_WIDTH - header_text_width) / 2;
-    if (header_x < 1) header_x = 1;
-    UI_PrintStringSmall(headerString, header_x, LCD_WIDTH - 1, 0);
+  
+
+    UI_PrintStringSmall(headerString, 1, LCD_WIDTH - 1, 0);
 
     const int Y_START_LIST = 10;
     const int LINE_HEIGHT_SMALLEST = 7;
     const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1;
 
-    
+        if (numValidEntries == 0) {
+        #ifdef ENABLE_PL_BAND
+        GUI_DisplaySmallest("Brak historii", 10, Y_START_LIST, false, true);
+        #endif
+        #ifdef ENABLE_FR_BAND
+        GUI_DisplaySmallest("No history", 10, Y_START_LIST, false, true);
+        #endif
+        return; 
+    }
     if (numValidEntries < MAX_VISIBLE_HISTORY_LINES) {
         historyScrollOffset = 0;
     } else {
@@ -2130,21 +2133,46 @@ static void RenderHistoryList() {
         int displayPosition = i + historyScrollOffset; 
         if (displayPosition >= numValidEntries || displayPosition >= validCount) {break;}
         int realArrayIndex = validIndices[displayPosition]; 
+        uint32_t frequency = freqHistory[realArrayIndex];
+        uint8_t count = freqCount[realArrayIndex];
+        
+        // Sprawdź czy częstotliwość istnieje jako kanał
+        int channel = BOARD_gMR_fetchChannel(frequency);
+        bool isKnownChannel = (channel != -1);
+        
         char lineBuffer[32]; 
-        sprintf(lineBuffer, "%2d: %3u.%05u (%u)", 
+        
+        if (isKnownChannel) {
+            // Format z nazwą kanału: "01:146.52000(5) CH_NAME"
+            sprintf(lineBuffer, "%2d: %3u.%05u(%u) %s", 
                 realArrayIndex, 
-                freqHistory[realArrayIndex] / 100000, 
-                freqHistory[realArrayIndex] % 100000, 
-                freqCount[realArrayIndex]);
+                    frequency / 100000, 
+                    frequency % 100000, 
+                    count,
+                    gMR_ChannelFrequencyAttributes[channel].Name);
+        } else {
+            // Format standardowy: "01:146.52000(5)"
+            sprintf(lineBuffer, "%2d: %3u.%05u(%u)", 
+                    realArrayIndex,
+                    frequency / 100000, 
+                    frequency % 100000, 
+                    count);
+        }
 
         uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
-        uint8_t x_pos_text;
-        if (displayPosition == historyListIndex) {x_pos_text = 25;} else {x_pos_text = 15;}
+        uint8_t x_pos_text = 5;
+
         if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
-            GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
+            if (displayPosition == historyListIndex) {
+                char selectedLineBuffer[34];
+                sprintf(selectedLineBuffer, ">%s", lineBuffer);
+                GUI_DisplaySmallest(selectedLineBuffer, x_pos_text - 2, yPosition, false, true);
+            } else {
+                 GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
+              }
         }
     }
-}
+  }
 
 
 
