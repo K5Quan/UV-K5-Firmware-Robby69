@@ -7,7 +7,11 @@
 #include "common.h"
 #include "action.h"
 //#include "debugging.h"
-
+/*	
+          /////////////////////////DEBUG//////////////////////////
+          char str[64] = "";
+          sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
+*/
 #ifdef ENABLE_FR_BAND
 bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
@@ -545,6 +549,7 @@ static bool InitScan() {
                   else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
                 for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) j++;}
                   if (j>1) settings.modulationType = BParams[bl].modulationType;
+                //ToggleNormalizeRssi(1);
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przejdź do następnego pasma
@@ -1296,19 +1301,18 @@ static void OnKeyDown(uint8_t key) {
        UpdateDBMax(false);
        break;
      case KEY_1:
-       if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
+       if(appMode==SCAN_BAND_MODE) || (appMode==SCAN_RANGE_MODE) {UpdateScanStep(true);}
+       else {AutoTriggerLevel();
+            SquelchBarKeyMode==0;} //Robby69
        break;
      case KEY_7:
        if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}
        break;
      case KEY_2:
-       if (kbd.counter == 3) 
-          {AutoTriggerLevel();
-          SquelchBarKeyMode =0;}
-        else if (kbd.counter == 30) 
-          {if(appMode != SCAN_BAND_MODE)ToggleNormalizeRssi(!isNormalizationApplied);
-          else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;}
-       break;
+      if (appMode != SCAN_BAND_MODE) // long press
+            ToggleNormalizeRssi(!isNormalizationApplied);
+            else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+        break;
      case KEY_8:
       if ((ShowHistory) &&  (kbd.counter == 30)) { //(long press):
         memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
@@ -1708,12 +1712,12 @@ bool HandleUserInput() {
             if (currentState != HISTORY_LIST) { // Dodatkowe zabezpieczenie
                 SetState(HISTORY_LIST); // Przejście do stanu wyświetlania historii
                 historyListIndex = 0;
-				historyScrollOffset = 0; // UPEWNIJ SIĘ
+				        historyScrollOffset = 0; // UPEWNIJ SIĘ
                 historyListActive = true;
                 redrawScreen = true;
                 return true;
             }
-        }
+    }
 
         switch (currentState) {
             case SPECTRUM:
@@ -1901,13 +1905,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
   if (Spectrum_state == 2) mode = SCAN_BAND_MODE ;
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
-/*	
-          /////////////////////////DEBUG//////////////////////////
-                char str[64] = "";
-                sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );
-                LogUart(str);
-*/
-
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   LoadSettings();
   appMode = mode;
@@ -2021,14 +2018,18 @@ void LoadValidMemoryChannels(void)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel() && on){
-		UpdateScan();//Robby69 Force scan continue
-		UpdateScan();
-		return;}
+		    UpdateScan();//Robby69 Force scan continue
+		    UpdateScan();
+		    return;}
 
     if(on) {
-      for(uint8_t i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-      {gainOffset[i] = peak.rssi - rssiHistory[i];}
-
+      uint8_t max = 0;
+      uint8_t i;
+      for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
+        {if (max < rssiHistory[i]) max = rssiHistory[i];}
+      
+      for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
+        {gainOffset[i] = max - rssiHistory[i];}
       isNormalizationApplied = true;
       settings.rssiTriggerLevel=RSSI_MAX_VALUE;
     }
