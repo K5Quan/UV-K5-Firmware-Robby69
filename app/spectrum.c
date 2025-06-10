@@ -11,17 +11,17 @@
 #ifdef ENABLE_FR_BAND
 bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
-    {"AIR 25",        11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"AIR 8.33",      11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
+    {"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR 8.33k",     11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
     {"AIR MIL1",      22500000,         24107500,       S_STEP_25_0kHz,   MODULATION_AM},
     {"AIR MIL2",      33540000,         33970000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"PMR 446",       44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
     {"PMR 446b",      44600000,         44620000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"FREENET",       14902500,         14911250,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"146-170",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"450-466",       45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"466.2-470",     46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
-    {"432-434",       43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
+    {"DMR VHF",       14600000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR UHF1",      45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"DMR UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
+    {"REMOTE CT",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
     {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
@@ -31,12 +31,12 @@ bandparameters BParams[32] = {
     {"21MHz",          2100000,          2145000,       S_STEP_1_0kHz,    MODULATION_AM},
     {"24MHz",          2489000,          2499000,       S_STEP_1_0kHz,    MODULATION_AM},
     {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
-    {"28MHz",          2800000,          2970000,       S_STEP_1_0kHz,    MODULATION_AM},
-    {"50-52MHz",       5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"HAM 28MHz",      2800000,          2970000,       S_STEP_1_0kHz,    MODULATION_AM},
+    {"HAM 50MHz",      5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"70 Mhz",         7000000,          7050000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"144 Mhz",       14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"HAM 144M",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"220Mhz",        22000000,         22500000,       S_STEP_10_0kHz,   MODULATION_FM},
-    {"430 Mhz",       43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"HAM 430M",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"1240MHz",      124000000,        130000000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM}
     }; 
@@ -1234,6 +1234,27 @@ static void OnKeyDown(uint8_t key) {
                     nextBandToScanIndex = bandListSelectedIndex; 
                 }
                 break;
+				
+				        // NOWA FUNKCJA: Przejście do wybranego zakresu po wciśnięciu MENU
+        case KEY_MENU:
+            if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
+                // Ustaw tylko wybrane pasmo jako aktywne
+                memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
+                settings.bandEnabled[bandListSelectedIndex] = true;
+                
+                // Ustaw indeks pasma do skanowania
+                nextBandToScanIndex = bandListSelectedIndex;
+                
+                // Przejdź do trybu spektrum/skanowania
+                SetState(SPECTRUM);
+                redrawScreen = true;
+                redrawStatus = true;
+                
+                // Uruchom skanowanie wybranego pasma
+                RelaunchScan();
+            }
+            break;
+				
             case KEY_EXIT: // Exit band list
                 SetState(SPECTRUM); // Return to band scanning mode
                 redrawScreen = true;
@@ -1284,12 +1305,12 @@ static void OnKeyDown(uint8_t key) {
        if (kbd.counter == 3) 
           {AutoTriggerLevel();
           SquelchBarKeyMode =0;}
-        else 
-          if(appMode != SCAN_BAND_MODE)ToggleNormalizeRssi(!isNormalizationApplied);
-          else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+        else if (kbd.counter == 30) 
+          {if(appMode != SCAN_BAND_MODE)ToggleNormalizeRssi(!isNormalizationApplied);
+          else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;}
        break;
      case KEY_8:
-      if ((ShowHistory) &&  (kbd.counter == 16)) { //(long press):
+      if ((ShowHistory) &&  (kbd.counter == 30)) { //(long press):
         memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
         memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0])); // ZMIANA: od pozycji 1
         indexFd = 1;
@@ -1672,7 +1693,7 @@ bool HandleUserInput() {
     kbd.prev = kbd.current;
     kbd.current = GetKey();
     if (kbd.current != KEY_INVALID && kbd.current == kbd.prev) {
-        if (kbd.counter < 16)
+        if (kbd.counter < 30)
             kbd.counter++;
         else
             kbd.counter -= 3;
@@ -1681,9 +1702,9 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
-    if (kbd.counter == 3 || kbd.counter == 16) {
+    if (kbd.counter == 3 || kbd.counter == 30) {
     // Długie wciśnięcie klawisza 0
-        if (kbd.current == KEY_0 && kbd.counter == 16) {
+        if (kbd.current == KEY_0 && kbd.counter == 30) {
             if (currentState != HISTORY_LIST) { // Dodatkowe zabezpieczenie
                 SetState(HISTORY_LIST); // Przejście do stanu wyświetlania historii
                 historyListIndex = 0;
@@ -2006,9 +2027,8 @@ void LoadValidMemoryChannels(void)
 
     if(on) {
       for(uint8_t i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-      {
-        gainOffset[i] = peak.rssi - rssiHistory[i];
-      }
+      {gainOffset[i] = peak.rssi - rssiHistory[i];}
+
       isNormalizationApplied = true;
       settings.rssiTriggerLevel=RSSI_MAX_VALUE;
     }
@@ -2092,11 +2112,31 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
 
 // Helper functions for each list type
 static void GetBandItemText(uint8_t index, char* buffer) {
-    sprintf(buffer, "%2d:%-9s %s", 
+    uint32_t startMHz = BParams[index].Startfrequency / 100000;
+    uint32_t stopMHz = BParams[index].Stopfrequency / 100000;
+    uint32_t startKHz = (BParams[index].Startfrequency % 100000) / 100;
+    uint32_t stopKHz = (BParams[index].Stopfrequency % 100000) / 100;
+    
+    // Format z zakresem częstotliwości
+    if (startMHz >= 100 || stopMHz >= 100) {
+        // Dla częstotliwości >= 100 MHz - pokazuj tylko MHz
+        sprintf(buffer, "%2d:%-8s %3u-%3u %s", 
             index + 1, 
             BParams[index].BandName,
+                startMHz,
+                stopMHz,
+                settings.bandEnabled[index] ? "*" : " ");
+    } else {
+        // Dla częstotliwości < 100 MHz - pokazuj MHz z dokładnością do 0.1
+        sprintf(buffer, "%2d:%-8s %2u.%01u-%2u.%01u %s", 
+                index + 1, 
+                BParams[index].BandName,
+                startMHz, startKHz/100,
+                stopMHz, stopKHz/100,
             settings.bandEnabled[index] ? "*" : " ");
 }
+}
+
 
 static void GetHistoryItemText(uint8_t index, char* buffer) {
     uint8_t realIndex = GetHistoryRealIndex(index);
@@ -2104,14 +2144,14 @@ static void GetHistoryItemText(uint8_t index, char* buffer) {
     int channel = BOARD_gMR_fetchChannel(frequency);
     
     if (channel != -1) {
-        sprintf(buffer, "%2d:%3u.%05u(%u) %s", 
+        sprintf(buffer, "%2d:%3u.%05u (%u) %s", 
                 realIndex, 
                 frequency / 100000,
                 frequency % 100000,
                 freqCount[realIndex],
                 gMR_ChannelFrequencyAttributes[channel].Name);
     } else {
-        sprintf(buffer, "%2d:%3u.%05u(%u)", 
+        sprintf(buffer, "%2d:%3u.%05u (%u)", 
                 realIndex,
                 frequency / 100000,
                 frequency % 100000,
@@ -2125,7 +2165,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
 
     // Draw title (centered)
-    uint8_t titleX = (LCD_WIDTH - (strlen(title) * 7)) / 2;
+    uint8_t titleX = (LCD_WIDTH - (strlen(title) * 7)) / 3;
     if (titleX < 1) titleX = 1;
     UI_PrintStringSmall(title, titleX, LCD_WIDTH - 1, 0);
 
@@ -2174,195 +2214,14 @@ static void RenderBandSelectList() {
               bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
 }
 
+
 static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
-    RenderList("Frequency History", validItems, 
+    
+    // Tworzenie nagłówka z liczbą pozycji w nawiasie
+    char headerString[24];
+    sprintf(headerString, "Freq. History (%d)", validItems);
+    
+    RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
-
-
-
-/*static void RenderHistoryList() {
-    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-
-    int numValidEntries = 0;
-    for (int k = 1; k <= FMaxNumb; ++k) {
-        if (freqHistory[k] != 0) {
-            numValidEntries++;
-        }
-    }
-
-    char headerString[24];
-    #ifdef ENABLE_PL_BAND
-    sprintf(headerString, "Historia Czes.(%d)", numValidEntries);
-    #endif
-    #ifdef ENABLE_FR_BAND
-    sprintf(headerString, "Freq. History(%d)", numValidEntries);
-    #endif
-  
-
-    UI_PrintStringSmall(headerString, 1, LCD_WIDTH - 1, 0);
-
-    const int Y_START_LIST = 10;
-    const int LINE_HEIGHT_SMALLEST = 7;
-    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1;
-
-        if (numValidEntries == 0) {
-        #ifdef ENABLE_PL_BAND
-        GUI_DisplaySmallest("Brak historii", 10, Y_START_LIST, false, true);
-        #endif
-        #ifdef ENABLE_FR_BAND
-        GUI_DisplaySmallest("No history", 10, Y_START_LIST, false, true);
-        #endif
-        return; 
-    }
-    if (numValidEntries < MAX_VISIBLE_HISTORY_LINES) {
-        historyScrollOffset = 0;
-    } else {
-        if (historyListIndex < historyScrollOffset) {
-            historyScrollOffset = historyListIndex;
-        } else if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_HISTORY_LINES) {
-            historyScrollOffset = historyListIndex - MAX_VISIBLE_HISTORY_LINES + 1;
-        }
-        
-        if (historyScrollOffset > numValidEntries - MAX_VISIBLE_HISTORY_LINES) {
-            historyScrollOffset = numValidEntries - MAX_VISIBLE_HISTORY_LINES;
-        }
-        if (historyScrollOffset < 0) {historyScrollOffset = 0;}
-    }
-
-    int validIndices[FMaxNumb+1];
-    int validCount = 0;
-    for (int k = 1; k <= FMaxNumb; ++k) {
-        if (freqHistory[k] != 0) {
-            validIndices[validCount] = k;
-            validCount++;
-        }
-    }
-
-    for (int i = 0; i < MAX_VISIBLE_HISTORY_LINES; i++) {
-        int displayPosition = i + historyScrollOffset; 
-        if (displayPosition >= numValidEntries || displayPosition >= validCount) {break;}
-        int realArrayIndex = validIndices[displayPosition]; 
-        uint32_t frequency = freqHistory[realArrayIndex];
-        uint8_t count = freqCount[realArrayIndex];
-        
-        // Sprawdź czy częstotliwość istnieje jako kanał
-        int channel = BOARD_gMR_fetchChannel(frequency);
-        bool isKnownChannel = (channel != -1);
-        
-        char lineBuffer[32]; 
-        
-        if (isKnownChannel) {
-            // Format z nazwą kanału: "01:146.52000(5) CH_NAME"
-            sprintf(lineBuffer, "%2d: %3u.%05u(%u) %s", 
-                realArrayIndex, 
-                    frequency / 100000, 
-                    frequency % 100000, 
-                    count,
-                    gMR_ChannelFrequencyAttributes[channel].Name);
-        } else {
-            // Format standardowy: "01:146.52000(5)"
-            sprintf(lineBuffer, "%2d: %3u.%05u(%u)", 
-                    realArrayIndex,
-                    frequency / 100000, 
-                    frequency % 100000, 
-                    count);
-        }
-
-        uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
-        uint8_t x_pos_text = 5;
-
-        if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
-            if (displayPosition == historyListIndex) {
-                char selectedLineBuffer[34];
-                sprintf(selectedLineBuffer, ">%s", lineBuffer);
-                GUI_DisplaySmallest(selectedLineBuffer, x_pos_text - 2, yPosition, false, true);
-            } else {
-                 GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
-              }
-        }
-    }
-  }
-
-
-
-static void RenderBandSelectList() {
-    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-
-    // 1. Nagłówek
-    #ifdef ENABLE_PL_BAND
-    const char* headerText = "Wybierz Pasmo";
-    #endif
-
-    #ifdef ENABLE_FR_BAND
-    const char* headerText = "Select Bands";
-    #endif
-    
-    // Proste centrowanie dla UI_PrintStringSmall
-    uint8_t header_x = (LCD_WIDTH - (strlen(headerText) * 7)) / 2; 
-    if (header_x < 1) header_x = 1;
-    UI_PrintStringSmall(headerText, header_x, LCD_WIDTH - 1, 0);
-
-    // 2. Parametry listy
-    const int Y_START_LIST = 10;
-    const int LINE_HEIGHT_SMALLEST = 7; // Zakładamy 7
-    const int TOTAL_LINE_HEIGHT_SMALLEST = LINE_HEIGHT_SMALLEST + 1; // 8
-    // MAX_VISIBLE_BAND_LINES jest zdefiniowane jako 6
-
-    // Korekta bandListScrollOffset, aby był w prawidłowym zakresie
-    int numBands = ARRAY_SIZE(BParams); // Liczba wszystkich zdefiniowanych pasm
-    if (numBands == 0) {
-        GUI_DisplaySmallest("Brak pasm", 10, Y_START_LIST, false, true);
-        return;
-    }
-
-    if (numBands <= MAX_VISIBLE_BAND_LINES) {
-        bandListScrollOffset = 0;
-    } else {
-        if (bandListSelectedIndex < bandListScrollOffset) {
-            bandListScrollOffset = bandListSelectedIndex;
-        } else if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_BAND_LINES) {
-            bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_BAND_LINES + 1;
-        }
-        if (bandListScrollOffset > numBands - MAX_VISIBLE_BAND_LINES) {
-            bandListScrollOffset = numBands - MAX_VISIBLE_BAND_LINES;
-        }
-        if (bandListScrollOffset < 0) {
-             bandListScrollOffset = 0;
-        }
-    }
-
-    // 3. Rysowanie widocznych elementów listy
-    for (int i = 0; i < MAX_VISIBLE_BAND_LINES; i++) { // i to indeks linii na ekranie
-        int currentBandIndexInArray = i + bandListScrollOffset; // Rzeczywisty indeks w BParams
-
-        if (currentBandIndexInArray >= numBands) {
-            break; 
-        }
-        
-        char lineBuffer[20]; 
-        // Wyświetl numer, nazwę pasma i ewentualnie czy jest włączone
-        sprintf(lineBuffer, "%2d:%-9s %s", 
-                currentBandIndexInArray + 1, 
-                BParams[currentBandIndexInArray].BandName,
-                settings.bandEnabled[currentBandIndexInArray] ? "*" : " "); // Gwiazdka dla włączonego pasma
-
-        uint8_t yPosition = Y_START_LIST + (i * TOTAL_LINE_HEIGHT_SMALLEST);
-        uint8_t x_pos_text = 5; 
-
-        if (yPosition <= (LCD_HEIGHT - LINE_HEIGHT_SMALLEST)) {
-            if (currentBandIndexInArray == bandListSelectedIndex) {
-                // Można dodać wyróżnienie, np. pogrubienie lub ramkę,
-                // ale na razie proste wyświetlenie
-                // Dla prostoty, użyjemy tego samego stylu, ale można dodać UI_PrintStringSmallBold
-                // lub rysowanie tła/ramki jak w RenderHistoryList
-                char selectedLineBuffer[22];
-                sprintf(selectedLineBuffer, ">%s", lineBuffer); // Dodaj ">" przed zaznaczonym
-                 GUI_DisplaySmallest(selectedLineBuffer, x_pos_text -2, yPosition, false, true);
-            } else {
-                 GUI_DisplaySmallest(lineBuffer, x_pos_text, yPosition, false, true);
-            }
-        }
-    }
-}*/
