@@ -2088,10 +2088,40 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
 }
 
 // Fonction pour afficher un item ScanList
-static void GetScanListItemText(uint8_t index, char* buffer) {
-    sprintf(buffer, "ScanList %2d %s",
-        index + 1,
-        settings.scanListEnabled[index] ? "*" : " ");
+#define MAX_VALID_SCANLISTS 15
+
+static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
+static uint8_t validScanListCount = 0;
+
+static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
+    ChannelAttributes_t att;
+    char channel_name[10];
+    for (int i = 0; i < 200; i++) {
+      att = gMR_ChannelAttributes[i];
+      if (att.scanlist == scanListIndex+1) {
+            SETTINGS_FetchChannelName(channel_name,i);
+            sprintf(bufferOut, "%2d: %s %s", scanListIndex + 1, channel_name,settings.scanListEnabled[scanListIndex] ? "*" : " ");
+            return true;
+        }
+    }
+    return false; // Aucun canal associé à cette scanlist
+}
+
+
+static void BuildValidScanListIndices() {
+    validScanListCount = 0;
+    for (uint8_t i = 0; i < 15; i++) {
+        char tempName[17];
+        if (GetScanListLabel(i, tempName)) {
+            validScanListIndices[validScanListCount++] = i;
+        }
+    }
+}
+
+
+static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
+    uint8_t realIndex = validScanListIndices[displayIndex];
+    GetScanListLabel(realIndex, buffer);
 }
 
 // Helper functions for each list type
@@ -2196,8 +2226,9 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
 // Fonction pour afficher le menu ScanList
 static void RenderScanListSelect() {
-    RenderList("Select ScanList", 15,
-               scanListSelectedIndex, scanListScrollOffset, GetScanListItemText);
+    BuildValidScanListIndices();
+    RenderList("Select ScanList", validScanListCount,
+               scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
 }
 
 static void RenderBandSelect() {
@@ -2216,3 +2247,4 @@ static void RenderHistoryList() {
     RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
+
