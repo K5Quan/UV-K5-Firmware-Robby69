@@ -14,15 +14,21 @@
           sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
 */
 #define MAX_VISIBLE_BAND_LINES 6
+#define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
 #define HISTORY_SIZE 100
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
 static int historyScrollOffset = 0;
 static void RenderHistoryList();
+static void RenderScanListSelect();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
-static void RenderBandSelectList();
+static void RenderBandSelect();
+uint8_t scanListSelectedIndex = 0;
+uint8_t scanListScrollOffset = 0;
+bool inScanListMenu = false;
+
 bool AutoTriggerLevelbandsMode = 0;
 struct FrequencyBandInfo {
     uint32_t lower;
@@ -77,8 +83,8 @@ bool redrawScreen = false;
 bool newScanStart = true;
 bool preventKeypress = true;
 bool audioState = true;
-uint8_t waitingForScanListNumber = 0;
-static int scanListNumber =0;
+//uint8_t waitingForScanListNumber = 0;
+//static int scanListNumber =0;
 uint8_t bl;
 uint8_t CurrentScanBand = 1;
 State currentState = SPECTRUM, previousState = SPECTRUM;
@@ -897,13 +903,13 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
 	uint8_t Code;
-  if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
+  /*if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
       sprintf(String, "--");
       UI_PrintStringSmall(String, 1,127,4);}
 
   if (waitingForScanListNumber == 1){
     sprintf(String, "%u-",scanListNumber/10);
-    UI_PrintStringSmall(String, 1,127,4);}
+    UI_PrintStringSmall(String, 1,127,4);} */
   
 	if (f > 0){
 
@@ -1105,20 +1111,28 @@ static void DrawRssiTriggerLevel() {
   }
   if (ShowHistory) {
   y = Rssi2Y(settings.rssiTriggerLevelH);
-  for (uint8_t x = 0; x < 128; x += 6) {
-    PutPixel(x, y, true);
-  }}
+  for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
+  }
 }
 
 static void OnKeyDown(uint8_t key) {
         BACKLIGHT_TurnOn();
   
   
-    // NEW HANDLING: Long press of '4' key in SCAN_BAND_MODE
+    // NEW HANDLING: press of '4' key in SCAN_BAND_MODE
     if (appMode == SCAN_BAND_MODE && key == KEY_4 && currentState == SPECTRUM) {
         SetState(BAND_LIST_SELECT);
         bandListSelectedIndex = 0; // Start from the first band
         bandListScrollOffset = 0;  // Reset scrolling
+        redrawScreen = true;
+        return; // Key handled
+    }
+
+    // NEW HANDLING: press of '4' key in CHANNEL_MODE
+    if (appMode == CHANNEL_MODE && key == KEY_4 && currentState == SPECTRUM) {
+        SetState(SCANLIST_SELECT);
+        scanListSelectedIndex = 0;
+        scanListScrollOffset = 0;
         redrawScreen = true;
         return; // Key handled
     }
@@ -1195,27 +1209,62 @@ static void OnKeyDown(uint8_t key) {
         }
         return; // Finish handling if we were in BAND_LIST_SELECT
     }
-
-  if ((waitingForScanListNumber ==3) && (key <= KEY_9)) //KEY_5 first number 1x to 9x
-    {scanListNumber += key*10;
-    waitingForScanListNumber = 1;
-    ToggleScanList(scanListNumber, 1);
-    redrawStatus = true;
-    return;}
-  
-  if ((waitingForScanListNumber ==2) && (key <= KEY_9)) //KEY_4 first number 1x to 9x
-    {scanListNumber += key*10;
-    waitingForScanListNumber = 1;
-    redrawStatus = true;
-    return;}
-
-  if ((waitingForScanListNumber ==1) && (key <= KEY_9)) //second number units
-      {scanListNumber += key;
-      waitingForScanListNumber = 0;
-      ToggleScanList(scanListNumber, 0);
-      scanListNumber=0;
-      redrawStatus = true;
-      return;}
+// If we're in scanlist selection mode, use dedicated key logic
+    if (currentState == SCANLIST_SELECT) {
+        switch (key) {
+            case KEY_UP:
+                if (scanListSelectedIndex > 0) {
+                    scanListSelectedIndex--;
+                    if (scanListSelectedIndex < scanListScrollOffset) {
+                        scanListScrollOffset = scanListSelectedIndex;
+                    }
+                    redrawScreen = true;
+                }
+                break;
+            case KEY_DOWN:
+                // ARRAY_SIZE(BParams) gives the number of defined bands
+                if (scanListSelectedIndex < 14) { // 15 scan lists, indexed from 0 to 14
+                    scanListSelectedIndex++;
+                    if (scanListSelectedIndex >= scanListScrollOffset + MAX_VISIBLE_SL_LINES) {
+                        scanListScrollOffset = scanListSelectedIndex - MAX_VISIBLE_SL_LINES + 1;
+                    }
+                    redrawScreen = true;
+                }
+                break;
+            case KEY_4: // Scan list selection
+                ToggleScanList(scanListSelectedIndex, 0);
+                 redrawScreen = true;
+                break;
+            case KEY_5:   
+                ToggleScanList(scanListSelectedIndex, 1);
+                 redrawScreen = true;
+                break;
+				
+				        
+        case KEY_MENU:
+            if (scanListSelectedIndex < 15) {
+                ToggleScanList(scanListSelectedIndex, 1);
+                SetState(SPECTRUM);
+                ResetModifiers();
+                redrawScreen = true;
+                redrawStatus = true;
+                RelaunchScan();
+            }
+            break;
+				
+        case KEY_EXIT: // Exit scan list selection
+                SetState(SPECTRUM); // Return to scanning mode
+                ResetModifiers();
+                redrawScreen = true;
+                redrawStatus = true;
+                RelaunchScan(); 
+                break;
+        default:
+                break;
+        }
+        return; // Finish handling if we were in BAND_LIST_SELECT
+      }
+    
 
   switch (key) {
      case KEY_3:
@@ -1261,9 +1310,11 @@ static void OnKeyDown(uint8_t key) {
             RelaunchScan(); 
             break;
           }
-      
+      indexFd++;
       if(freqHistory[indexFd]==0 && indexFd > 1) indexFd--;
+      
       if (indexFd > FMaxNumb) indexFd = FMaxNumb ;
+
       if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
     }
     break;
@@ -1308,22 +1359,23 @@ static void OnKeyDown(uint8_t key) {
     break;
   
   case KEY_4:
-    if(appMode==CHANNEL_MODE)
+    /*if(appMode==CHANNEL_MODE)
     {
       waitingForScanListNumber = 2;
       redrawStatus = true;
     }
-    else if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
+    else */
+    if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
     break;
 
   case KEY_5:
 
     if(appMode==FREQUENCY_MODE) FreqInput();
     
-    if (appMode==CHANNEL_MODE ) {
+    /*if (appMode==CHANNEL_MODE ) {
       waitingForScanListNumber = 3;
       redrawStatus = true;
-    }
+    }*/
     break;
   case KEY_0:
     ToggleModulation();
@@ -1332,7 +1384,7 @@ static void OnKeyDown(uint8_t key) {
     ToggleListeningBW();
     break;
   
-    case KEY_SIDE2:
+  case KEY_SIDE2:
       if (kbd.counter == 3) { // short press        
         SquelchBarKeyMode += 1;
         if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
@@ -1340,13 +1392,13 @@ static void OnKeyDown(uint8_t key) {
         } 
       break;
 
-        case KEY_PTT:
-            ExitAndCopyToVfo();
-            break;
+  case KEY_PTT:
+      ExitAndCopyToVfo();
+      break;
+  
   case KEY_MENU:
   if (kbd.counter == 3) SaveSettings(); // short press
   else {
-        // POPRAWKA: Podobnie dla klawisza MENU
         int validIndices[FMaxNumb + 1];
         int validCount = 0;
         
@@ -1375,23 +1427,17 @@ static void OnKeyDown(uint8_t key) {
     }
     break;
   case KEY_EXIT:
-  
-            if (currentState == HISTORY_LIST) {
-                SetState(previousState);
-                historyListActive = false;
-                redrawScreen = true;
-            } else {
-    if (waitingForScanListNumber > 0) 
-    {waitingForScanListNumber = 0; //Exit from band entry mode
-      return;}
-    if (menuState) {
-      menuState = 0;
-      break;
-    }
-    DeInitSpectrum();
-   }
-            break;
-    default:
+    if (currentState == HISTORY_LIST) {
+      SetState(previousState);
+      historyListActive = false;
+      redrawScreen = true;
+      }
+    if (menuState) { menuState = 0;break;}
+  DeInitSpectrum();
+   
+   break;
+   
+   default:
       break;
   }
 }
@@ -1605,11 +1651,16 @@ static void Render() {
   case STILL:
     RenderStill();
     break;
-  case HISTORY_LIST: // DODANO
+  case HISTORY_LIST:
     RenderHistoryList();
     break;
-  case BAND_LIST_SELECT: // NOWY STAN
-    RenderBandSelectList();
+  
+    case BAND_LIST_SELECT:
+      RenderBandSelect();
+    break;
+
+    case SCANLIST_SELECT:
+      RenderScanListSelect();
     break;
   }
 
@@ -1655,11 +1706,13 @@ bool HandleUserInput() {
             case HISTORY_LIST: // DODANO
                 OnKeyDown(kbd.current);
                 break;
-			case BAND_LIST_SELECT: // DODANY BRAKUJĄCY CASE
-                // Jeśli logika dla BAND_LIST_SELECT jest w OnKeyDown:
+			      case BAND_LIST_SELECT: // DODANY BRAKUJĄCY CASE
                 OnKeyDown(kbd.current);
                 // Jeśli masz dedykowaną funkcję, np. OnKeyDownBandListSelect:
                 // OnKeyDownBandListSelect(kbd.current, kbd.counter);
+                break;
+            case SCANLIST_SELECT:
+                OnKeyDown(kbd.current);
                 break;
         }
         return true;
@@ -1921,19 +1974,19 @@ void LoadValidMemoryChannels(void)
     }
   }
 
-  void ToggleScanList(int scanListNumber, int single)
+  void ToggleScanList(int scanListNumber, int single )
   {
     if (appMode == SCAN_BAND_MODE)
       {
       if (single) memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
         else settings.bandEnabled[scanListNumber-1] = !settings.bandEnabled[scanListNumber-1];
       }
-      else {
-        if (single) memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));
-        else settings.scanListEnabled[scanListNumber-1] = !settings.scanListEnabled[scanListNumber-1];
-      LoadValidMemoryChannels();
+    if (appMode == CHANNEL_MODE) {
+        if (single) {memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));}
+        settings.scanListEnabled[scanListNumber] = !settings.scanListEnabled[scanListNumber];
+      //LoadValidMemoryChannels();
       }
-    ResetModifiers();
+    //ResetModifiers();
   }
 
   // flattens spectrum by bringing all the rssi readings to the peak value
@@ -2032,6 +2085,13 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
         }
     }
     return 1; // Fallback
+}
+
+// Fonction pour afficher un item ScanList
+static void GetScanListItemText(uint8_t index, char* buffer) {
+    sprintf(buffer, "ScanList %2d %s",
+        index + 1,
+        settings.scanListEnabled[index] ? "*" : " ");
 }
 
 // Helper functions for each list type
@@ -2133,7 +2193,14 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
 
 // Wrapper functions for original calls
-static void RenderBandSelectList() {
+
+// Fonction pour afficher le menu ScanList
+static void RenderScanListSelect() {
+    RenderList("Select ScanList", 15,
+               scanListSelectedIndex, scanListScrollOffset, GetScanListItemText);
+}
+
+static void RenderBandSelect() {
     RenderList("Select Band", ARRAY_SIZE(BParams), 
               bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
 }
