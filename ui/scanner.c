@@ -27,7 +27,7 @@
 #include "ui/helper.h"
 #include "ui/scanner.h"
 
-void UI_DisplayScanner(void)
+void UI_DisplayScanner(void) //Close Call, CTCSS/DCS scanner, etc.
 {
 	char    String[16];
 	bool    bCentered;

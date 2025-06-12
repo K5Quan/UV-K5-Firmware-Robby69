@@ -13,6 +13,16 @@
           char str[64] = "";
           sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
 */
+typedef struct {
+  KEY_Code_t current;
+  KEY_Code_t prev;
+  uint8_t counter;
+  bool fKeyPressed;  // Nouveau champ pour suivre l'état de la touche F
+} KeyboardState;
+
+#define KEY_F1 (KEY_LAST + 1)
+#define KEY_F2 (KEY_LAST + 2)
+#define KEY_F3 (KEY_LAST + 3)
 #define MAX_VISIBLE_BAND_LINES 6
 #define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
@@ -180,6 +190,34 @@ static void SetRegMenuValue(uint8_t st, bool add) {
 
 KEY_Code_t GetKey() {
   KEY_Code_t btn = KEYBOARD_Poll();
+  
+  // Si la touche F est pressée, mémoriser son état
+  if (btn == KEY_F) {
+    kbd.fKeyPressed = true;
+    return KEY_INVALID;  // Ne pas traiter F seule immédiatement
+  }
+  
+  // Si une autre touche est pressée alors que F est active
+  if (kbd.fKeyPressed && btn != KEY_INVALID && btn != KEY_F) {
+    KEY_Code_t comboKey = KEY_INVALID;
+    switch(btn) {
+      case KEY_1: comboKey = KEY_F1; break;
+      case KEY_2: comboKey = KEY_F2; break;
+      case KEY_3: comboKey = KEY_F3; break;
+      // Ajouter d'autres combinaisons au besoin
+      default: comboKey = btn; break;  // Fallback si pas une combinaison définie
+    }
+    kbd.fKeyPressed = false;
+    return comboKey;
+  }
+  
+  // Si F est relâchée sans combinaison
+  if (btn == KEY_INVALID && kbd.prev == KEY_F) {
+    kbd.fKeyPressed = false;
+    return KEY_F;  // Traiter F seule si relâchée sans combinaison
+  }
+
+  // Gestion PTT existante
   if (btn == KEY_INVALID && !GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT)) {
     btn = KEY_PTT;
   }
@@ -359,12 +397,6 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  //if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-  /*if (fMeasure > 3000000)
-    {
-      // Increase perceived RSSI for UHF bands to imitate radio squelch
-      rssi+=UHF_NOISE_FLOOR;
-    }*/
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -862,6 +894,7 @@ static void DrawStatus() {
   // display scanlists
   int pos = 1;
   int len = 0;
+  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 60, 0, true, true);}
   if (appMode == SCAN_BAND_MODE){
     String[0] = 'B';
     for (int i = 1; i <= 32; i++) {
@@ -903,14 +936,6 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
 	uint8_t Code;
-  /*if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
-      sprintf(String, "--");
-      UI_PrintStringSmall(String, 1,127,4);}
-
-  if (waitingForScanListNumber == 1){
-    sprintf(String, "%u-",scanListNumber/10);
-    UI_PrintStringSmall(String, 1,127,4);} */
-  
 	if (f > 0){
 
     if(GetScanStep() ==  833) {
@@ -1212,6 +1237,10 @@ static void OnKeyDown(uint8_t key) {
 // If we're in scanlist selection mode, use dedicated key logic
     if (currentState == SCANLIST_SELECT) {
         switch (key) {
+          case KEY_F1:  // F+1
+            CloseCallSpectrum();
+            break;
+
             case KEY_UP:
                 if (scanListSelectedIndex > 0) {
                     scanListSelectedIndex--;
@@ -1359,23 +1388,12 @@ static void OnKeyDown(uint8_t key) {
     break;
   
   case KEY_4:
-    /*if(appMode==CHANNEL_MODE)
-    {
-      waitingForScanListNumber = 2;
-      redrawStatus = true;
-    }
-    else */
     if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
     break;
 
   case KEY_5:
 
     if(appMode==FREQUENCY_MODE) FreqInput();
-    
-    /*if (appMode==CHANNEL_MODE ) {
-      waitingForScanListNumber = 3;
-      redrawStatus = true;
-    }*/
     break;
   case KEY_0:
     ToggleModulation();
@@ -1680,6 +1698,11 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
+    if (kbd.current >= KEY_F1) {  // Si c'est une touche Fn
+      OnKeyDown(kbd.current);    // Traiter immédiatement
+      return true;
+    }
+
     if (kbd.counter == 3 || kbd.counter == 30) {
     // Długie wciśnięcie klawisza 0
         if (kbd.current == KEY_0 && kbd.counter == 30) {
@@ -1842,7 +1865,9 @@ static void Tick() {
       preventKeypress = false;
     }
   }
-
+  if (kbd.fKeyPressed && kbd.current == KEY_INVALID && kbd.counter > 30) {
+    kbd.fKeyPressed = false;  // Annuler après un timeout
+  }
 
   if (!preventKeypress) {
     HandleUserInput();
@@ -2216,3 +2241,11 @@ static void RenderHistoryList() {
     RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
+
+static void CloseCallSpectrum(void) {
+  DeInitSpectrum();
+  SCANNER_Start(0);
+  gTxVfo->pRX->Frequency = gScanFrequency
+  APP_RunSpectrum (4); // Run basic spectrum mode
+  
+    }
