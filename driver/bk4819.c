@@ -1499,10 +1499,31 @@ void BK4819_EnableFrequencyScan(void)
 	//         1 = enable
 	//         0 = disable
 	//
-	BK4819_WriteRegister(BK4819_REG_32, // 0x0245);   // 00 0000100100010 1
+	/*BK4819_WriteRegister(BK4819_REG_32, // 0x0245);   // 00 0000100100010 1
 		(  0u << 14) |          // 0 frequency scan time
+		REG_32<15:14> 0b00
+			FrequencyScan Time.
+			00=0.2 Sec; 01=0.4 Sec; 10=0.8 Sec; 11=1.6 Sec
 		(290u <<  1) |          // ???
 		(  1u <<  0));          // 1 frequency scan enable
+
+		Frequency Scan
+
+    RF Frequency Scanning:
+    Use RF_FreqScan() to obtain the RF frequency at the LNAIN pin (requires a relatively strong signal, amplitude > -40 dBm).
+        Returns 1 to indicate failure
+        Returns 0 to indicate success
+        The detected frequency is written to the global variables FRQ_HI16 and FRQ_LO16.
+
+    After detecting the frequency, set the receive frequency to that frequency point.
+    Use RF_CtcDcsScan() to detect the CTCSS frequency or CDCSS code.
+
+        Returns 0 if no signal is detected
+        Returns 1 if CTCSS is detected, and the frequency is stored in the global variable CtC_FREQ
+        Returns 2 if 23-bit CDCSS is detected
+        Returns 3 if 24-bit CDCSS is detected
+
+    For both 23-bit and 24-bit CDCSS, the code is written to the global variables DCS_HI12 and DCS_LO12.*/
 }
 #endif
 void BK4819_SetScanFrequency(uint32_t Frequency)
