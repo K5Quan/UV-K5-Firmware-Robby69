@@ -892,7 +892,8 @@ static void DrawStatus() {
   // display scanlists
   int pos = 1;
   int len = 0;
-  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 60, 0, true, true);}
+  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 80, 0, true, true);} // SHOW F activated
+  if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 80, 0, true, true);} //SHOW FF activated
   if (appMode == SCAN_BAND_MODE){
     String[0] = 'B';
     for (int i = 1; i <= 32; i++) {
@@ -1304,7 +1305,7 @@ static void OnKeyDown(uint8_t key) {
        break;
      
      case KEY_9:
-     if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 9
+     if (SecondaryButtonAction) UpdateRssiTriggerLevel(false); //Action after F+F then 9
        UpdateDBMax(false);
        break;
 
@@ -2133,7 +2134,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     for (int i = 0; i < 200; i++) {
       att = gMR_ChannelAttributes[i];
       if (att.scanlist == scanListIndex+1) {
-        
+            validScanListCount++;
             SETTINGS_FetchChannelName(channel_name,i);
             sprintf(bufferOut, "%2d: %s %s", scanListIndex + 1, channel_name,settings.scanListEnabled[scanListIndex] ? "*" : " ");
             return true;
@@ -2143,7 +2144,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
 }
 
 
-static void BuildValidScanListIndices() {
+/*static void BuildValidScanListIndices() {
     validScanListCount = 0;
     for (uint8_t i = 0; i < 15; i++) {
         char tempName[17];
@@ -2151,7 +2152,7 @@ static void BuildValidScanListIndices() {
             validScanListIndices[validScanListCount++] = i;
         }
     }
-}
+}*/
 
 
 static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
@@ -2261,14 +2262,12 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
 // Fonction pour afficher le menu ScanList
 static void RenderScanListSelect() {
-    BuildValidScanListIndices();
-    RenderList("Select ScanList", validScanListCount,
-               scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
+    //BuildValidScanListIndices();
+    RenderList("Select ScanList", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
 }
 
 static void RenderBandSelect() {
-    RenderList("Select Band", ARRAY_SIZE(BParams), 
-              bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
+    RenderList("Select Band", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
 }
 
 
