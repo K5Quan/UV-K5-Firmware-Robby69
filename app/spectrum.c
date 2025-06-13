@@ -1,5 +1,6 @@
 #include "app/spectrum.h"
 #include "chFrScanner.h"
+#include "scanner.h"
 #include "driver/backlight.h"
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
 #include "audio.h"
@@ -35,6 +36,7 @@ static void RenderScanListSelect();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
+static void CloseCallSpectrum();
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
 bool inScanListMenu = false;
