@@ -21,9 +21,6 @@ typedef struct {
   bool fKeyPressed;  // Nouveau champ pour suivre l'état de la touche F
 } KeyboardState;
 
-#define KEY_F1 (KEY_LAST + 1)
-#define KEY_F2 (KEY_LAST + 2)
-#define KEY_F3 (KEY_LAST + 3)
 #define MAX_VISIBLE_BAND_LINES 6
 #define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
@@ -206,6 +203,13 @@ KEY_Code_t GetKey() {
       case KEY_1: comboKey = KEY_F1; break;
       case KEY_2: comboKey = KEY_F2; break;
       case KEY_3: comboKey = KEY_F3; break;
+      case KEY_4: comboKey = KEY_F4; break;
+      case KEY_5: comboKey = KEY_F5; break;
+      case KEY_6: comboKey = KEY_F6; break;
+      case KEY_7: comboKey = KEY_F7; break;
+      case KEY_8: comboKey = KEY_F8; break;
+      case KEY_9: comboKey = KEY_F9; break;
+
       // Ajouter d'autres combinaisons au besoin
       default: comboKey = btn; break;  // Fallback si pas une combinaison définie
     }
@@ -1700,8 +1704,8 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
-    if (kbd.current >= KEY_F1) {  // Si c'est une touche Fn
-      OnKeyDown(kbd.current);    // Traiter immédiatement
+    if (kbd.current == KEY_F1) { 
+      OnKeyDown(kbd.current);    
       return true;
     }
 
