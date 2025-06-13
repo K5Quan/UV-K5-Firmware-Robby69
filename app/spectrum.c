@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";
@@ -201,8 +201,6 @@ KEY_Code_t GetKey() {
       case KEY_8: comboKey = KEY_F8; break;
       case KEY_9: comboKey = KEY_F9; break;
       case KEY_F: comboKey = KEY_FF; break;
-
-      // Ajouter d'autres combinaisons au besoin
       default: comboKey = btn; break;  // Fallback si pas une combinaison définie
     }
     kbd.fKeyPressed = false;
@@ -1294,6 +1292,12 @@ static void OnKeyDown(uint8_t key) {
   switch (key) {
       case KEY_FF:  // F+1
         SecondaryButtonAction =!SecondaryButtonAction; //When SeSecondaryButtonAction is true, the buttons have another action
+        if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 80, 0, true, true);} //SHOW FF activated
+  
+          /////////////////////////DEBUG//////////////////////////
+          char str[64] = "";
+          sprintf(str, "fL %d\n", SecondaryButtonAction );LogUart(str);
+
         break; 
      case KEY_F1:  // F+1
         CloseCallSpectrum();
@@ -1708,11 +1712,6 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
-    /*if (kbd.current == KEY_F1) { 
-      OnKeyDown(kbd.current);    
-      return true;
-    }*/
-
     if (kbd.counter == 3 || kbd.counter == 30) {
     // Długie wciśnięcie klawisza 0
         if (kbd.current == KEY_0 && kbd.counter == 30) {
@@ -1875,9 +1874,9 @@ static void Tick() {
       preventKeypress = false;
     }
   }
-  if (kbd.fKeyPressed && kbd.current == KEY_INVALID && kbd.counter > 30) {
+  /*if (kbd.fKeyPressed && kbd.current == KEY_INVALID && kbd.counter > 30) {
     kbd.fKeyPressed = false;  // Annuler après un timeout
-  }
+  }*/
 
   if (!preventKeypress) {
     HandleUserInput();
@@ -2144,7 +2143,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
 }
 
 
-/*static void BuildValidScanListIndices() {
+static void BuildValidScanListIndices() {
     validScanListCount = 0;
     for (uint8_t i = 0; i < 15; i++) {
         char tempName[17];
@@ -2152,7 +2151,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
             validScanListIndices[validScanListCount++] = i;
         }
     }
-}*/
+}
 
 
 static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
@@ -2262,7 +2261,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
 // Fonction pour afficher le menu ScanList
 static void RenderScanListSelect() {
-    //BuildValidScanListIndices();
+    BuildValidScanListIndices(); 
     RenderList("Select ScanList", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
 }
 
