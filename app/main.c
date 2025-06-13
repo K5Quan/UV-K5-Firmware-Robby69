@@ -194,7 +194,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 			break;
 
-		case KEY_4:
+		case KEY_4: //"Close call" , copy frequency from strong signal
 			gWasFKeyPressed          = false;
 
 			gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;

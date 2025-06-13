@@ -341,7 +341,7 @@ void SCANNER_Start(bool singleFreq)
 		gUpdateStatus = true;
 	}
 	#ifdef ENABLE_SCANNER
-	else {
+	else { //Close call
 		gScanCssState  = SCAN_CSS_STATE_OFF;
 		gScanFrequency = 0xFFFFFFFF;
 
