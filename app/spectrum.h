@@ -174,10 +174,11 @@ typedef struct SpectrumSettings {
   bool bandEnabled[32];
 } SpectrumSettings;
 
-typedef struct KeyboardState {
+typedef struct KeyboardState{
   KEY_Code_t current;
   KEY_Code_t prev;
   uint8_t counter;
+  bool fKeyPressed;
 } KeyboardState;
 
 typedef struct ScanInfo {

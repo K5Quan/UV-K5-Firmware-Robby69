@@ -14,17 +14,11 @@
           char str[64] = "";
           sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
 */
-typedef struct {
-  KEY_Code_t current;
-  KEY_Code_t prev;
-  uint8_t counter;
-  bool fKeyPressed;  // Nouveau champ pour suivre l'état de la touche F
-} KeyboardState;
-
 #define MAX_VISIBLE_BAND_LINES 6
 #define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
 #define HISTORY_SIZE 100
+bool SecondaryButtonAction = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
 static int historyScrollOffset = 0;
@@ -37,7 +31,7 @@ static void CloseCallSpectrum();
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
 bool inScanListMenu = false;
-
+KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0,0};
 bool AutoTriggerLevelbandsMode = 0;
 struct FrequencyBandInfo {
     uint32_t lower;
@@ -92,15 +86,12 @@ bool redrawScreen = false;
 bool newScanStart = true;
 bool preventKeypress = true;
 bool audioState = true;
-//uint8_t waitingForScanListNumber = 0;
-//static int scanListNumber =0;
 uint8_t bl;
 uint8_t CurrentScanBand = 1;
 State currentState = SPECTRUM, previousState = SPECTRUM;
 uint8_t Spectrum_state; 
 PeakInfo peak;
 ScanInfo scanInfo;
-KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
 #define BLACKLIST_SIZE 200
 static uint16_t blacklistFreqs[BLACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
@@ -197,7 +188,7 @@ KEY_Code_t GetKey() {
   }
   
   // Si une autre touche est pressée alors que F est active
-  if (kbd.fKeyPressed && btn != KEY_INVALID && btn != KEY_F) {
+  if (kbd.fKeyPressed && btn != KEY_INVALID) {
     KEY_Code_t comboKey = KEY_INVALID;
     switch(btn) {
       case KEY_1: comboKey = KEY_F1; break;
@@ -209,6 +200,7 @@ KEY_Code_t GetKey() {
       case KEY_7: comboKey = KEY_F7; break;
       case KEY_8: comboKey = KEY_F8; break;
       case KEY_9: comboKey = KEY_F9; break;
+      case KEY_F: comboKey = KEY_FF; break;
 
       // Ajouter d'autres combinaisons au besoin
       default: comboKey = btn; break;  // Fallback si pas une combinaison définie
@@ -1243,9 +1235,6 @@ static void OnKeyDown(uint8_t key) {
 // If we're in scanlist selection mode, use dedicated key logic
     if (currentState == SCANLIST_SELECT) {
         switch (key) {
-          case KEY_F1:  // F+1
-            CloseCallSpectrum();
-            break;
 
             case KEY_UP:
                 if (scanListSelectedIndex > 0) {
@@ -1302,19 +1291,35 @@ static void OnKeyDown(uint8_t key) {
     
 
   switch (key) {
+      case KEY_FF:  // F+1
+        SecondaryButtonAction =!SecondaryButtonAction; //When SeSecondaryButtonAction is true, the buttons have another action
+        break; 
+     case KEY_F1:  // F+1
+        CloseCallSpectrum();
+        break;
+
      case KEY_3:
-       UpdateDBMax(true);
+      if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 3
+      else UpdateDBMax(true);
        break;
+     
      case KEY_9:
+     if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 9
        UpdateDBMax(false);
        break;
+
      case KEY_1:
-       AutoTriggerLevel();
-       SquelchBarKeyMode=0;
-       break;
+        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}} //Action after F+F then 1
+        else {AutoTriggerLevel();
+              SquelchBarKeyMode=0;
+             }
+        break;
+     
      case KEY_7:
-       if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
-       break;
+        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}} //Action after F+F then 7
+        if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
+        break;
+     
      case KEY_2:
       if (appMode != SCAN_BAND_MODE) // long press
             ToggleNormalizeRssi(!isNormalizationApplied);
@@ -1328,8 +1333,12 @@ static void OnKeyDown(uint8_t key) {
         indexFs = 1;
       }
       else ShowHistory = !ShowHistory;
-      //ToggleBacklight();
       break;
+      
+    case KEY_STAR:
+      ToggleBacklight();
+      break;
+
     case KEY_UP:
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
@@ -1385,13 +1394,7 @@ static void OnKeyDown(uint8_t key) {
     Blacklist();
     break;
   
-  case KEY_STAR:
-	  UpdateRssiTriggerLevel(true);
-    break;
-  
-  case KEY_F:
-    UpdateRssiTriggerLevel(false);
-    break;
+
   
   case KEY_4:
     if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
@@ -2120,10 +2123,7 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
 
 // Fonction pour afficher un item ScanList
 static void GetScanListItemText(uint8_t index, char* buffer) {
-    sprintf(buffer, "ScanList %2d %s",
-        index + 1,
-        settings.scanListEnabled[index] ? "*" : " ");
-}
+    sprintf(buffer, "ScanList %2d %s",index + 1,settings.scanListEnabled[index] ? "*" : " ");}
 
 // Helper functions for each list type
 static void GetBandItemText(uint8_t index, char* buffer) {
@@ -2227,15 +2227,11 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
 // Fonction pour afficher le menu ScanList
 static void RenderScanListSelect() {
-    RenderList("Select ScanList", 15,
-               scanListSelectedIndex, scanListScrollOffset, GetScanListItemText);
-}
+  
+    RenderList("Select ScanList", 15,scanListSelectedIndex, scanListScrollOffset, GetScanListItemText);}
 
 static void RenderBandSelect() {
-    RenderList("Select Band", ARRAY_SIZE(BParams), 
-              bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
-}
-
+    RenderList("Select Band", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
 
 static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
@@ -2251,7 +2247,7 @@ static void RenderHistoryList() {
 static void CloseCallSpectrum(void) {
   DeInitSpectrum();
   SCANNER_Start(0);
-  gTxVfo->pRX->Frequency = gScanFrequency
+  gTxVfo->pRX->Frequency = gScanFrequency;
   APP_RunSpectrum (4); // Run basic spectrum mode
   
     }
