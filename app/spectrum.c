@@ -1,5 +1,6 @@
 #include "app/spectrum.h"
 #include "chFrScanner.h"
+#include "scanner.h"
 #include "driver/backlight.h"
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
 #include "audio.h"
@@ -17,6 +18,7 @@
 #define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
 #define HISTORY_SIZE 100
+bool SecondaryButtonAction = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
 static int historyScrollOffset = 0;
@@ -25,10 +27,11 @@ static void RenderScanListSelect();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
+static void CloseCallSpectrum();
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
 bool inScanListMenu = false;
-
+KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0,0};
 bool AutoTriggerLevelbandsMode = 0;
 struct FrequencyBandInfo {
     uint32_t lower;
@@ -83,15 +86,12 @@ bool redrawScreen = false;
 bool newScanStart = true;
 bool preventKeypress = true;
 bool audioState = true;
-//uint8_t waitingForScanListNumber = 0;
-//static int scanListNumber =0;
 uint8_t bl;
 uint8_t CurrentScanBand = 1;
 State currentState = SPECTRUM, previousState = SPECTRUM;
 uint8_t Spectrum_state; 
 PeakInfo peak;
 ScanInfo scanInfo;
-KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0};
 #define BLACKLIST_SIZE 200
 static uint16_t blacklistFreqs[BLACKLIST_SIZE];
 static uint8_t blacklistFreqsIdx;
@@ -180,6 +180,42 @@ static void SetRegMenuValue(uint8_t st, bool add) {
 
 KEY_Code_t GetKey() {
   KEY_Code_t btn = KEYBOARD_Poll();
+  
+  // Si la touche F est pressée, mémoriser son état
+  if (btn == KEY_F) {
+    kbd.fKeyPressed = true;
+    return KEY_INVALID;  // Ne pas traiter F seule immédiatement
+  }
+  
+  // Si une autre touche est pressée alors que F est active
+  if (kbd.fKeyPressed && btn != KEY_INVALID) {
+    KEY_Code_t comboKey = KEY_INVALID;
+    switch(btn) {
+      case KEY_1: comboKey = KEY_F1; break;
+      case KEY_2: comboKey = KEY_F2; break;
+      case KEY_3: comboKey = KEY_F3; break;
+      case KEY_4: comboKey = KEY_F4; break;
+      case KEY_5: comboKey = KEY_F5; break;
+      case KEY_6: comboKey = KEY_F6; break;
+      case KEY_7: comboKey = KEY_F7; break;
+      case KEY_8: comboKey = KEY_F8; break;
+      case KEY_9: comboKey = KEY_F9; break;
+      case KEY_F: comboKey = KEY_FF; break;
+
+      // Ajouter d'autres combinaisons au besoin
+      default: comboKey = btn; break;  // Fallback si pas une combinaison définie
+    }
+    kbd.fKeyPressed = false;
+    return comboKey;
+  }
+  
+  // Si F est relâchée sans combinaison
+  if (btn == KEY_INVALID && kbd.prev == KEY_F) {
+    kbd.fKeyPressed = false;
+    return KEY_F;  // Traiter F seule si relâchée sans combinaison
+  }
+
+  // Gestion PTT existante
   if (btn == KEY_INVALID && !GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT)) {
     btn = KEY_PTT;
   }
@@ -359,12 +395,6 @@ uint16_t GetRssi() {
     SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
   }
   rssi = BK4819_GetRSSI();
-  //if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-  /*if (fMeasure > 3000000)
-    {
-      // Increase perceived RSSI for UHF bands to imitate radio squelch
-      rssi+=UHF_NOISE_FLOOR;
-    }*/
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -862,6 +892,7 @@ static void DrawStatus() {
   // display scanlists
   int pos = 1;
   int len = 0;
+  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 60, 0, true, true);}
   if (appMode == SCAN_BAND_MODE){
     String[0] = 'B';
     for (int i = 1; i <= 32; i++) {
@@ -903,14 +934,6 @@ static void DrawStatus() {
 
 static void DrawF(uint32_t f) {
 	uint8_t Code;
-  /*if (waitingForScanListNumber == 2 || waitingForScanListNumber == 3) {
-      sprintf(String, "--");
-      UI_PrintStringSmall(String, 1,127,4);}
-
-  if (waitingForScanListNumber == 1){
-    sprintf(String, "%u-",scanListNumber/10);
-    UI_PrintStringSmall(String, 1,127,4);} */
-  
 	if (f > 0){
 
     if(GetScanStep() ==  833) {
@@ -1212,6 +1235,7 @@ static void OnKeyDown(uint8_t key) {
 // If we're in scanlist selection mode, use dedicated key logic
     if (currentState == SCANLIST_SELECT) {
         switch (key) {
+
             case KEY_UP:
                 if (scanListSelectedIndex > 0) {
                     scanListSelectedIndex--;
@@ -1267,19 +1291,35 @@ static void OnKeyDown(uint8_t key) {
     
 
   switch (key) {
+      case KEY_FF:  // F+1
+        SecondaryButtonAction =!SecondaryButtonAction; //When SeSecondaryButtonAction is true, the buttons have another action
+        break; 
+     case KEY_F1:  // F+1
+        CloseCallSpectrum();
+        break;
+
      case KEY_3:
-       UpdateDBMax(true);
+      if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 3
+      else UpdateDBMax(true);
        break;
+     
      case KEY_9:
+     if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 9
        UpdateDBMax(false);
        break;
+
      case KEY_1:
-       AutoTriggerLevel();
+        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}} //Action after F+F then 1
+        else {AutoTriggerLevel();
        SquelchBarKeyMode=0;
+             }
        break;
+     
      case KEY_7:
+        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}} //Action after F+F then 7
        if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
        break;
+     
      case KEY_2:
       if (appMode != SCAN_BAND_MODE) // long press
             ToggleNormalizeRssi(!isNormalizationApplied);
@@ -1293,8 +1333,12 @@ static void OnKeyDown(uint8_t key) {
         indexFs = 1;
       }
       else ShowHistory = !ShowHistory;
-      //ToggleBacklight();
       break;
+      
+    case KEY_STAR:
+      ToggleBacklight();
+      break;
+
     case KEY_UP:
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
@@ -1350,32 +1394,15 @@ static void OnKeyDown(uint8_t key) {
     Blacklist();
     break;
   
-  case KEY_STAR:
-	  UpdateRssiTriggerLevel(true);
-    break;
   
-  case KEY_F:
-    UpdateRssiTriggerLevel(false);
-    break;
   
   case KEY_4:
-    /*if(appMode==CHANNEL_MODE)
-    {
-      waitingForScanListNumber = 2;
-      redrawStatus = true;
-    }
-    else */
     if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
     break;
 
   case KEY_5:
 
     if(appMode==FREQUENCY_MODE) FreqInput();
-    
-    /*if (appMode==CHANNEL_MODE ) {
-      waitingForScanListNumber = 3;
-      redrawStatus = true;
-    }*/
     break;
   case KEY_0:
     ToggleModulation();
@@ -1680,6 +1707,11 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
+    /*if (kbd.current == KEY_F1) { 
+      OnKeyDown(kbd.current);    
+      return true;
+    }*/
+
     if (kbd.counter == 3 || kbd.counter == 30) {
     // Długie wciśnięcie klawisza 0
         if (kbd.current == KEY_0 && kbd.counter == 30) {
@@ -1842,7 +1874,9 @@ static void Tick() {
       preventKeypress = false;
     }
   }
-
+  if (kbd.fKeyPressed && kbd.current == KEY_INVALID && kbd.counter > 30) {
+    kbd.fKeyPressed = false;  // Annuler après un timeout
+  }
 
   if (!preventKeypress) {
     HandleUserInput();
@@ -2099,6 +2133,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     for (int i = 0; i < 200; i++) {
       att = gMR_ChannelAttributes[i];
       if (att.scanlist == scanListIndex+1) {
+        
             SETTINGS_FetchChannelName(channel_name,i);
             sprintf(bufferOut, "%2d: %s %s", scanListIndex + 1, channel_name,settings.scanListEnabled[scanListIndex] ? "*" : " ");
             return true;
@@ -2248,3 +2283,10 @@ static void RenderHistoryList() {
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
 
+static void CloseCallSpectrum(void) {
+  DeInitSpectrum();
+  SCANNER_Start(0);
+  gTxVfo->pRX->Frequency = gScanFrequency;
+  APP_RunSpectrum (4); // Run basic spectrum mode
+  
+    }
