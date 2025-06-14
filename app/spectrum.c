@@ -940,24 +940,25 @@ static void DrawF(uint32_t f) {
       else 	if (isKnownChannel && isListening) {
 		    sprintf(String, "%s", channelName);
 		    UI_PrintStringSmallBold(String, 1, 127, 1);}
+        else 
+          	if (f > 0 && ShowHistory){
+              if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
+	            else {
+			          if(GetScanStep() ==  833) {
+                  uint32_t base = f/2500*2500;
+                  int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+                  f = base + (chno * 833) + (chno == 3);
+                }
+            sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+              }
+            //GUI_DisplaySmallest(String, 0,18,false,true);
+            UI_PrintStringSmallBold(String, 1, 127, 1); 
+            }
 
   sprintf(String,"%d db",settings.dbMax);
   GUI_DisplaySmallest(String, 0,12,false,true);
   
-  	if (f > 0 && ShowHistory){
-    if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
-	    else 	
-        {
-			 if(GetScanStep() ==  833) {
-            uint32_t base = f/2500*2500;
-            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-            f = base + (chno * 833) + (chno == 3);
-            }
-     
-        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
-        }
-    GUI_DisplaySmallest(String, 0,18,false,true);
-    }
+
   
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
@@ -1981,7 +1982,7 @@ void LoadValidMemoryChannels(void)
   void ToggleNormalizeRssi(bool on)
   {
     // we don't want to normalize when there is already active signal RX
-    if(IsPeakOverLevel() && on){
+    if(IsPeakOverLevel()){
 		    UpdateScan();//Robby69 Force scan continue
 		    UpdateScan();
 		    return;}
