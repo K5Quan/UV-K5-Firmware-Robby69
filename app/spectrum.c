@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";
@@ -27,9 +27,9 @@ static void RenderScanListSelect();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
-static void CloseCallSpectrum();
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
+static uint8_t validScanListCount = 0;
 bool inScanListMenu = false;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0,0};
 bool AutoTriggerLevelbandsMode = 0;
@@ -181,38 +181,7 @@ static void SetRegMenuValue(uint8_t st, bool add) {
 KEY_Code_t GetKey() {
   KEY_Code_t btn = KEYBOARD_Poll();
   
-  // Si la touche F est pressée, mémoriser son état
-  if (btn == KEY_F) {
-    kbd.fKeyPressed = true;
-    return KEY_INVALID;  // Ne pas traiter F seule immédiatement
-  }
   
-  // Si une autre touche est pressée alors que F est active
-  if (kbd.fKeyPressed && btn != KEY_INVALID) {
-    KEY_Code_t comboKey = KEY_INVALID;
-    switch(btn) {
-      case KEY_1: comboKey = KEY_F1; break;
-      case KEY_2: comboKey = KEY_F2; break;
-      case KEY_3: comboKey = KEY_F3; break;
-      case KEY_4: comboKey = KEY_F4; break;
-      case KEY_5: comboKey = KEY_F5; break;
-      case KEY_6: comboKey = KEY_F6; break;
-      case KEY_7: comboKey = KEY_F7; break;
-      case KEY_8: comboKey = KEY_F8; break;
-      case KEY_9: comboKey = KEY_F9; break;
-      case KEY_F: comboKey = KEY_F_STAR; break;
-      default: comboKey = btn; break;  // Fallback si pas une combinaison définie
-    }
-    kbd.fKeyPressed = false;
-    return comboKey;
-  }
-  
-  // Si F est relâchée sans combinaison
-  if (btn == KEY_INVALID && kbd.prev == KEY_F) {
-    kbd.fKeyPressed = false;
-    return KEY_F;  // Traiter F seule si relâchée sans combinaison
-  }
-
   // Gestion PTT existante
   if (btn == KEY_INVALID && !GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT)) {
     btn = KEY_PTT;
@@ -1246,7 +1215,7 @@ static void OnKeyDown(uint8_t key) {
                 break;
             case KEY_DOWN:
                 // ARRAY_SIZE(BParams) gives the number of defined bands
-                if (scanListSelectedIndex < 14) { // 15 scan lists, indexed from 0 to 14
+                if (scanListSelectedIndex < validScanListCount-1) { 
                     scanListSelectedIndex++;
                     if (scanListSelectedIndex >= scanListScrollOffset + MAX_VISIBLE_SL_LINES) {
                         scanListScrollOffset = scanListSelectedIndex - MAX_VISIBLE_SL_LINES + 1;
@@ -1290,38 +1259,29 @@ static void OnKeyDown(uint8_t key) {
     
 
   switch (key) {
-      case KEY_F_STAR:  // F+1
-        SecondaryButtonAction =!SecondaryButtonAction; //When SeSecondaryButtonAction is true, the buttons have another action
-        redrawStatus = true;
-  
-          /////////////////////////DEBUG//////////////////////////
-          char str[64] = "";
-          sprintf(str, "fL %d\n", SecondaryButtonAction );LogUart(str);
 
-        break; 
-     case KEY_F1:  // F+1
-        CloseCallSpectrum();
-        break;
+      case KEY_STAR:
+         UpdateRssiTriggerLevel(true);
+      break;
+     
+     case KEY_F:
+        UpdateRssiTriggerLevel(false);
+     break;
 
      case KEY_3:
-      if (SecondaryButtonAction) UpdateRssiTriggerLevel(true); //Action after F+F then 3
-      else UpdateDBMax(true);
-       break;
+        UpdateDBMax(true);
+     break;
      
      case KEY_9:
-     if (SecondaryButtonAction) UpdateRssiTriggerLevel(false); //Action after F+F then 9
-       UpdateDBMax(false);
-       break;
+        UpdateDBMax(false);
+    break;
 
      case KEY_1:
-        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}} //Action after F+F then 1
-        else {AutoTriggerLevel();
-       SquelchBarKeyMode=0;
-             }
-       break;
+        AutoTriggerLevel();
+        SquelchBarKeyMode=0;
+    break;
      
      case KEY_7:
-        if (SecondaryButtonAction){if(appMode!=CHANNEL_MODE) {UpdateScanStep(false);}} //Action after F+F then 7
        if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
        break;
      
@@ -1340,10 +1300,6 @@ static void OnKeyDown(uint8_t key) {
       else ShowHistory = !ShowHistory;
       break;
       
-    case KEY_STAR:
-      ToggleBacklight();
-      break;
-
     case KEY_UP:
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
@@ -2081,6 +2037,14 @@ void LoadSettings()
   settings.dbMax = eepromData.dbMax;
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
+    
+    validScanListCount = 0;
+    ChannelAttributes_t att;
+    for (int i = 0; i < 200; i++) {
+      att = gMR_ChannelAttributes[i];
+      if (att.scanlist > validScanListCount) {validScanListCount = att.scanlist;}
+    }
+
   }
 
 void SaveSettings() 
@@ -2125,7 +2089,7 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
 #define MAX_VALID_SCANLISTS 15
 
 static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
-static uint8_t validScanListCount = 0;
+
 
 static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     ChannelAttributes_t att;
@@ -2133,7 +2097,7 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     for (int i = 0; i < 200; i++) {
       att = gMR_ChannelAttributes[i];
       if (att.scanlist == scanListIndex+1) {
-            validScanListCount++;
+            //validScanListCount++;
             SETTINGS_FetchChannelName(channel_name,i);
             sprintf(bufferOut, "%2d: %s %s", scanListIndex + 1, channel_name,settings.scanListEnabled[scanListIndex] ? "*" : " ");
             return true;
@@ -2144,11 +2108,11 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
 
 
 static void BuildValidScanListIndices() {
-    validScanListCount = 0;
+    uint8_t ScanListCount = 0;
     for (uint8_t i = 0; i < 15; i++) {
         char tempName[17];
         if (GetScanListLabel(i, tempName)) {
-            validScanListIndices[validScanListCount++] = i;
+            validScanListIndices[ScanListCount++] = i;
         }
     }
 }
@@ -2265,15 +2229,11 @@ static void RenderScanListSelect() {
     RenderList("Select ScanList", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
 }
 
-static void RenderBandSelect() {
-    RenderList("Select Band", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);
-}
-
+static void RenderBandSelect() {RenderList("Select Band", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
 
 static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
     
-    // Tworzenie nagłówka z liczbą pozycji w nawiasie
     char headerString[24];
     sprintf(headerString, "Freq. History (%d)", validItems);
     
@@ -2281,10 +2241,4 @@ static void RenderHistoryList() {
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
 
-static void CloseCallSpectrum(void) {
-  DeInitSpectrum();
-  SCANNER_Start(0);
-  gTxVfo->pRX->Frequency = gScanFrequency;
-  APP_RunSpectrum (4); // Run basic spectrum mode
-  
-    }
+
