@@ -909,7 +909,7 @@ static void DrawF(uint32_t f) {
           int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
           f = base + (chno * 833) + (chno == 3);
 	      }
-  memset(String, 0, sizeof(String));   
+ //memset(String, 0, sizeof(String));   
 	sprintf(String, "%u.%05u", f / 100000, f % 100000);
 	UI_PrintStringSmallBold(String, 1, 127, 0);}
 	f= freqHistory[indexFd];				 
@@ -917,24 +917,6 @@ static void DrawF(uint32_t f) {
     isKnownChannel = channelFd == -1 ? false : true;
 
 
-
-	if (f > 0 && ShowHistory){
-    //Robby69 show history 
-    memset(String, 0, sizeof(String)); 
-    if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
-	    else 	
-        {
-			 if(GetScanStep() ==  833) {
-            uint32_t base = f/2500*2500;
-            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-            f = base + (chno * 833) + (chno == 3);
-            }
-        memset(String, 0, sizeof(String)); 
-        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
-          }
-    UI_PrintStringSmall(String, 1, 1, 2); 
-    }
-  
 //Robby show CTCSS or DCS
 	if (refresh == 0){
 		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
@@ -959,8 +941,24 @@ static void DrawF(uint32_t f) {
 		    sprintf(String, "%s", channelName);
 		    UI_PrintStringSmallBold(String, 1, 127, 1);}
 
-  sprintf(String,"%d",settings.dbMax);
-  GUI_DisplaySmallest(String, 100,0,false,true);
+  sprintf(String,"%d db",settings.dbMax);
+  GUI_DisplaySmallest(String, 0,12,false,true);
+  
+  	if (f > 0 && ShowHistory){
+    if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
+	    else 	
+        {
+			 if(GetScanStep() ==  833) {
+            uint32_t base = f/2500*2500;
+            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+            f = base + (chno * 833) + (chno == 3);
+            }
+     
+        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+        }
+    GUI_DisplaySmallest(String, 0,18,false,true);
+    }
+  
   sprintf(String, "%3s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 116, 1, false, true);
   sprintf(String, "%s", bwNames[settings.listenBw]);
