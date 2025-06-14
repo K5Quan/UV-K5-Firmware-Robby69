@@ -50,7 +50,7 @@ enum KEY_Code_e {
 	KEY_F7,     // F+7
 	KEY_F8,     // F+8
 	KEY_F9,      // F+9
-	KEY_FF,	    // F+F
+	KEY_F_STAR,	    // F+STAR
 	KEY_INVALID //
 };
 typedef enum KEY_Code_e KEY_Code_t;

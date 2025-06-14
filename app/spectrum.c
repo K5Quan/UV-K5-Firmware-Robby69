@@ -200,7 +200,7 @@ KEY_Code_t GetKey() {
       case KEY_7: comboKey = KEY_F7; break;
       case KEY_8: comboKey = KEY_F8; break;
       case KEY_9: comboKey = KEY_F9; break;
-      case KEY_F: comboKey = KEY_FF; break;
+      case KEY_F: comboKey = KEY_F_STAR; break;
       default: comboKey = btn; break;  // Fallback si pas une combinaison définie
     }
     kbd.fKeyPressed = false;
@@ -890,8 +890,8 @@ static void DrawStatus() {
   // display scanlists
   int pos = 1;
   int len = 0;
-  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 80, 0, true, true);} // SHOW F activated
-  if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 80, 0, true, true);} //SHOW FF activated
+  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 100, 0, true, true);} // SHOW F activated
+  if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 100, 0, true, true);} //SHOW FF activated
   if (appMode == SCAN_BAND_MODE){
     String[0] = 'B';
     for (int i = 1; i <= 32; i++) {
@@ -1290,9 +1290,9 @@ static void OnKeyDown(uint8_t key) {
     
 
   switch (key) {
-      case KEY_FF:  // F+1
+      case KEY_F_STAR:  // F+1
         SecondaryButtonAction =!SecondaryButtonAction; //When SeSecondaryButtonAction is true, the buttons have another action
-        if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 80, 0, true, true);} //SHOW FF activated
+        redrawStatus = true;
   
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";
