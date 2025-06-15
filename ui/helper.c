@@ -299,7 +299,7 @@ void GUI_DisplaySmallest(const char *pString, uint8_t x, uint8_t y,
 
   while ((c = *p++) && c != '\0') {
     c -= 0x20;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; i++) {
       pixels = gFont3x5[c][i];
       for (int j = 0; j < 6; ++j) {
         if (pixels & 1) {

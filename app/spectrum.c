@@ -18,7 +18,7 @@
 #define MAX_VISIBLE_SL_LINES 6
 #define MAX_VISIBLE_HISTORY_LINES 6
 #define HISTORY_SIZE 100
-bool SecondaryButtonAction = 0;
+bool FreeTriggerLevel = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
 static int historyScrollOffset = 0;
@@ -309,6 +309,7 @@ static void TuneToPeak() {
 }
 static void DeInitSpectrum() {
   SetF(initialFreq);
+  ToggleNormalizeRssi(false);
   RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
@@ -477,9 +478,9 @@ static bool InitScan() {
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przygotuj indeks na następne wywołanie
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
-                redrawScreen = true;
+                //redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
-                  else {settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
+                  else {if (!FreeTriggerLevel)settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
                 for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) j++;}
                   if (j>1) settings.modulationType = BParams[bl].modulationType;
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
@@ -583,7 +584,8 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
-    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
+    //if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
+    if (IsPeakOverLevelH()) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -855,30 +857,36 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
+  sprintf(String, "%s", gModulationStr[settings.modulationType]);
+  GUI_DisplaySmallest(String, 0, 1, true,true);
   
-  // display scanlists
-  int pos = 1;
-  int len = 0;
-  if (kbd.fKeyPressed) {GUI_DisplaySmallest("F", 100, 0, true, true);} // SHOW F activated
-  if (SecondaryButtonAction) {GUI_DisplaySmallest("FL", 100, 0, true, true);} //SHOW FF activated
-  if (appMode == SCAN_BAND_MODE){
-    String[0] = 'B';
-    for (int i = 1; i <= 32; i++) {
-      if (settings.bandEnabled[i-1]) {
-        int len = sprintf(&String[pos], "%d.", i);
-        pos += len;  // Move position forward
-      }
-    }}
+  sprintf(String,"%d",settings.dbMax);
+  GUI_DisplaySmallest(String, 14,1,true,true);
+  
+  sprintf(String, "%s", bwNames[settings.listenBw]);
+  GUI_DisplaySmallest(String, 32, 1, true,true);
+
+  if (currentState == SPECTRUM) {
+    if(isNormalizationApplied){
+      sprintf(String, "N(%ux)", GetStepsCount());
+    }
     else {
-      String[0] = 'S';
-      for (int i = 1; i <= 15; i++) {
-      if (settings.scanListEnabled[i-1]) {
-        len = sprintf(&String[pos], "%d.", i);
-        pos += len;  // Move position forward
-      }
-    }}
-    String[pos] = '\0';  // Null-terminate the string
-    GUI_DisplaySmallest(String, 0,1, true, true);
+      sprintf(String, "%ux", GetStepsCount());
+    }
+    GUI_DisplaySmallest(String, 56, 1, true,true);
+
+  if (appMode==CHANNEL_MODE)
+    {
+      sprintf(String, "M%i", channel+1);
+      GUI_DisplaySmallest(String, 74, 1, true,true);
+    }
+    else
+    {
+      sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
+      GUI_DisplaySmallest(String, 92, 1, true,true);
+    }
+
+  }
 
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -901,20 +909,14 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
+  if (f == 0) {return;}
 	uint8_t Code;
-	if (f > 0){
-
-    if(GetScanStep() ==  833) {
-          uint32_t base = f/2500*2500;
-          int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-          f = base + (chno * 833) + (chno == 3);
-	      }
- //memset(String, 0, sizeof(String));   
-	sprintf(String, "%u.%05u", f / 100000, f % 100000);
-	UI_PrintStringSmallBold(String, 1, 127, 0);}
-	f= freqHistory[indexFd];				 
-	int channelFd = BOARD_gMR_fetchChannel(f);
-    isKnownChannel = channelFd == -1 ? false : true;
+	if(GetScanStep() ==  833 ) {
+      uint32_t base = f/2500*2500;
+      int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+      f = base + (chno * 833) + (chno == 3);}
+ 	sprintf(String, "%u.%05u", f / 100000, f % 100000);
+	UI_PrintStringSmallBold(String, 1, 1, 0);
 
 
 //Robby show CTCSS or DCS
@@ -932,38 +934,32 @@ static void DrawF(uint32_t f) {
 			refresh = 50;
 			sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
 			
-	GUI_DisplaySmallest(StringC, 102, 14, false, true);
+	UI_PrintStringSmallBold(StringC, 87, 127, 0);
   refresh--;
-    if(appMode == SCAN_BAND_MODE)
-        {sprintf(String, "%u:%s",bl+1,BParams[bl].BandName);
-        UI_PrintStringSmallBold(String, 1, 127, 1);}
-      else 	if (isKnownChannel && isListening) {
-		    sprintf(String, "%s", channelName);
-		    UI_PrintStringSmallBold(String, 1, 127, 1);}
-        else 
-          	if (f > 0 && ShowHistory){
-              if(isKnownChannel) {sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);}
-	            else {
-			          if(GetScanStep() ==  833) {
-                  uint32_t base = f/2500*2500;
-                  int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-                  f = base + (chno * 833) + (chno == 3);
-                }
-            sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
-              }
-            //GUI_DisplaySmallest(String, 0,18,false,true);
-            UI_PrintStringSmallBold(String, 1, 127, 1); 
-            }
 
-  sprintf(String,"%d db",settings.dbMax);
-  GUI_DisplaySmallest(String, 0,12,false,true);
-  
-
-  
-  sprintf(String, "%3s", gModulationStr[settings.modulationType]);
-  GUI_DisplaySmallest(String, 116, 1, false, true);
-  sprintf(String, "%s", bwNames[settings.listenBw]);
-  GUI_DisplaySmallest(String, 108, 7, false, true);
+    if(appMode == SCAN_BAND_MODE && !isListening)
+        {sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
+        UI_PrintStringSmallBold(String, 1, 1, 1);}
+        
+    f= freqHistory[indexFd];				 
+	  int channelFd = BOARD_gMR_fetchChannel(f);
+    isKnownChannel = channelFd == -1 ? false : true;
+    if (isKnownChannel && isListening) {
+		  sprintf(String, "%s", channelName);
+		  UI_PrintStringSmallBold(String, 1, 1, 1);}
+    
+    if (ShowHistory) {
+        if(isKnownChannel) {
+          sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
+          UI_PrintStringSmallBold(String, 1, 1, 2);}
+	      else {if(GetScanStep() ==  833) {
+            uint32_t base = f/2500*2500;
+            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
+            f = base + (chno * 833) + (chno == 3);
+          }
+        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+        UI_PrintStringSmallBold(String, 1, 1, 2);}
+        }
 }
 
 void LookupChannelInfo() {
@@ -1015,27 +1011,7 @@ void LookupChannelModulation() {
 
 static void DrawNums() {
 
-  if (currentState == SPECTRUM) {
-    if(isNormalizationApplied){
-      sprintf(String, "N(%ux)", GetStepsCount());
-    }
-    else {
-      sprintf(String, "%ux", GetStepsCount());
-    }
-    GUI_DisplaySmallest(String, 0, 0, false, true);
 
-    if (appMode==CHANNEL_MODE)
-    {
-      sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 0, 6, false, true);
-    }
-    else
-    {
-      sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 0, 6, false, true);
-    }
-
-  }
 
   if (appMode==CHANNEL_MODE) 
   {
@@ -1260,10 +1236,12 @@ static void OnKeyDown(uint8_t key) {
   switch (key) {
 
       case KEY_STAR:
+         FreeTriggerLevel = true;
          UpdateRssiTriggerLevel(true);
       break;
      
      case KEY_F:
+        FreeTriggerLevel = true;
         UpdateRssiTriggerLevel(false);
      break;
 
@@ -1288,18 +1266,21 @@ static void OnKeyDown(uint8_t key) {
       if (appMode != SCAN_BAND_MODE) // long press
             ToggleNormalizeRssi(!isNormalizationApplied);
             else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+        redrawStatus = true;
         break;
      case KEY_8:
-      if ((ShowHistory) &&  (kbd.counter == 30)) { //(long press):
+      if ((ShowHistory) &&  (kbd.counter == 16)) { //(long press):
         memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
         memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0])); // ZMIANA: od pozycji 1
         indexFd = 1;
         indexFs = 1;
       }
       else ShowHistory = !ShowHistory;
+      redrawStatus = true;
       break;
       
     case KEY_UP:
+    redrawScreen = true;
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
              historyListIndex--;
@@ -1314,15 +1295,13 @@ static void OnKeyDown(uint8_t key) {
             RelaunchScan(); 
             break;
           }
-      indexFd++;
-      if(freqHistory[indexFd]==0 && indexFd > 1) indexFd--;
       
-      if (indexFd > FMaxNumb) indexFd = FMaxNumb ;
-
+      if (indexFd < indexFs-1) indexFd++;
       if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
     }
     break;
   case KEY_DOWN:
+    redrawScreen = true;
     if (currentState == HISTORY_LIST) {
         int numValidEntries = 0;
         for(int k=0; k < FMaxNumb; ++k) {
@@ -1345,30 +1324,29 @@ static void OnKeyDown(uint8_t key) {
         RelaunchScan(); 
         break;}
     indexFd--;
-  if (indexFd < 1) {indexFd = 1;}
+    if (indexFd < 1) {indexFd = 1;}
     if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
 }
-            break;
+  break;
   
   case KEY_SIDE1:
     Blacklist();
     break;
-  
-  
   
   case KEY_4:
     if (appMode!=SCAN_RANGE_MODE){ToggleStepsCount();}
     break;
 
   case KEY_5:
-
     if(appMode==FREQUENCY_MODE) FreqInput();
     break;
   case KEY_0:
     ToggleModulation();
+    redrawStatus = true;
     break;
   case KEY_6:
     ToggleListeningBW();
+    redrawStatus = true;
     break;
   
   case KEY_SIDE2:
@@ -1658,7 +1636,7 @@ bool HandleUserInput() {
     kbd.prev = kbd.current;
     kbd.current = GetKey();
     if (kbd.current != KEY_INVALID && kbd.current == kbd.prev) {
-        if (kbd.counter < 30)
+        if (kbd.counter < 16)
             kbd.counter++;
         else
             kbd.counter -= 3;
@@ -1667,9 +1645,9 @@ bool HandleUserInput() {
         kbd.counter = 0;
     }
 
-    if (kbd.counter == 3 || kbd.counter == 30) {
+    if (kbd.counter == 3 || kbd.counter == 16) {
     // Długie wciśnięcie klawisza 0
-        if (kbd.current == KEY_0 && kbd.counter == 30) {
+        if (kbd.current == KEY_0 && kbd.counter == 16) {
             if (currentState != HISTORY_LIST) { // Dodatkowe zabezpieczenie
                 SetState(HISTORY_LIST); // Przejście do stanu wyświetlania historii
                 historyListIndex = 0;
@@ -1829,9 +1807,6 @@ static void Tick() {
       preventKeypress = false;
     }
   }
-  /*if (kbd.fKeyPressed && kbd.current == KEY_INVALID && kbd.counter > 30) {
-    kbd.fKeyPressed = false;  // Annuler après un timeout
-  }*/
 
   if (!preventKeypress) {
     HandleUserInput();
