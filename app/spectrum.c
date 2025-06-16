@@ -860,36 +860,33 @@ static void DrawSpectrum()
 
 
 static void DrawStatus() {
-  sprintf(String, "%s", gModulationStr[settings.modulationType]);
-  GUI_DisplaySmallest(String, 0, 1, true,true);
-  
-  sprintf(String,"%ddb",settings.dbMax);
-  GUI_DisplaySmallest(String, 14,1,true,true);
-  
-  sprintf(String, "%s", bwNames[settings.listenBw]);
-  GUI_DisplaySmallest(String, 40, 1, true,true);
+  int len=0;
+  int pos=0;
+  len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
+  pos += len;  // Move position forward
 
   if (currentState == SPECTRUM) {
     if(isNormalizationApplied){
-      sprintf(String, "N(%ux)", GetStepsCount());
+      len = sprintf(&String[pos], "N(%ux) ", GetStepsCount());
+      pos += len;
     }
     else {
-      sprintf(String, "%ux", GetStepsCount());
+      len = sprintf(&String[pos], "%ux ", GetStepsCount());
+      pos += len;
     }
-    GUI_DisplaySmallest(String, 62, 1, true,true);
-
+    
   if (appMode==CHANNEL_MODE)
     {
-      sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 95, 1, true,true);
+      len = sprintf(&String[pos], "M%i ", channel+1);
+      pos += len;      
     }
     else
     {if (scanInfo.scanStep<2500)
-      sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-    else sprintf(String, "%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 90, 1, true,true);
+      {len = sprintf(&String[pos],"%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
+      pos += len;}
+    else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
     }
-
+GUI_DisplaySmallest(String, 0, 1, true,true);
   }
 
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
@@ -2220,7 +2217,7 @@ static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
     
     char headerString[24];
-    sprintf(headerString, "Freq. History (%d)", validItems);
+    sprintf(headerString, "History (%d)", validItems);
     
     RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
