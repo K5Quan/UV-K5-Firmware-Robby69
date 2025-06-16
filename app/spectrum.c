@@ -379,15 +379,17 @@ static void ToggleAudio(bool on) {
   }
 }
 
-void FillfreqHistory(bool count) { //  Robby69
+// PO (poprawiona wersja):
+void FillfreqHistory(uint32_t f, bool count) { // Dodaj parametr f
+    if (f > 0 || f <1301){
     uint8_t i;
     bool found = false;
     for (i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == f) {
             found = true;
             if (count) {freqCount[i]++;}
-            indexFd = i; 
-            break; 
+            indexFd = i;
+            break;
         }
     }
     if (!found) {
@@ -397,7 +399,9 @@ void FillfreqHistory(bool count) { //  Robby69
         indexFs++;
         if (indexFs > FMaxNumb) {indexFs = 1;}
     }
- }
+    }
+}
+
 
 
  static void ToggleRX(bool on) {
@@ -423,7 +427,7 @@ void FillfreqHistory(bool count) { //  Robby69
   ToggleAFBit(on);
 
   if (on)
-  { FillfreqHistory(true);
+  { FillfreqHistory(scanInfo.f, true);  // Dodano
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
@@ -584,7 +588,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
-    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
+    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(scanInfo.f, false); ///
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -859,11 +863,11 @@ static void DrawStatus() {
   sprintf(String, "%s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 0, 1, true,true);
   
-  sprintf(String,"%d db",settings.dbMax);
+  sprintf(String,"%ddb",settings.dbMax);
   GUI_DisplaySmallest(String, 14,1,true,true);
   
   sprintf(String, "%s", bwNames[settings.listenBw]);
-  GUI_DisplaySmallest(String, 44, 1, true,true);
+  GUI_DisplaySmallest(String, 40, 1, true,true);
 
   if (currentState == SPECTRUM) {
     if(isNormalizationApplied){
@@ -872,17 +876,18 @@ static void DrawStatus() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 68, 1, true,true);
+    GUI_DisplaySmallest(String, 62, 1, true,true);
 
   if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 86, 1, true,true);
+      GUI_DisplaySmallest(String, 95, 1, true,true);
     }
     else
-    {
+    {if (scanInfo.scanStep<2500)
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 86, 1, true,true);
+    else sprintf(String, "%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
+      GUI_DisplaySmallest(String, 90, 1, true,true);
     }
 
   }
@@ -908,56 +913,65 @@ static void DrawStatus() {
 }
 
 static void DrawF(uint32_t f) {
-  if (f == 0) {return;}
-	uint8_t Code;
-	if(GetScanStep() ==  833 ) {
-      uint32_t base = f/2500*2500;
-      int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-      f = base + (chno * 833) + (chno == 3);}
- 	sprintf(String, "%u.%05u", f / 100000, f % 100000);
-	UI_PrintStringSmallBold(String, 1, 1, 0);
-
-
-//Robby show CTCSS or DCS
-	if (refresh == 0){
-		BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-		sprintf(StringC, "");
-		refresh = 1;
-		if (scanResult == BK4819_CSS_RESULT_CDCSS){
-			Code = DCS_GetCdcssCode(cdcssFreq);
-			refresh = 50;
-			if (Code != 0xFF) {sprintf(StringC, " D%03oN", DCS_Options[Code]);}}
-	
-		if (scanResult == BK4819_CSS_RESULT_CTCSS) {
-			Code = DCS_GetCtcssCode(ctcssFreq);
-			refresh = 50;
-			sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);}}
-			
-	UI_PrintStringSmallBold(StringC, 87, 127, 0);
-  refresh--;
-
-    if(appMode == SCAN_BAND_MODE && !isListening)
-        {sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
-        UI_PrintStringSmallBold(String, 1, 1, 1);}
-        
-    f= freqHistory[indexFd];				 
-	  int channelFd = BOARD_gMR_fetchChannel(f);
-    isKnownChannel = channelFd == -1 ? false : true;
-    if (isKnownChannel && isListening) {
-		  sprintf(String, "%s", channelName);
-		  UI_PrintStringSmallBold(String, 1, 1, 1);}
+    if (f == 0) {return;}
+    uint8_t Code;
+    if(GetScanStep() == 833 ) {
+        uint32_t base = f/2500*2500;
+        int chno = (f - base) / 700;
+        f = base + (chno * 833) + (chno == 3);
+    }
+    sprintf(String, "%u.%05u", f / 100000, f % 100000);
+    UI_PrintStringSmallBold(String, 1, 1, 0);
     
-    if (ShowHistory) {
-        if(isKnownChannel) {
-          sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
-        else {if(GetScanStep() ==  833) {
-            uint32_t base = f/2500*2500;
-            int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-            f = base + (chno * 833) + (chno == 3);}
-         sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);}
-        UI_PrintStringSmallBold(String, 1, 1, 2);}
+    // Robby show CTCSS or DCS
+    if (refresh == 0){
+        BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+        sprintf(StringC, "");
+        refresh = 1;
+        if (scanResult == BK4819_CSS_RESULT_CDCSS){
+            Code = DCS_GetCdcssCode(cdcssFreq);
+            refresh = 50;
+            if (Code != 0xFF) {sprintf(StringC, " D%03oN", DCS_Options[Code]);}
         }
+        if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+            Code = DCS_GetCtcssCode(ctcssFreq);
+            refresh = 50;
+            sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+        }
+    }
+    UI_PrintStringSmallBold(StringC, 70, 127, 0);
+    refresh--;
+    
+    if(appMode == SCAN_BAND_MODE && !isListening) {
+        sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
+        UI_PrintStringSmallBold(String, 1, 1, 1);
+    }
+    
+    f = freqHistory[indexFd];
+    int channelFd = BOARD_gMR_fetchChannel(f);
+    isKnownChannel = channelFd == -1 ? false : true;
+    
+    if (isKnownChannel && isListening ) {
+        sprintf(String, "%s", channelName);
+        UI_PrintStringSmallBold(String, 1, 1, 1);
+    } // POPRAWIONO: dodano brakujący nawias
+    
+    if (ShowHistory && f > 0) {
+        if(isKnownChannel) {
+            sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
+        } // POPRAWIONO: dodano brakujący nawias
+        else {
+            if(GetScanStep() == 833) {
+                uint32_t base = f/2500*2500;
+                int chno = (f - base) / 700;
+                f = base + (chno * 833) + (chno == 3);
+            }
+            sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+        }
+        UI_PrintStringSmallBold(String, 1, 1, 2);
+    }
 }
+
 
 void LookupChannelInfo() {
     if (lastPeakFrequency == peak.f) 
@@ -1393,11 +1407,11 @@ static void OnKeyDown(uint8_t key) {
       SetState(previousState);
       historyListActive = false;
       redrawScreen = true;
+      break;
       }
     if (menuState) { menuState = 0;break;}
-  DeInitSpectrum();
-   
-   break;
+      DeInitSpectrum();
+    break;
    
    default:
       break;
