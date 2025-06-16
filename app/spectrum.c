@@ -383,7 +383,7 @@ void FillfreqHistory(bool count) { //  Robby69
     uint8_t i;
     bool found = false;
     for (i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] == peak.f) {
+        if (freqHistory[i] == f) {
             found = true;
             if (count) {freqCount[i]++;}
             indexFd = i; 
@@ -391,7 +391,7 @@ void FillfreqHistory(bool count) { //  Robby69
         }
     }
     if (!found) {
-        freqHistory[indexFs] = peak.f;
+        freqHistory[indexFs] = f;
         freqCount[indexFs] = 1;
         indexFd = indexFs;
         indexFs++;
@@ -584,8 +584,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
-    //if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
-    if (IsPeakOverLevelH()) FillfreqHistory(false);
+    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -860,11 +859,11 @@ static void DrawStatus() {
   sprintf(String, "%s", gModulationStr[settings.modulationType]);
   GUI_DisplaySmallest(String, 0, 1, true,true);
   
-  sprintf(String,"%d",settings.dbMax);
+  sprintf(String,"%d db",settings.dbMax);
   GUI_DisplaySmallest(String, 14,1,true,true);
   
   sprintf(String, "%s", bwNames[settings.listenBw]);
-  GUI_DisplaySmallest(String, 32, 1, true,true);
+  GUI_DisplaySmallest(String, 44, 1, true,true);
 
   if (currentState == SPECTRUM) {
     if(isNormalizationApplied){
@@ -873,17 +872,17 @@ static void DrawStatus() {
     else {
       sprintf(String, "%ux", GetStepsCount());
     }
-    GUI_DisplaySmallest(String, 56, 1, true,true);
+    GUI_DisplaySmallest(String, 68, 1, true,true);
 
   if (appMode==CHANNEL_MODE)
     {
       sprintf(String, "M%i", channel+1);
-      GUI_DisplaySmallest(String, 74, 1, true,true);
+      GUI_DisplaySmallest(String, 86, 1, true,true);
     }
     else
     {
       sprintf(String, "%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      GUI_DisplaySmallest(String, 92, 1, true,true);
+      GUI_DisplaySmallest(String, 86, 1, true,true);
     }
 
   }
@@ -951,13 +950,11 @@ static void DrawF(uint32_t f) {
     if (ShowHistory) {
         if(isKnownChannel) {
           sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
-          UI_PrintStringSmallBold(String, 1, 1, 2);}
-	      else {if(GetScanStep() ==  833) {
+        else {if(GetScanStep() ==  833) {
             uint32_t base = f/2500*2500;
             int chno = (f - base) / 700;    // convert entered aviation 8.33Khz channel number scheme to actual frequency. 
-            f = base + (chno * 833) + (chno == 3);
-          }
-        sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+            f = base + (chno * 833) + (chno == 3);}
+         sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);}
         UI_PrintStringSmallBold(String, 1, 1, 2);}
         }
 }
