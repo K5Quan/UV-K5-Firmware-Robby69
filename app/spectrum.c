@@ -125,7 +125,7 @@ uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
-uint32_t freqHistory[HISTORY_SIZE+1];
+uint32_t freqHistory[HISTORY_SIZE+1]= {0};
 uint8_t freqCount[HISTORY_SIZE+1] = {0};
 uint8_t indexFd = 1;
 uint8_t indexFs = 1;
@@ -381,7 +381,7 @@ static void ToggleAudio(bool on) {
 
 // PO (poprawiona wersja):
 void FillfreqHistory(uint32_t f, bool count) { // Dodaj parametr f
-    if (f > 0 || f <1301){
+    if (f > 0 && f <130000000){
     uint8_t i;
     bool found = false;
     for (i = 1; i <= FMaxNumb; i++) {
