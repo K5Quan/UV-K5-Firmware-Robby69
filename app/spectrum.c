@@ -458,6 +458,18 @@ static void ResetScanStats() {
   scanInfo.fPeak = 0;
 }
 
+bool SingleBandCheck(void) {
+    int count = 0;
+    for (int i = 0; i < 32; i++) {
+        if (settings.bandEnabled[i]) {
+            if (++count > 1) {
+                return false;
+            }
+        }
+    }
+    return (count == 1);
+}
+
 static bool InitScan() {
     ResetScanStats();
     scanInfo.i = 0;
@@ -939,10 +951,7 @@ static void DrawF(uint32_t f) {
     UI_PrintStringSmallBold(StringC, 70, 127, 0);
     refresh--;
     
-    if(appMode == SCAN_BAND_MODE && !isListening) {
-        sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
-        UI_PrintStringSmallBold(String, 1, 1, 1);
-    }
+
     
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
@@ -951,7 +960,11 @@ static void DrawF(uint32_t f) {
     if (isKnownChannel && isListening ) {
         sprintf(String, "%s", channelName);
         UI_PrintStringSmallBold(String, 1, 1, 1);
-    } // POPRAWIONO: dodano brakujący nawias
+    } else if(appMode == SCAN_BAND_MODE ) {
+        sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
+        UI_PrintStringSmallBold(String, 1, 1, 1);
+    } 
+
     
     if (ShowHistory && f > 0) {
         if(isKnownChannel) {
@@ -1271,11 +1284,12 @@ static void OnKeyDown(uint8_t key) {
        break;
      
      case KEY_2:
-      if (appMode != SCAN_BAND_MODE) // long press
+      if (appMode != SCAN_BAND_MODE || SingleBandCheck())
             ToggleNormalizeRssi(!isNormalizationApplied);
-            else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
-        redrawStatus = true;
-        break;
+        else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+      redrawStatus = true;
+      break;
+
      case KEY_8:
       if ((ShowHistory) &&  (kbd.counter == 16)) { //(long press):
         memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
@@ -1372,33 +1386,37 @@ static void OnKeyDown(uint8_t key) {
   case KEY_MENU:
   if (kbd.counter == 3) SaveSettings(); // short press
   else {
-        int validIndices[FMaxNumb + 1];
+        //int validIndices[FMaxNumb + 1];
         int validCount = 0;
         
         for (int k = 1; k <= FMaxNumb; ++k) {
             if (freqHistory[k] != 0) {
-                validIndices[validCount] = k;
+                //validIndices[validCount] = k;
                 validCount++;
             }
         }
-        
-        if (historyListIndex < validCount) {
-            int realIndex = validIndices[historyListIndex];
-            uint32_t selectedFreq = freqHistory[realIndex];
-            
+        if (currentState == HISTORY_LIST) {
+          uint32_t selectedFreq = freqHistory[historyListIndex+1];
+          currentFreq = selectedFreq;
+          fMeasure = selectedFreq;
+          SetF(fMeasure);
+        }
+        else if (historyListIndex < validCount && ShowHistory) {
+            //int realIndex = validIndices[historyListIndex];
+            uint32_t selectedFreq = freqHistory[indexFd];
             currentFreq = selectedFreq;
             fMeasure = selectedFreq;
-            SetState(STILL);
-            
-            monitorMode = false;
-            menuState = 0;
             SetF(fMeasure);
-            
-            redrawScreen = true;
-            redrawStatus = true;
+        } else {SetF(peak.f);}
+        
+        SetState(STILL);
+        monitorMode = false;
+        menuState = 0;
+        redrawScreen = true;
+        redrawStatus = true;
         }
-    }
     break;
+
   case KEY_EXIT:
     if (currentState == HISTORY_LIST) {
       SetState(previousState);
