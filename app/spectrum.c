@@ -983,6 +983,7 @@ static void DrawF(uint32_t f) {
     
     // CTCSS/DCS display
     char StringC[16] = "";
+    
     if (refresh == 0){
         BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
         refresh = 1;
@@ -997,7 +998,7 @@ static void DrawF(uint32_t f) {
             sprintf(StringC, "%u.%uHz",CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
         }
     }
-    UI_PrintStringSmallBold(StringC, 70, 127, 0);
+    //UI_PrintStringSmallBold(StringC, 70, 127, 0);
     refresh--;
 
     // Handle display lines (max 18 chars each)
@@ -1009,12 +1010,13 @@ static void DrawF(uint32_t f) {
     char line2[19] = "";
     char line3[19] = "";
     bool showHistory = ShowHistory && f > 0;
-    
-    if (isKnownChannel && isListening) {
+  
+    if (isListening) {
         int needed = strlen(freqStr) + 1 + strlen(channelName);
         if (needed <= 18) {
             // Frequency and name fit on line1
-            snprintf(line1, sizeof(line1), "%s %s", freqStr, channelName);
+            if (isKnownChannel) snprintf(line1, sizeof(line1), "%s %s", freqStr, channelName);
+            if (refresh >1)snprintf(line1, sizeof(line1), "%s %s", freqStr, StringC);
             if (showHistory) {
                 formatHistory(line2, indexFd, channelFd, f);
             }
