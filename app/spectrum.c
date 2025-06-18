@@ -380,12 +380,12 @@ static void ToggleAudio(bool on) {
 }
 
 // PO (poprawiona wersja):
-void FillfreqHistory(uint32_t f, bool count) { // Dodaj parametr f
-    if (f > 0 && f <130000000){
+void FillfreqHistory(bool count) { // Dodaj parametr f
+    if (peak.f > 0 && peak.f <130000000){
     uint8_t i;
     bool found = false;
     for (i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] == f) {
+        if (freqHistory[i] == peak.f) {
             found = true;
             if (count) {freqCount[i]++;}
             indexFd = i;
@@ -393,7 +393,7 @@ void FillfreqHistory(uint32_t f, bool count) { // Dodaj parametr f
         }
     }
     if (!found) {
-        freqHistory[indexFs] = f;
+        freqHistory[indexFs] = peak.f;
         freqCount[indexFs] = 1;
         indexFd = indexFs;
         indexFs++;
@@ -427,7 +427,7 @@ void FillfreqHistory(uint32_t f, bool count) { // Dodaj parametr f
   ToggleAFBit(on);
 
   if (on)
-  { FillfreqHistory(scanInfo.f, true);  // Dodano
+  { FillfreqHistory(true);  // Dodano
     listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
@@ -600,7 +600,7 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
   uint16_t rssi = scanInfo.rssi = GetRssi();
-    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(scanInfo.f, false); ///
+    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -1083,7 +1083,7 @@ static void DrawNums() {
       saved_params = false;
       }
   
-  if(AutoTriggerLevelbandsMode){ //Display status
+  if(AutoTriggerLevelbandsMode && appMode == SCAN_BAND_MODE){ //Display status
     sprintf(String, "AB");
     GUI_DisplaySmallest(String, 80, Bottom_print, false, true);
     }
@@ -1984,8 +1984,8 @@ void LoadValidMemoryChannels(void)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel()){
-		    UpdateScan();//Robby69 Force scan continue
-		    UpdateScan();
+		    //UpdateScan();//Robby69 Force scan continue
+		    //UpdateScan();
 		    return;}
 
     if(on) {
