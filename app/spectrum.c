@@ -381,28 +381,39 @@ static void ToggleAudio(bool on) {
 }
 
 void FillfreqHistory(bool count) {
-    if (scanInfo.f > 0 && scanInfo.f <130000000){
-    uint8_t i;
-    bool found = false;
-    
-    for (i = 1; i <= FMaxNumb; i++) {
+    // Validate frequency range
+    if (scanInfo.f == 0 || scanInfo.f >= 130000000) {
+        return;
+    }
+
+    // Check if we've already recorded this frequency
+    for (uint8_t i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == scanInfo.f) {
-            found = true;
-            if (PreviousRecorded != scanInfo.f && count){freqCount[i]++;PreviousRecorded = scanInfo.f;}
-            indexFd = i;
-            break;
+            // Increment count only if it's a new detection
+            if (count && PreviousRecorded != scanInfo.f) {
+                freqCount[i]++;
+                PreviousRecorded = scanInfo.f;
+            }
+            indexFd = i;  // Set current display index
+            return;       // Exit early since we found it
         }
     }
-    if (!found) {
-        freqHistory[indexFs] = scanInfo.f;
-        freqCount[indexFs] = 0;
-        indexFd = indexFs;
-        indexFs++;
-        if (indexFs > FMaxNumb) {indexFs = 1;}
+
+    // If we get here, it's a new frequency
+    freqHistory[indexFs] = scanInfo.f;
+    freqCount[indexFs] = 0;  // Start count at 1 for new detections
+    indexFd = indexFs;    // Set current display index
+    
+    // Advance storage index with wrap-around
+    if (++indexFs > FMaxNumb) {
+        indexFs = 1;
     }
+    
+    // Mark as recorded if counting
+    if (count) {
+        PreviousRecorded = scanInfo.f;
     }
 }
-
 
 
  static void ToggleRX(bool on) {
@@ -923,6 +934,31 @@ GUI_DisplaySmallest(String, 0, 1, true,true);
   }
 }
 
+// Helper function to format history line
+static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) {
+    if (isKnownChannel) {
+        snprintf(buf, 19, "%u:%s (%u)", index, 
+                gMR_ChannelFrequencyAttributes[channel].Name, freqCount[index]);
+    } else {
+        if(GetScanStep() == 833) {
+            uint32_t base = freq/2500*2500;
+            int chno = (freq - base) / 700;
+            freq = base + (chno * 833) + (chno == 3);
+        }
+        snprintf(buf, 19, "%u:%u.%05u (%u)", index, 
+                freq / 100000, freq % 100000, freqCount[index]);
+    }
+    // Remove trailing zeros if any
+    char *p = buf + strlen(buf) - 1;
+    while (p > buf && (*p == '0' || *p == '.')) {
+        if (*p == '.') {
+            *p = '\0';
+            break;
+        }
+        *p-- = '\0';
+    }
+}
+
 static void DrawF(uint32_t f) {
     if (f == 0) {return;}
     uint8_t Code;
@@ -931,18 +967,29 @@ static void DrawF(uint32_t f) {
         int chno = (f - base) / 700;
         f = base + (chno * 833) + (chno == 3);
     }
-    sprintf(String, "%u.%05u", f / 100000, f % 100000);
-    UI_PrintStringSmallBold(String, 1, 1, 0);
     
-    // Robby show CTCSS or DCS
+    // Format frequency and remove all trailing zeros after decimal
+    char freqStr[16];
+    sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
+    // Remove all trailing zeros
+    char *p = freqStr + strlen(freqStr) - 1;
+    while (p > freqStr && *p == '0') {
+        *p-- = '\0';
+    }
+    // Remove decimal point if nothing after it
+    if (*p == '.') {
+        *p = '\0';
+    }
+    
+    // CTCSS/DCS display
+    char StringC[16] = "";
     if (refresh == 0){
         BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-        sprintf(StringC, "");
         refresh = 1;
         if (scanResult == BK4819_CSS_RESULT_CDCSS){
             Code = DCS_GetCdcssCode(cdcssFreq);
             refresh = 50;
-            if (Code != 0xFF) {sprintf(StringC, " D%03oN", DCS_Options[Code]);}
+            if (Code != 0xFF) {sprintf(StringC, "D%03oN", DCS_Options[Code]);}
         }
         if (scanResult == BK4819_CSS_RESULT_CTCSS) {
             Code = DCS_GetCtcssCode(ctcssFreq);
@@ -952,38 +999,52 @@ static void DrawF(uint32_t f) {
     }
     UI_PrintStringSmallBold(StringC, 70, 127, 0);
     refresh--;
-    
 
-    
+    // Handle display lines (max 18 chars each)
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd == -1 ? false : true;
     
-    if (isKnownChannel && isListening ) {
-        sprintf(String, "%s", channelName);
-        UI_PrintStringSmallBold(String, 1, 1, 1);
-    } else if(appMode == SCAN_BAND_MODE ) {
-        sprintf(String, "BD%u:%s",bl+1,BParams[bl].BandName);
-        UI_PrintStringSmallBold(String, 1, 1, 1);
-    } 
-
+    char line1[19] = "";  // 18 chars + null
+    char line2[19] = "";
+    char line3[19] = "";
+    bool showHistory = ShowHistory && f > 0;
     
-    if (ShowHistory && f > 0) {
-        if(isKnownChannel) {
-            sprintf(String, "%u:%s (%u)", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
-        } // POPRAWIONO: dodano brakujący nawias
-        else {
-            if(GetScanStep() == 833) {
-                uint32_t base = f/2500*2500;
-                int chno = (f - base) / 700;
-                f = base + (chno * 833) + (chno == 3);
+    if (isKnownChannel && isListening) {
+        int needed = strlen(freqStr) + 1 + strlen(channelName);
+        if (needed <= 18) {
+            // Frequency and name fit on line1
+            snprintf(line1, sizeof(line1), "%s %s", freqStr, channelName);
+            if (showHistory) {
+                formatHistory(line2, indexFd, channelFd, f);
             }
-            sprintf(String, "%u:%u.%05u (%u)",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+        } else {
+            // Need two lines for freq+name
+            strncpy(line1, freqStr, 18);
+            strncpy(line2, channelName, 18);
+            if (showHistory) {
+                formatHistory(line3, indexFd, channelFd, f);
+            }
         }
-         if (isListening ||appMode == SCAN_BAND_MODE) UI_PrintStringSmallBold(String, 1, 1, 2);
-         else UI_PrintStringSmallBold(String, 1, 1, 1);
+    } else if(appMode == SCAN_BAND_MODE) {
+        snprintf(line1, sizeof(line1), "BD%u:%s", bl+1, BParams[bl].BandName);
+        if (showHistory) {
+            formatHistory(line2, indexFd, channelFd, f);
+        }
+    } else {
+        strncpy(line1, freqStr, 18);
+        if (showHistory) {
+            formatHistory(line2, indexFd, channelFd, f);
+        }
     }
+    
+    // Display the lines
+    UI_PrintStringSmallBold(line1, 1, 1, 0);
+    if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);
+    if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);
 }
+
+
 
 
 void LookupChannelInfo() {
