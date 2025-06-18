@@ -21,6 +21,7 @@
 bool FreeTriggerLevel = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
+static uint32_t PreviousRecorded = 0;
 static int historyScrollOffset = 0;
 static void RenderHistoryList();
 static void RenderScanListSelect();
@@ -254,9 +255,9 @@ static void SetF(uint32_t f) {
 
 // Spectrum related
 
-bool IsPeakOverLevel() {return peak.rssi >= settings.rssiTriggerLevel; }
+bool IsPeakOverLevel() {return peak.rssi > settings.rssiTriggerLevel; }
 
-bool IsPeakOverLevelH() { return peak.rssi >= settings.rssiTriggerLevelH; }
+bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
 
 static void ResetInterrupts()
 {
@@ -379,22 +380,22 @@ static void ToggleAudio(bool on) {
   }
 }
 
-// PO (poprawiona wersja):
-void FillfreqHistory(bool count) { // Dodaj parametr f
-    if (peak.f > 0 && peak.f <130000000){
+void FillfreqHistory(bool count) {
+    if (scanInfo.f > 0 && scanInfo.f <130000000){
     uint8_t i;
     bool found = false;
+    
     for (i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] == peak.f) {
+        if (freqHistory[i] == scanInfo.f) {
             found = true;
-            if (count) {freqCount[i]++;}
+            if (PreviousRecorded != scanInfo.f && count){freqCount[i]++;PreviousRecorded = scanInfo.f;}
             indexFd = i;
             break;
         }
     }
     if (!found) {
-        freqHistory[indexFs] = peak.f;
-        freqCount[indexFs] = 1;
+        freqHistory[indexFs] = scanInfo.f;
+        freqCount[indexFs] = 0;
         indexFd = indexFs;
         indexFs++;
         if (indexFs > FMaxNumb) {indexFs = 1;}
@@ -427,8 +428,7 @@ void FillfreqHistory(bool count) { // Dodaj parametr f
   ToggleAFBit(on);
 
   if (on)
-  { FillfreqHistory(true);  // Dodano
-    listenT = SQUELCH_OFF_DELAY;
+  { listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
 
     //gTailFound=false;
@@ -440,8 +440,7 @@ void FillfreqHistory(bool count) { // Dodaj parametr f
     gBacklightCountdown = 0;
     rxChannelDisplayCountdown = 0;
   } else
-  {
-    if(appMode!=CHANNEL_MODE)
+  {   if(appMode!=CHANNEL_MODE)
       BK4819_WriteRegister(0x43, GetBWRegValueForScan());
 
     // keep displaying the received channel for a second or so
@@ -599,8 +598,11 @@ static void UpdatePeakInfo() {
 
 static void Measure() 
 { 
-  uint16_t rssi = scanInfo.rssi = GetRssi();
-    if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
+    uint16_t rssi = scanInfo.rssi = GetRssi();
+    
+    if (IsPeakOverLevel())  {FillfreqHistory(true);}
+    else if (IsPeakOverLevelH()) FillfreqHistory(false);
+    //if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -968,7 +970,7 @@ static void DrawF(uint32_t f) {
     
     if (ShowHistory && f > 0) {
         if(isKnownChannel) {
-            sprintf(String, "%u:%s:%u", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
+            sprintf(String, "%u:%s (%u)", indexFd, gMR_ChannelFrequencyAttributes[channelFd].Name, freqCount[indexFd]);
         } // POPRAWIONO: dodano brakujący nawias
         else {
             if(GetScanStep() == 833) {
@@ -976,9 +978,10 @@ static void DrawF(uint32_t f) {
                 int chno = (f - base) / 700;
                 f = base + (chno * 833) + (chno == 3);
             }
-            sprintf(String, "%u:%u.%05u:%u",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
+            sprintf(String, "%u:%u.%05u (%u)",indexFd, f / 100000, f % 100000,freqCount[indexFd]);
         }
-        UI_PrintStringSmallBold(String, 1, 1, 2);
+         if (isListening ||appMode == SCAN_BAND_MODE) UI_PrintStringSmallBold(String, 1, 1, 2);
+         else UI_PrintStringSmallBold(String, 1, 1, 1);
     }
 }
 
