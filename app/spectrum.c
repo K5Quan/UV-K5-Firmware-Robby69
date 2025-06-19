@@ -390,7 +390,7 @@ void FillfreqHistory(bool count) {
     for (uint8_t i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == scanInfo.f) {
             // Increment count only if it's a new detection
-            if (count && PreviousRecorded != scanInfo.f) {
+            if (count && (PreviousRecorded != scanInfo.f)) {
                 freqCount[i]++;
                 PreviousRecorded = scanInfo.f;
             }
@@ -401,7 +401,7 @@ void FillfreqHistory(bool count) {
 
     // If we get here, it's a new frequency
     freqHistory[indexFs] = scanInfo.f;
-    freqCount[indexFs] = 0;  // Start count at 1 for new detections
+    freqCount[indexFs] = 1;  // Start count at 1 for new detections
     indexFd = indexFs;    // Set current display index
     
     // Advance storage index with wrap-around
@@ -409,10 +409,8 @@ void FillfreqHistory(bool count) {
         indexFs = 1;
     }
     
-    // Mark as recorded if counting
-    if (count) {
-        PreviousRecorded = scanInfo.f;
-    }
+    PreviousRecorded = scanInfo.f;
+    
 }
 
 
