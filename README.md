@@ -4,6 +4,7 @@
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/tree/master/compiled-firmware" rel="nofollow"> Les firmwares compilés se trouvent ici</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/blob/master/Chirp/uvk5_Robby69.py" rel="nofollow"> Vous devez utiliser ce driver chirp</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/releases/tag/Guides" rel="nofollow"> Petit guides EN/FR</a></h2>
+<h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/tree/master/Manuals" rel="nofollow"> Manuels</a></h2>
 <h2><a href="https://www.youtube.com/@robby_69400" rel="nofollow"> Quelques présentations et news sur ma chaine Youtube.</a></h2>
 <h2><a href="https://t.me/k5robby69"> Ce canal Telegram pour discuter.</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/commits/master/"> Historique des versions</a></h2>
@@ -55,12 +56,13 @@ Vous n'avez rien à installer sur votre ordinateur. Tout ce dont vous avez besoi
 2. Cliquez sur le bouton vert `Code`  
 3. Changez l'onglet de `Local` à `Codespace`  
 4. Cliquez sur le bouton vert `Create codespace on main`  
-5. Ouvrez `Spectrum.c`, modifiez les options des bandes au début du fichier (32 max) et enregistrez les changements (Cela ne touchera que votre copie)
-6. Dans la fenêtre terminal, exécutez :  
+5. Ouvrez `bands.h`, modifiez les options des bandes au début du fichier (32 max) et enregistrez les changements (Cela ne touchera que votre copie)
+6. dorénavant, conservez votre fichier bands.h, cela permettra de l'utiliser même si le reste du code évolue.
+7. Dans la fenêtre terminal, exécutez :  
    - `./Linux_compile-with-docker.sh all` pour compiler toutes les versions  
-7. Ouvrez le dossier `compiled-firmware`  
-8. Faites un clic droit sur `robzyl.fr.packed.bin` OU `robzyl.pl.packed.bin`  
-9. Cliquez sur `Download`, vous devriez maintenant avoir le firmware sur votre ordinateur que vous pouvez ensuite flasher sur votre radio. Vous pouvez utiliser le [flasheur en ligne](https://egzumer.github.io/uvtools)
+8. Ouvrez le dossier `compiled-firmware`  
+9. Faites un clic droit sur `robzyl.fr.packed.bin` OU `robzyl.pl.packed.bin`  
+10. Cliquez sur `Download`, vous devriez maintenant avoir le firmware sur votre ordinateur que vous pouvez ensuite flasher sur votre radio. Vous pouvez utiliser le [flasheur en ligne](https://egzumer.github.io/uvtools)
 
 Pour un ajout permanent dans ce GIT, utiliser ENABLE_XXX_BAND (XXX votre pays) et envoyez moi votre tableau.
 Cela permettra de conserver votre tableau pour des futures versions.
