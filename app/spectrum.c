@@ -993,8 +993,8 @@ static void DrawF(uint32_t f) {
       }
   }
   refresh--;
-  
-  // Prepare display lines
+  if (refresh ==0) memset(StringCode, 0, sizeof(StringCode));
+    // Prepare display lines
   char line1[19] = "";
   char line2[19] = "";
   char line3[19] = "";
@@ -1003,7 +1003,7 @@ static void DrawF(uint32_t f) {
   isKnownChannel = channelFd != -1;
   
   // Priority 1: In scan band mode, show band info first
-  if (appMode == SCAN_BAND_MODE && !isListening) {
+  if (appMode == SCAN_BAND_MODE && !isListening && refresh ==0) {
       snprintf(line1, sizeof(line1), "BD%u:%s", bl+1, BParams[bl].BandName);
       if (showHistory) {
           formatHistory(line2, indexFd, channelFd, f);
