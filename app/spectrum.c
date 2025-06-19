@@ -135,7 +135,7 @@ uint8_t freqInputIndex = 0;
 uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
 char freqInputString[11];
-bandparameters BParams[32];
+static const bandparameters BParams[32];
 static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
 
 uint8_t menuState = 0;
