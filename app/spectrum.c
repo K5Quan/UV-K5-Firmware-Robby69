@@ -128,7 +128,7 @@ uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
 uint32_t freqHistory[HISTORY_SIZE+1]= {0};
 uint8_t freqCount[HISTORY_SIZE+1] = {0};
-uint8_t indexFd = 1;
+uint8_t indexFd = 0;
 uint8_t indexFs = 1;
 bool ShowHistory = false;
 uint8_t freqInputIndex = 0;
@@ -996,7 +996,8 @@ static void DrawF(uint32_t f) {
   char line1[19] = "";
   char line2[19] = "";
   char line3[19] = "";
-  bool showHistory = ShowHistory && f > 0;
+  bool showHistory = (ShowHistory) && (f > 0) && (indexFd >0);
+  f = freqHistory[indexFd];
   int channelFd = BOARD_gMR_fetchChannel(f);
   isKnownChannel = channelFd != -1;
   
