@@ -932,30 +932,44 @@ GUI_DisplaySmallest(String, 0, 1, true,true);
   }
 }
 
-// Helper function to format history line
+ // Format frequency string (remove trailing zeros)
+ void RemoveTrailZeros(char* freqStr){
+     
+     char *p = freqStr + strlen(freqStr) - 1;
+     while (p > freqStr && *p == '0') *p-- = '\0';
+    if (*p == '.') *p = '\0';
+}
+
 static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) {
-    if (isKnownChannel) {
-        snprintf(buf, 19, "%u:%s (%u)", index, 
-                gMR_ChannelFrequencyAttributes[channel].Name, freqCount[index]);
-    } else {
-        if(GetScanStep() == 833) {
-            uint32_t base = freq/2500*2500;
-            int chno = (freq - base) / 700;
-            freq = base + (chno * 833) + (chno == 3);
-        }
-        snprintf(buf, 19, "%u:%u.%05u (%u)", index, 
-                freq / 100000, freq % 100000, freqCount[index]);
+    char freqStr[16];
+    
+    // Handle 833Hz stepping adjustment if needed
+    if(channel == -1 && GetScanStep() == 833) {
+        uint32_t base = freq/2500*2500;
+        int chno = (freq - base) / 700;
+        freq = base + (chno * 833) + (chno == 3);
     }
-    // Remove trailing zeros if any
-    char *p = buf + strlen(buf) - 1;
-    while (p > buf && (*p == '0' || *p == '.')) {
-        if (*p == '.') {
-            *p = '\0';
-            break;
-        }
-        *p-- = '\0';
+
+    // Format frequency string
+    snprintf(freqStr, sizeof(freqStr), "%u.%05u", freq/100000, freq%100000);
+    RemoveTrailZeros(freqStr);
+
+    if(channel != -1) {
+        // Known channel format
+        snprintf(buf, 19, "%u:%s(%u)%s", 
+                index, 
+                gMR_ChannelFrequencyAttributes[channel].Name,
+                freqCount[index]);
+                
+    } else {
+        // Unknown channel format
+        snprintf(buf, 19, "%u:%s(%u)", 
+                index,
+                freqStr,
+                freqCount[index]);
     }
 }
+
 
 static void DrawF(uint32_t f) {
   if (f == 0) return;
@@ -967,13 +981,10 @@ static void DrawF(uint32_t f) {
       int chno = (f - base) / 700;
       f = base + (chno * 833) + (chno == 3);
   }
-  
-  // Format frequency string (remove trailing zeros)
   char freqStr[16];
   sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
-  char *p = freqStr + strlen(freqStr) - 1;
-  while (p > freqStr && *p == '0') *p-- = '\0';
-  if (*p == '.') *p = '\0';
+  RemoveTrailZeros(freqStr);
+ 
   
   // Get CTCSS/DCS code if needed
   
@@ -996,8 +1007,8 @@ static void DrawF(uint32_t f) {
   char line1[19] = "";
   char line2[19] = "";
   char line3[19] = "";
-  bool showHistory = (ShowHistory) && (f > 0) && (indexFd >0);
   f = freqHistory[indexFd];
+  bool showHistory = (ShowHistory) && (f > 0) && (indexFd >0);
   int channelFd = BOARD_gMR_fetchChannel(f);
   isKnownChannel = channelFd != -1;
   
@@ -2205,7 +2216,7 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     GetScanListLabel(realIndex, buffer);
 }
 
-// Helper functions for each list type
+/* // Helper functions for each list type
 static void GetBandItemText(uint8_t index, char* buffer) {
     uint32_t startMHz = BParams[index].Startfrequency / 100000;
     uint32_t stopMHz = BParams[index].Stopfrequency / 100000;
@@ -2230,7 +2241,17 @@ static void GetBandItemText(uint8_t index, char* buffer) {
                 stopMHz, stopKHz/100,
             settings.bandEnabled[index] ? "*" : " ");
 }
+} */
+
+//  skrócenia dla GetBandItemText
+static void GetBandItemText(uint8_t index, char* buffer) {
+    
+    sprintf(buffer, "%d:%s %s", 
+            index + 1, 
+            BParams[index].BandName,
+            settings.bandEnabled[index] ? "*" : "");
 }
+
 
 
 static void GetHistoryItemText(uint8_t index, char* buffer) {
@@ -2238,37 +2259,38 @@ static void GetHistoryItemText(uint8_t index, char* buffer) {
     uint32_t frequency = freqHistory[realIndex];
     int channel = BOARD_gMR_fetchChannel(frequency);
     
+    // Format frequency string with potential trailing zeros
+    char freqStr[16];
+    sprintf(freqStr, "%3u.%05u", frequency / 100000, frequency % 100000);
+    // Remove trailing zeros and optional decimal point
+    RemoveTrailZeros(freqStr);
+
     if (channel != -1) {
-        sprintf(buffer, "%2d:%3u.%05u (%u) %s", 
+        sprintf(buffer, "%d:%s(%u)", 
                 realIndex, 
-                frequency / 100000,
-                frequency % 100000,
-                freqCount[realIndex],
-                gMR_ChannelFrequencyAttributes[channel].Name);
+                gMR_ChannelFrequencyAttributes[channel].Name,
+                freqCount[realIndex]);
+               
     } else {
-        sprintf(buffer, "%2d:%3u.%05u (%u)", 
+        sprintf(buffer, "%d:%s(%u)", 
                 realIndex,
-                frequency / 100000,
-                frequency % 100000,
+                freqStr,
                 freqCount[realIndex]);
     }
 }
 
-static void RenderList(const char* title, uint8_t numItems, uint8_t selectedIndex, uint8_t scrollOffset, 
+static void RenderList(const char* title, uint8_t numItems, uint8_t selectedIndex, uint8_t scrollOffset,
                       void (*getItemText)(uint8_t index, char* buffer)) {
     // Clear display buffer
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-
-    // Draw title (centered)
-    uint8_t titleX = (LCD_WIDTH - (strlen(title) * 7)) / 3;
-    if (titleX < 1) titleX = 1;
-    UI_PrintStringSmall(title, titleX, LCD_WIDTH - 1, 0);
-
-    // List parameters
-    const uint8_t Y_START = 10;
-    const uint8_t LINE_HEIGHT = 8; // 7px font + 1px spacing
-    const uint8_t MAX_LINES = (LCD_HEIGHT - Y_START) / LINE_HEIGHT;
-
+    
+    // Draw title - wyrównany do lewej dla maksymalnego wykorzystania miejsca
+    UI_PrintStringSmall(title, 1, LCD_WIDTH - 1, 0);
+    
+    // List parameters for UI_PrintStringSmall (lines 1-7 available)
+    const uint8_t FIRST_ITEM_LINE = 1;  // Start from line 1 (line 0 is title)
+    const uint8_t MAX_LINES = 7;        // Lines 1-7 available for items
+    
     // Adjust scroll offset if needed
     if (numItems <= MAX_LINES) {
         scrollOffset = 0;
@@ -2277,27 +2299,53 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     } else if (selectedIndex >= scrollOffset + MAX_LINES) {
         scrollOffset = selectedIndex - MAX_LINES + 1;
     }
-
+    
+    // Maksymalna liczba znaków na linię (128 pikseli / 7 pikseli na znak = ~18)
+    const uint8_t MAX_CHARS_PER_LINE = 18;
+    
     // Draw visible items
     for (uint8_t i = 0; i < MAX_LINES; i++) {
         uint8_t itemIndex = i + scrollOffset;
         if (itemIndex >= numItems) break;
-
+        
         char itemText[32];
         getItemText(itemIndex, itemText);
-
-        uint8_t yPos = Y_START + (i * LINE_HEIGHT);
         
-        // Highlight selected item
+        uint8_t lineNumber = FIRST_ITEM_LINE + i;
+        
+        // Wyrównanie maksymalnie do lewej
         if (itemIndex == selectedIndex) {
-            char selectedText[34];
-            sprintf(selectedText, ">%s", itemText);
-            GUI_DisplaySmallest(selectedText, 3, yPos, false, true);
+            // Zaznaczony element - ">" + tekst, maksymalnie wykorzystaj przestrzeń
+            char displayText[MAX_CHARS_PER_LINE + 1];
+            
+            // Pozostaw 1 znak na ">", reszta dla tekstu (17 znaków)
+            if (strlen(itemText) > MAX_CHARS_PER_LINE - 1) {
+                strncpy(displayText, itemText, MAX_CHARS_PER_LINE); // -4 dla "..." + ">"
+                displayText[MAX_CHARS_PER_LINE] = '\0';
+            } else {
+                strcpy(displayText, itemText);
+            }
+            
+            char selectedText[MAX_CHARS_PER_LINE + 2];
+            sprintf(selectedText, ">%s", displayText);
+            UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
+            
         } else {
-            GUI_DisplaySmallest(itemText, 5, yPos, false, true);
+            // Niezaznaczony element - maksymalne wykorzystanie przestrzeni
+            char displayText[MAX_CHARS_PER_LINE + 1];
+            
+            if (strlen(itemText) > MAX_CHARS_PER_LINE) {
+                strncpy(displayText, itemText, MAX_CHARS_PER_LINE - 3); // -3 dla "..."
+                displayText[MAX_CHARS_PER_LINE - 3] = '\0';
+                strcat(displayText, "..");
+            } else {
+                strcpy(displayText, itemText);
+            }
+            
+            UI_PrintStringSmall(displayText, 2, 0, lineNumber); // Minimalne wcięcie
         }
     }
-
+    
     ST7565_BlitFullScreen();
 }
 
