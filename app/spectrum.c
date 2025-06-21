@@ -1054,10 +1054,9 @@ static void DrawF(uint32_t f) {
             }
         } 
         // Priority 3: Just Frequency (if unknown channel)
-        else {
-            strncpy(line1, freqStr, 18);
-        }
-    }
+        else {strncpy(line1, freqStr, 18);}
+
+    } else {strncpy(line1, freqStr, 18);}
 
     // --- Show History (if enabled) ---
     if (showHistory) {
