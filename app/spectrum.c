@@ -14,9 +14,7 @@
           char str[64] = "";
           sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
 */
-#define MAX_VISIBLE_BAND_LINES 6
-#define MAX_VISIBLE_SL_LINES 6
-#define MAX_VISIBLE_HISTORY_LINES 6
+#define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 100
 bool FreeTriggerLevel = 0;
 uint8_t historyListIndex = 0;
@@ -956,14 +954,14 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
 
     if(channel != -1) {
         // Known channel format
-        snprintf(buf, 19, "%u:%-8s(%u)", 
+        snprintf(buf, 19, "%u:%s(%u)", 
                 index, 
                 gMR_ChannelFrequencyAttributes[channel].Name,
                 freqCount[index]);
                 
     } else {
         // Unknown channel format
-        snprintf(buf, 19, "%u:%-8s(%u)", 
+        snprintf(buf, 19, "%u:%s(%u)", 
                 index,
                 freqStr,
                 freqCount[index]);
@@ -972,114 +970,102 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
 
 
 static void DrawF(uint32_t f) {
-  if (f == 0) return;
-  
-  uint8_t Code;
-  // Handle 833Hz stepping
-  if (GetScanStep() == 833) {
-      uint32_t base = f/2500*2500;
-      int chno = (f - base) / 700;
-      f = base + (chno * 833) + (chno == 3);
-  }
-  char freqStr[16];
-  sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
-  RemoveTrailZeros(freqStr);
- 
-  
-  // Get CTCSS/DCS code if needed
-  
-  if (refresh == 0) {
-      BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-      refresh = 1;
-      if (scanResult == BK4819_CSS_RESULT_CDCSS) {
-          Code = DCS_GetCdcssCode(cdcssFreq);
-          refresh = 50;
-          if (Code != 0xFF) sprintf(StringCode, "D%03oN", DCS_Options[Code]);
-      } else if (scanResult == BK4819_CSS_RESULT_CTCSS) {
-          Code = DCS_GetCtcssCode(ctcssFreq);
-          refresh = 50;
-          sprintf(StringCode, "%u.%uHz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-      }
-  }
-  refresh--;
-  if (refresh ==0) memset(StringCode, 0, sizeof(StringCode));
-    // Prepare display lines
-  char line1[19] = "";
-  char line2[19] = "";
-  char line3[19] = "";
-  f = freqHistory[indexFd];
-  bool showHistory = (ShowHistory) && (f > 0) && (indexFd >0);
-  int channelFd = BOARD_gMR_fetchChannel(f);
-  isKnownChannel = channelFd != -1;
-  
-  // Priority 1: In scan band mode, show band info first
-  if (appMode == SCAN_BAND_MODE && !isListening && refresh ==0) {
-      snprintf(line1, sizeof(line1), "BD%u:%s", bl+1, BParams[bl].BandName);
-      if (showHistory) {
-          formatHistory(line2, indexFd, channelFd, f);
-      }
-  } 
+    if (f == 0) return;
 
-  if (appMode == CHANNEL_MODE && !isListening && refresh ==0) {
-      snprintf(line1, sizeof(line1), "Scan Lists");
-      if (showHistory) {
-          formatHistory(line2, indexFd, channelFd, f);
-      }
-  } 
-  // Priority 2: Show code if available (name + code or freq + code)
-  else if (refresh > 1 && StringCode[0]) {
-      if (isKnownChannel && isListening) {
-          // Try to fit name + code on one line
-          if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
-              snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
-              if (showHistory) {
-                  formatHistory(line2, indexFd, channelFd, f);
-              }
-          } else {
-              // Use two lines for name + code
-              strncpy(line1, channelName, 18);
-              strncpy(line2, StringCode, 18);
-              if (showHistory) {
-                  formatHistory(line3, indexFd, channelFd, f);
-              }
-          }
-      } else {
-          // Show frequency + code
-          snprintf(line1, sizeof(line1), "%s %s", freqStr, StringCode);
-          if (showHistory) {
-              formatHistory(line2, indexFd, channelFd, f);
-          }
-      }
-  } 
-  // Priority 3: Show name + frequency (if known channel)
-  else if (isKnownChannel && isListening) {
-      // Try to fit on one line
-      if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
-          snprintf(line1, sizeof(line1), "%s %s", channelName, freqStr);
-          if (showHistory) {
-              formatHistory(line2, indexFd, channelFd, f);
-          }
-      } else {
-          // Use two lines for name + frequency
-          strncpy(line1, channelName, 18);
-          strncpy(line2, freqStr, 18);
-          if (showHistory) {
-              formatHistory(line3, indexFd, channelFd, f);
-          }
-      }
-  } 
-  // Default: Just show frequency
-  else {
-      strncpy(line1, freqStr, 18);
-      if (showHistory) {
-          formatHistory(line2, indexFd, channelFd, f);
-      }
-  }
-  
-  // Display all non-empty lines
-  UI_PrintStringSmallBold(line1, 1, 1, 0);
-  if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);
-  if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);
+    // --- Frequency Formatting ---
+    uint8_t Code;
+    if (GetScanStep() == 833) {
+        uint32_t base = f / 2500 * 2500;
+        int chno = (f - base) / 700;
+        f = base + (chno * 833) + (chno == 3);
+    }
+    char freqStr[16];
+    sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
+    RemoveTrailZeros(freqStr);
+
+    // --- CTCSS/DCS Detection ---
+    if (refresh == 0) {
+        BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+        refresh = 1;
+        if (scanResult == BK4819_CSS_RESULT_CDCSS) {
+            Code = DCS_GetCdcssCode(cdcssFreq);
+            refresh = 30;
+            if (Code != 0xFF) sprintf(StringCode, "D%03oN", DCS_Options[Code]);
+        } else if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+            Code = DCS_GetCtcssCode(ctcssFreq);
+            refresh = 30;
+            sprintf(StringCode, "%u.%uHz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+        }
+    }
+    refresh--;
+    if (refresh == 0) memset(StringCode, 0, sizeof(StringCode));
+
+    // --- Prepare Display Lines ---
+    char line1[19] = "";
+    char line2[19] = "";
+    char line3[19] = "";
+
+    f = freqHistory[indexFd];
+    bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
+    int channelFd = BOARD_gMR_fetchChannel(f);
+    isKnownChannel = channelFd != -1;
+
+    // --- Default: Band Name or Scan List (Top Line) ---
+    if (appMode == SCAN_BAND_MODE && !isListening) {
+        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
+    } else if (appMode == CHANNEL_MODE && !isListening) {
+        snprintf(line1, sizeof(line1), "Scan Lists");
+    }
+
+    // --- If Listening or Code Detected ---
+    if (isListening || refresh > 1) {
+        // Priority 1: Show Frequency + Code (if available)
+        if (refresh > 1 && StringCode[0]) {
+            if (isKnownChannel) {
+                // Try to fit "Name Code" on one line
+                if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
+                    snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
+                } else {
+                    // Split into two lines
+                    strncpy(line1, channelName, 18);
+                    strncpy(line2, StringCode, 18);
+                }
+            } else {
+                // Show "Frequency Code"
+                snprintf(line2, sizeof(line2), "%s %s", freqStr, StringCode);
+            }
+        } 
+        // Priority 2: Show Channel Name + Frequency (if known)
+        else if (isKnownChannel) {
+            if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
+                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
+            } else {
+                strncpy(line1, channelName, 18);
+                strncpy(line2, freqStr, 18);
+            }
+        } 
+        // Priority 3: Just Frequency (if unknown channel)
+        else {
+            strncpy(line1, freqStr, 18);
+        }
+    }
+
+    // --- Show History (if enabled) ---
+    if (showHistory) {
+        if (line3[0]) {
+            // If line3 is already used, overwrite it with history
+            formatHistory(line3, indexFd, channelFd, f);
+        } else if (line2[0]) {
+            formatHistory(line3, indexFd, channelFd, f);
+        } else {
+            formatHistory(line2, indexFd, channelFd, f);
+        }
+    }
+
+    // --- Render to Screen ---
+    UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
+    if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
+    if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
 }
 
 
@@ -1240,8 +1226,8 @@ static void OnKeyDown(uint8_t key) {
                 // ARRAY_SIZE(BParams) gives the number of defined bands
                 if (bandListSelectedIndex < ARRAY_SIZE(BParams) - 1) {
                     bandListSelectedIndex++;
-                    if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_BAND_LINES) {
-                        bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_BAND_LINES + 1;
+                    if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_LINES) {
+                        bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_LINES + 1;
                     }
                     redrawScreen = true;
                 }
@@ -1313,8 +1299,8 @@ static void OnKeyDown(uint8_t key) {
                 // ARRAY_SIZE(BParams) gives the number of defined bands
                 if (scanListSelectedIndex < validScanListCount-1) { 
                     scanListSelectedIndex++;
-                    if (scanListSelectedIndex >= scanListScrollOffset + MAX_VISIBLE_SL_LINES) {
-                        scanListScrollOffset = scanListSelectedIndex - MAX_VISIBLE_SL_LINES + 1;
+                    if (scanListSelectedIndex >= scanListScrollOffset + MAX_VISIBLE_LINES) {
+                        scanListScrollOffset = scanListSelectedIndex - MAX_VISIBLE_LINES + 1;
                     }
                     redrawScreen = true;
                 }
@@ -1431,10 +1417,10 @@ static void OnKeyDown(uint8_t key) {
                 numValidEntries++;
             }
         }
-        if (historyListIndex < numValidEntries) { 
+        if (historyListIndex < numValidEntries-1) { 
           historyListIndex++;
-          if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_HISTORY_LINES) {
-                historyScrollOffset = historyListIndex - MAX_VISIBLE_HISTORY_LINES + 1;
+          if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_LINES) {
+                historyScrollOffset = historyListIndex - MAX_VISIBLE_LINES + 1;
             }
             redrawScreen = true;
         }
@@ -2226,7 +2212,7 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 //  skrócenia dla GetBandItemText
 static void GetBandItemText(uint8_t index, char* buffer) {
     
-    sprintf(buffer, "%2d:%-6s%s", 
+    sprintf(buffer, "%d:%-12s%s", 
             index + 1, 
             BParams[index].BandName,
             settings.bandEnabled[index] ? "*" : "");
@@ -2269,7 +2255,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     
     // List parameters for UI_PrintStringSmall (lines 1-7 available)
     const uint8_t FIRST_ITEM_LINE = 1;  // Start from line 1 (line 0 is title)
-    const uint8_t MAX_LINES = 7;        // Lines 1-7 available for items
+    const uint8_t MAX_LINES = 6;        // Lines 1-7 available for items
     
     // Adjust scroll offset if needed
     if (numItems <= MAX_LINES) {
@@ -2299,13 +2285,13 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
             char displayText[MAX_CHARS_PER_LINE + 1];
             strcpy(displayText, itemText);
             char selectedText[MAX_CHARS_PER_LINE + 2];
-            sprintf(selectedText, ">%s", displayText);
+            sprintf(selectedText, ">%2s", displayText);
             UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
             
         } else {
             char displayText[MAX_CHARS_PER_LINE + 1];
             strcpy(displayText, itemText);
-            UI_PrintStringSmall(displayText, 2, 0, lineNumber); // Minimalne wcięcie
+            UI_PrintStringSmall(displayText, 1, 0, lineNumber); // Minimalne wcięcie
           }
     }
     

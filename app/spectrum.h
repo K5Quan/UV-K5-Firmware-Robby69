@@ -148,8 +148,8 @@ typedef enum ScanList {
   S_SCAN_LIST_ALL
 } ScanList;
 
-typedef struct bandparameters { //Memory cost is 80+32+32+8?+ 8+8 = 168,  168 x 15 = 2520 bits
-  char BandName[15];
+typedef struct bandparameters { 
+  char BandName[12];
   uint32_t Startfrequency; // Start frequency in MHz /100
   uint32_t Stopfrequency; // Stop frequency in MHz /100
   ScanStep scanStep;
