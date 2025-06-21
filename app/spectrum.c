@@ -945,10 +945,10 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
     
     // Handle 833Hz stepping adjustment if needed
     if(channel == -1 && GetScanStep() == 833) {
-        uint32_t base = freq/2500*2500;
-        int chno = (freq - base) / 700;
-        freq = base + (chno * 833) + (chno == 3);
-    }
+            uint32_t base = freq/2500*2500;
+            int chno = (freq - base) / 700;
+            freq = base + (chno * 833) + (chno == 3);
+        }
 
     // Format frequency string
     snprintf(freqStr, sizeof(freqStr), "%u.%05u", freq/100000, freq%100000);
@@ -956,18 +956,18 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
 
     if(channel != -1) {
         // Known channel format
-        snprintf(buf, 19, "%u:%s(%u)%s", 
+        snprintf(buf, 19, "%u:%-8s(%u)", 
                 index, 
                 gMR_ChannelFrequencyAttributes[channel].Name,
                 freqCount[index]);
                 
     } else {
         // Unknown channel format
-        snprintf(buf, 19, "%u:%s(%u)", 
+        snprintf(buf, 19, "%u:%-8s(%u)", 
                 index,
                 freqStr,
                 freqCount[index]);
-    }
+        }
 }
 
 
@@ -1015,6 +1015,13 @@ static void DrawF(uint32_t f) {
   // Priority 1: In scan band mode, show band info first
   if (appMode == SCAN_BAND_MODE && !isListening && refresh ==0) {
       snprintf(line1, sizeof(line1), "BD%u:%s", bl+1, BParams[bl].BandName);
+      if (showHistory) {
+          formatHistory(line2, indexFd, channelFd, f);
+      }
+  } 
+
+  if (appMode == CHANNEL_MODE && !isListening && refresh ==0) {
+      snprintf(line1, sizeof(line1), "Scan Lists");
       if (showHistory) {
           formatHistory(line2, indexFd, channelFd, f);
       }
@@ -2216,37 +2223,10 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     GetScanListLabel(realIndex, buffer);
 }
 
-/* // Helper functions for each list type
-static void GetBandItemText(uint8_t index, char* buffer) {
-    uint32_t startMHz = BParams[index].Startfrequency / 100000;
-    uint32_t stopMHz = BParams[index].Stopfrequency / 100000;
-    uint32_t startKHz = (BParams[index].Startfrequency % 100000) / 100;
-    uint32_t stopKHz = (BParams[index].Stopfrequency % 100000) / 100;
-    
-    // Format z zakresem częstotliwości
-    if (startMHz >= 100 || stopMHz >= 100) {
-        // Dla częstotliwości >= 100 MHz - pokazuj tylko MHz
-        sprintf(buffer, "%2d:%-8s %3u-%3u %s", 
-            index + 1, 
-            BParams[index].BandName,
-                startMHz,
-                stopMHz,
-                settings.bandEnabled[index] ? "*" : " ");
-    } else {
-        // Dla częstotliwości < 100 MHz - pokazuj MHz z dokładnością do 0.1
-        sprintf(buffer, "%2d:%-8s %2u.%01u-%2u.%01u %s", 
-                index + 1, 
-                BParams[index].BandName,
-                startMHz, startKHz/100,
-                stopMHz, stopKHz/100,
-            settings.bandEnabled[index] ? "*" : " ");
-}
-} */
-
 //  skrócenia dla GetBandItemText
 static void GetBandItemText(uint8_t index, char* buffer) {
     
-    sprintf(buffer, "%d:%s %s", 
+    sprintf(buffer, "%2d:%-6s%s", 
             index + 1, 
             BParams[index].BandName,
             settings.bandEnabled[index] ? "*" : "");
@@ -2263,16 +2243,16 @@ static void GetHistoryItemText(uint8_t index, char* buffer) {
     char freqStr[16];
     sprintf(freqStr, "%3u.%05u", frequency / 100000, frequency % 100000);
     // Remove trailing zeros and optional decimal point
-    RemoveTrailZeros(freqStr);
-
+    //RemoveTrailZeros(freqStr);
+    
     if (channel != -1) {
-        sprintf(buffer, "%d:%s(%u)", 
+        sprintf(buffer, "%2d:%-8s(%u) ", 
                 realIndex, 
                 gMR_ChannelFrequencyAttributes[channel].Name,
                 freqCount[realIndex]);
-               
+                
     } else {
-        sprintf(buffer, "%d:%s(%u)", 
+        sprintf(buffer, "%2d:%-8s(%u)", 
                 realIndex,
                 freqStr,
                 freqCount[realIndex]);
@@ -2285,7 +2265,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
     
     // Draw title - wyrównany do lewej dla maksymalnego wykorzystania miejsca
-    UI_PrintStringSmall(title, 1, LCD_WIDTH - 1, 0);
+    UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
     
     // List parameters for UI_PrintStringSmall (lines 1-7 available)
     const uint8_t FIRST_ITEM_LINE = 1;  // Start from line 1 (line 0 is title)
@@ -2317,33 +2297,16 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
         if (itemIndex == selectedIndex) {
             // Zaznaczony element - ">" + tekst, maksymalnie wykorzystaj przestrzeń
             char displayText[MAX_CHARS_PER_LINE + 1];
-            
-            // Pozostaw 1 znak na ">", reszta dla tekstu (17 znaków)
-            if (strlen(itemText) > MAX_CHARS_PER_LINE - 1) {
-                strncpy(displayText, itemText, MAX_CHARS_PER_LINE); // -4 dla "..." + ">"
-                displayText[MAX_CHARS_PER_LINE] = '\0';
-            } else {
-                strcpy(displayText, itemText);
-            }
-            
+            strcpy(displayText, itemText);
             char selectedText[MAX_CHARS_PER_LINE + 2];
             sprintf(selectedText, ">%s", displayText);
             UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
             
         } else {
-            // Niezaznaczony element - maksymalne wykorzystanie przestrzeni
             char displayText[MAX_CHARS_PER_LINE + 1];
-            
-            if (strlen(itemText) > MAX_CHARS_PER_LINE) {
-                strncpy(displayText, itemText, MAX_CHARS_PER_LINE - 3); // -3 dla "..."
-                displayText[MAX_CHARS_PER_LINE - 3] = '\0';
-                strcat(displayText, "..");
-            } else {
-                strcpy(displayText, itemText);
-            }
-            
+            strcpy(displayText, itemText);
             UI_PrintStringSmall(displayText, 2, 0, lineNumber); // Minimalne wcięcie
-        }
+          }
     }
     
     ST7565_BlitFullScreen();
@@ -2356,16 +2319,16 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 // Fonction pour afficher le menu ScanList
 static void RenderScanListSelect() {
     BuildValidScanListIndices(); 
-    RenderList("Select ScanList", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
+    RenderList("SCANLISTS:", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
 }
 
-static void RenderBandSelect() {RenderList("Select Band", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+static void RenderBandSelect() {RenderList("BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
 
 static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
     
     char headerString[24];
-    sprintf(headerString, "History (%d)", validItems);
+    sprintf(headerString, "HISTORY: %d", validItems);
     
     RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
