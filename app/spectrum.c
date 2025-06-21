@@ -315,6 +315,7 @@ static void DeInitSpectrum() {
   uint8_t Spectrum_state = 0; //Spectrum Not Active
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   currentFreq = initialFreq = gScanRangeStart = 0;
+  ToggleNormalizeRssi(false);
 }
 
 static void ExitAndCopyToVfo() {
@@ -529,8 +530,8 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max +5, 0, RSSI_MAX_VALUE); //Robby69 +8
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
+  settings.rssiTriggerLevel = clamp(max +8, 0, RSSI_MAX_VALUE);
+	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
   //}
 }
 
@@ -1246,6 +1247,7 @@ static void OnKeyDown(uint8_t key) {
                     settings.bandEnabled[bandListSelectedIndex] = !settings.bandEnabled[bandListSelectedIndex]; 
                     // Reset nextBandToScanIndex so InitScan starts from the selected one
                     nextBandToScanIndex = bandListSelectedIndex; 
+                    bandListSelectedIndex++;
                 }
                 break;
             case KEY_5:   
@@ -1315,7 +1317,8 @@ static void OnKeyDown(uint8_t key) {
                 break;
             case KEY_4: // Scan list selection
                 ToggleScanList(scanListSelectedIndex, 0);
-                 redrawScreen = true;
+                scanListSelectedIndex++;
+                redrawScreen = true;
                 break;
             case KEY_5:   
                 ToggleScanList(scanListSelectedIndex, 1);
@@ -1371,9 +1374,6 @@ static void OnKeyDown(uint8_t key) {
      case KEY_1:
         AutoTriggerLevel();
         SquelchBarKeyMode=0;
-        DelayRssi = DelayRssi+1000; //geek stuff
-        if (DelayRssi > 13000) DelayRssi = 3000;
-        redrawStatus = true;
     break;
      
      case KEY_7:
@@ -1383,7 +1383,9 @@ static void OnKeyDown(uint8_t key) {
      case KEY_2:
       if (appMode != SCAN_BAND_MODE || SingleBandCheck())
             ToggleNormalizeRssi(!isNormalizationApplied);
-        else AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+        else {
+          AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
+          ToggleNormalizeRssi(false);}
       redrawStatus = true;
       break;
 
@@ -1458,6 +1460,9 @@ static void OnKeyDown(uint8_t key) {
 
   case KEY_5:
     if(appMode==FREQUENCY_MODE) FreqInput();
+    DelayRssi = DelayRssi+1000; //geek stuff
+    if (DelayRssi > 13000) DelayRssi = 3000;
+    redrawStatus = true;
     break;
   case KEY_0:
     ToggleModulation();
@@ -2082,8 +2087,8 @@ void LoadValidMemoryChannels(void)
   {
     // we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel()){
-		    //UpdateScan();//Robby69 Force scan continue
-		    //UpdateScan();
+        memset(gainOffset, 0, sizeof(gainOffset));
+        isNormalizationApplied = false;
 		    return;}
 
     if(on) {
