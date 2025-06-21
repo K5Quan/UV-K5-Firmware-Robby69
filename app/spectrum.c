@@ -11,11 +11,11 @@
 //#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
-          char str[64] = "";
-          sprintf(str, "%d %d %d\n", gScanRangeStart,mode, appMode,Spectrum_state );LogUart(str);
+          char str[64] = "";sprintf(str, "1\n", Spectrum_state );LogUart(str);
 */
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 100
+uint16_t DelayRssi=11000;
 bool FreeTriggerLevel = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
@@ -358,9 +358,9 @@ uint8_t GetBWRegValueForScan() {
 uint16_t GetRssi() {
   uint16_t rssi;
   // testing resolution to sticky squelch issue
-  while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) {
-    SYSTICK_DelayUs(500); // was 100 , some k5 bug when starting spectrum
-  }
+  // was 100 , some k5 bug when starting spectrum
+  BK4819_ReadRegister(0x63);
+  SYSTICK_DelayUs(DelayRssi);
   rssi = BK4819_GetRSSI();
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
@@ -524,7 +524,12 @@ static bool InitScan() {
 
 static void AutoTriggerLevel() {
   //if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-  settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+  //settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
+  uint8_t max = 0;
+  uint8_t i;
+  for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
+    {if (max < rssiHistory[i]) max = rssiHistory[i];}
+  settings.rssiTriggerLevel = clamp(max +5, 0, RSSI_MAX_VALUE); //Robby69 +8
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel; //Robby69
   //}
 }
@@ -708,6 +713,8 @@ static void ToggleModulation() {
   RADIO_SetModulation(settings.modulationType);
   BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
   redrawScreen = true;
+  
+
 }
 
 static void ToggleListeningBW() {
@@ -909,7 +916,8 @@ static void DrawStatus() {
     }
 GUI_DisplaySmallest(String, 0, 1, true,true);
   }
-
+  sprintf(String, "%d" , DelayRssi/1000);  
+  GUI_DisplaySmallest(String, 106, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
   uint16_t voltage = (gBatteryVoltages[0] + gBatteryVoltages[1] + gBatteryVoltages[2] +
@@ -1363,6 +1371,9 @@ static void OnKeyDown(uint8_t key) {
      case KEY_1:
         AutoTriggerLevel();
         SquelchBarKeyMode=0;
+        DelayRssi = DelayRssi+1000; //geek stuff
+        if (DelayRssi > 13000) DelayRssi = 3000;
+        redrawStatus = true;
     break;
      
      case KEY_7:
@@ -1952,6 +1963,7 @@ static void Tick() {
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
   Mode mode;
+  DelayRssi = 11000;
   // Spectrum_state 1: MR channel, 2: band scan, 3: range scan, 4: basic spectrum, 5:new scan range 0: no spectrum
   if (Spectrum_state == 4) mode = FREQUENCY_MODE ;
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
