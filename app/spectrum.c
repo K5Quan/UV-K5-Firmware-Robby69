@@ -1018,7 +1018,9 @@ static void DrawF(uint32_t f) {
     bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd != -1;
-
+    
+    strncpy(line1, freqStr, 18);
+    
     // --- Default: Band Name or Scan List (Top Line) ---
     if (appMode == SCAN_BAND_MODE && !isListening) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
@@ -1054,9 +1056,7 @@ static void DrawF(uint32_t f) {
             }
         } 
         // Priority 3: Just Frequency (if unknown channel)
-        else {strncpy(line1, freqStr, 18);}
-
-    } else {strncpy(line1, freqStr, 18);}
+    } 
 
     // --- Show History (if enabled) ---
     if (showHistory) {
@@ -1460,7 +1460,7 @@ static void OnKeyDown(uint8_t key) {
   case KEY_5:
     if(appMode==FREQUENCY_MODE) FreqInput();
     DelayRssi = DelayRssi+1000; //geek stuff
-    if (DelayRssi > 13000) DelayRssi = 3000;
+    if (DelayRssi > 13000) DelayRssi = 1000;
     redrawStatus = true;
     break;
   case KEY_0:
@@ -1967,7 +1967,7 @@ static void Tick() {
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
   Mode mode;
-  DelayRssi = 11000;
+  
   // Spectrum_state 1: MR channel, 2: band scan, 3: range scan, 4: basic spectrum, 5:new scan range 0: no spectrum
   if (Spectrum_state == 4) mode = FREQUENCY_MODE ;
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
@@ -2113,6 +2113,7 @@ void LoadValidMemoryChannels(void)
 
 typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
+    uint16_t DelayRssi;
     uint8_t BPRssiTriggerLevel[32]; // 32 bytes of trigger levels
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
@@ -2137,9 +2138,10 @@ void LoadSettings()
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
   settings.dbMax = eepromData.dbMax;
+  
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
-    
+    DelayRssi = eepromData.DelayRssi;
     validScanListCount = 0;
     ChannelAttributes_t att;
     for (int i = 0; i < 200; i++) {
@@ -2158,6 +2160,7 @@ void SaveSettings()
   eepromData.RangeStart = gScanRangeStart;
   eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
+  eepromData.DelayRssi = DelayRssi;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
