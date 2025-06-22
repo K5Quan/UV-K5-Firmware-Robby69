@@ -865,10 +865,10 @@ void APP_Update(void)
 		return;
 #endif
 
-//Robby69 auto start spectrum in channel mode
+//Robby69 auto start spectrum 
 	uint8_t Spectrum_state = 0; //Spectrum Not Active
   	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
-	if (Spectrum_state >0) //WAS SPECTRUM
+	if (Spectrum_state >0 && Spectrum_state <10)
 		APP_RunSpectrum(Spectrum_state);
 	
 #ifdef ENABLE_VOICE
@@ -1035,6 +1035,13 @@ void APP_Update(void)
 	}
 }
 
+static void gobacktospectrum(void){
+	uint8_t Spectrum_state = 0; //Spectrum Not Active
+	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
+	if (Spectrum_state >10) //WAS SPECTRUM
+		APP_RunSpectrum(Spectrum_state-10);
+}
+
 // called every 10ms
 static void CheckKeys(void)
 {
@@ -1057,6 +1064,7 @@ if (gCurrentTxState && gTxTimerCountdown_500ms == 0) {
     ProcessKey(KEY_PTT, false, false);  // Turn off TX
     gCurrentTxState = false;
     gPttIsPressed = false;  // Reset PTT state as well
+	
 }
 
 // Then handle PTT button logic
@@ -1074,6 +1082,8 @@ if (!GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT) && gSerialConfigCountDown_500ms 
                 if (gCurrentTxState) {
                     ProcessKey(KEY_PTT, false, false);  // Turn off TX
                     gCurrentTxState = false;
+					
+					
                 } else {
                     ProcessKey(KEY_PTT, true, false);   // Turn on TX
                     gCurrentTxState = true;
@@ -1099,6 +1109,7 @@ else
             // Only turn off TX if in normal PTT mode and we're transmitting
             ProcessKey(KEY_PTT, false, false);
             gCurrentTxState = false;
+			gobacktospectrum();
         }
     }
     gPttIsPressed = false;

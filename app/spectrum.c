@@ -17,6 +17,7 @@
 #define HISTORY_SIZE 100
 uint16_t DelayRssi=11000;
 bool FreeTriggerLevel = 0;
+bool StorePtt_Toggle_Mode = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
 static uint32_t PreviousRecorded = 0;
@@ -306,14 +307,21 @@ static void TuneToPeak() {
   scanInfo.i = peak.i;
   SetF(scanInfo.f);
 }
-static void DeInitSpectrum() {
+static void DeInitSpectrum(bool ComeBack) {
   SetF(initialFreq);
-  ToggleNormalizeRssi(false);
   RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   uint8_t Spectrum_state = 0; //Spectrum Not Active
-  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+  if(!ComeBack)  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+  else {
+    EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
+	  Spectrum_state+=10;
+    EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+    StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
+    Ptt_Toggle_Mode =0;}
+
+
   currentFreq = initialFreq = gScanRangeStart = 0;
   ToggleNormalizeRssi(false);
 }
@@ -341,7 +349,7 @@ static void ExitAndCopyToVfo() {
     // Additional delay to debounce keys
     SYSTEM_DelayMs(200);
     isInitialized = false;
-    DeInitSpectrum();
+    DeInitSpectrum(1);
 }
 
 uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency) 
@@ -1459,8 +1467,8 @@ static void OnKeyDown(uint8_t key) {
 
   case KEY_5:
     if(appMode==FREQUENCY_MODE) FreqInput();
-    DelayRssi = DelayRssi+1000; //geek stuff
-    if (DelayRssi > 13000) DelayRssi = 1000;
+    DelayRssi +=1000; //geek stuff
+    if (DelayRssi > 15000) DelayRssi = 1000;
     redrawStatus = true;
     break;
   case KEY_0:
@@ -1526,7 +1534,7 @@ static void OnKeyDown(uint8_t key) {
       break;
       }
     if (menuState) { menuState = 0;break;}
-      DeInitSpectrum();
+      DeInitSpectrum(0);
     break;
    
    default:
@@ -1967,7 +1975,7 @@ static void Tick() {
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
   Mode mode;
-  
+  if (StorePtt_Toggle_Mode) Ptt_Toggle_Mode = StorePtt_Toggle_Mode;
   // Spectrum_state 1: MR channel, 2: band scan, 3: range scan, 4: basic spectrum, 5:new scan range 0: no spectrum
   if (Spectrum_state == 4) mode = FREQUENCY_MODE ;
   if (Spectrum_state == 3) mode = SCAN_RANGE_MODE ;
