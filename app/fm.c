@@ -34,7 +34,7 @@
 #include "ui/ui.h"
 
 const uint16_t FM_RADIO_MAX_FREQ = 1080; // 108  Mhz
-const uint16_t FM_RADIO_MIN_FREQ = 700;  // was 87.5 Mhz
+const uint16_t FM_RADIO_MIN_FREQ = 760;  // was 87.5 Mhz
 
 bool              gFmRadioMode;
 uint8_t           gFmRadioCountdown_500ms;
