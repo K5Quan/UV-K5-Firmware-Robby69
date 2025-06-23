@@ -568,21 +568,13 @@ static void AutoTriggerLevelbands(void) {
 
 // resets modifiers like blacklist, attenuation, normalization
 static void ResetModifiers() {
-  //squelch_level_mod=10;
   memset(StringC, 0, sizeof(StringC)); 
-  	//sprintf(StringC, "");
   for (int i = 0; i < 128; ++i) {
-    if (rssiHistory[i] == RSSI_MAX_VALUE)
-      rssiHistory[i] = 0;
+    if (rssiHistory[i] == RSSI_MAX_VALUE) rssiHistory[i] = 0;
   }
-  //memset(blacklistFreqs, 0, sizeof(blacklistFreqs));
-  //blacklistFreqsIdx = 0;
-  //isBlacklistApplied = false;
   if(appMode==CHANNEL_MODE){LoadValidMemoryChannels();}
-  //ToggleNormalizeRssi(false);
   memset(attenuationOffset, 0, sizeof(attenuationOffset));
   RelaunchScan();
-  
 }
 
 static void RelaunchScan() {
