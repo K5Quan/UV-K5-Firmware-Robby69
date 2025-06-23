@@ -13,6 +13,11 @@
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "1\n", Spectrum_state );LogUart(str);
 */
+
+#ifdef ENABLE_SCREENSHOT
+#include "screenshot.h"
+#endif
+
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 100
 uint16_t DelayRssi=11000;
@@ -1470,6 +1475,10 @@ static void OnKeyDown(uint8_t key) {
     DelayRssi +=1000; //geek stuff
     if (DelayRssi > 15000) DelayRssi = 1000;
     redrawStatus = true;
+    // For screenshot
+    #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
+      getScreenShot();
+    #endif
     break;
   case KEY_0:
     ToggleModulation();

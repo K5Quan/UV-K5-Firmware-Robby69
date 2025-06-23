@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5_RC8
+VERSION_STRING := V5_RC9
 
 
 # compile options (see README.md for descriptions)
@@ -54,6 +54,7 @@ ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
 ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
+ENABLE_SCREENSHOT		  				:= 1
 
 
 #############################################################
@@ -125,6 +126,9 @@ OBJS += app/main.o
 OBJS += app/menu.o
 ifeq ($(ENABLE_SPECTRUM), 1)
 OBJS += app/spectrum.o
+endif
+ifeq ($(ENABLE_SCREENSHOT),1)
+	CFLAGS  += -DENABLE_SCREENSHOT
 endif
 OBJS += app/scanner.o
 ifeq ($(ENABLE_UART),1)
