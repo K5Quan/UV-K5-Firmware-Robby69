@@ -13,11 +13,9 @@
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "1\n", Spectrum_state );LogUart(str);
 */
-
 #ifdef ENABLE_SCREENSHOT
-#include "screenshot.h"
+  #include "screenshot.h"
 #endif
-
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 100
 uint16_t DelayRssi=11000;
@@ -812,19 +810,6 @@ static void UpdateFreqInput(KEY_Code_t key) {
   redrawScreen = true;
 }
 
-static void Blacklist() {
-
-  blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
-  rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-
-  rssiHistory[peak.i] = RSSI_MAX_VALUE;
-  isBlacklistApplied = true;
-  ResetPeak();
-  ToggleRX(false);
-  ResetScanStats();
-}
-
-
 static uint8_t CurrentScanIndex()
 {
   if(scanInfo.measurementsCount > 128) {
@@ -838,15 +823,24 @@ static uint8_t CurrentScanIndex()
   
 }
 
-static bool IsBlacklisted(uint16_t idx)
-{
-
+static bool IsBlacklisted(uint16_t idx){
   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
     if(blacklistFreqs[i] == idx)
       return true;
   return false;
 }
 
+static void Blacklist() {
+
+  blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
+  rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
+
+  rssiHistory[peak.i] = RSSI_MAX_VALUE;
+  isBlacklistApplied = true;
+  ResetPeak();
+  ToggleRX(false);
+  ResetScanStats();
+}
 
 // Draw things
 
@@ -920,10 +914,9 @@ static void DrawStatus() {
       pos += len;}
     else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
     }
-GUI_DisplaySmallest(String, 0, 1, true,true);
   }
-  sprintf(String, "%d" , DelayRssi/1000);  
-  GUI_DisplaySmallest(String, 106, 1, true,true);
+  sprintf(&String[pos]," %dms", DelayRssi/1000);
+  GUI_DisplaySmallest(String, 0, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
   uint16_t voltage = (gBatteryVoltages[0] + gBatteryVoltages[1] + gBatteryVoltages[2] +
@@ -1030,8 +1023,13 @@ static void DrawF(uint32_t f) {
     if (appMode == SCAN_BAND_MODE && !isListening) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
     } else if (appMode == CHANNEL_MODE && !isListening) {
-        snprintf(line1, sizeof(line1), "Scan Lists");
-    }
+              // Count enabled scan lists
+              uint8_t enabledCount = 0;
+              for (int i = 0; i < 15; i++) {
+                if (settings.scanListEnabled[i]) enabledCount++;
+              }
+            snprintf(line1, sizeof(line1), "Scan Lists (%d)", enabledCount);
+            }
 
     // --- If Listening or Code Detected ---
     if (isListening || refresh > 1) {
@@ -1455,6 +1453,9 @@ static void OnKeyDown(uint8_t key) {
   break;
   
   case KEY_SIDE1:
+    #ifdef ENABLE_SCREENSHOT
+      getScreenShot();
+    #endif
     Blacklist();
     break;
   
@@ -1464,13 +1465,9 @@ static void OnKeyDown(uint8_t key) {
 
   case KEY_5:
     if(appMode==FREQUENCY_MODE) FreqInput();
-    DelayRssi +=1000; //geek stuff
-    if (DelayRssi > 15000) DelayRssi = 1000;
+    DelayRssi +=1000; 
+    if (DelayRssi > 12000) DelayRssi = 2000;
     redrawStatus = true;
-    // For screenshot
-    #ifdef ENABLE_FEAT_F4HWN_SCREENSHOT
-      getScreenShot();
-    #endif
     break;
   case KEY_0:
     ToggleModulation();
