@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5
+VERSION_STRING := V5.1
 
 
 # compile options (see README.md for descriptions)

@@ -335,28 +335,24 @@ static void DeInitSpectrum(bool ComeBack) {
 
 static void ExitAndCopyToVfo() {
   RestoreRegisters();
-  if (appMode==CHANNEL_MODE)
-  // channel mode
-  {
-   // gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[peak.i-1];
-   // gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[peak.i-1];
-
-    gRequestSaveVFO   = true;
-    gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
-  }
-  else
-  // frequency mode
-  {
-    gTxVfo->STEP_SETTING = FREQUENCY_GetStepIdxFromStepFrequency(GetScanStep());
-    gTxVfo->Modulation = settings.modulationType;
-    gTxVfo->CHANNEL_BANDWIDTH = settings.listenBw;
-    SETTINGS_SetVfoFrequency(freqHistory[indexFd]); //Robby69
-    gRequestSaveChannel = 1;
+  switch (currentState) {
+    case HISTORY_LIST: 
+      SETTINGS_SetVfoFrequency(freqHistory[indexFd]);  
+      DeInitSpectrum(0);
+      break;
+    case SPECTRUM:
+      DeInitSpectrum(1);
+      break;      
+    case SCANLIST_SELECT:
+      break;
+    case BAND_LIST_SELECT:
+      break;
+    default:
+      break;
   }
     // Additional delay to debounce keys
     SYSTEM_DelayMs(200);
     isInitialized = false;
-    DeInitSpectrum(1);
 }
 
 uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency) 
