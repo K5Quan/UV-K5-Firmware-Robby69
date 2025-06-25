@@ -11,7 +11,7 @@
 //#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
-          char str[64] = "";sprintf(str, "1\n", Spectrum_state );LogUart(str);
+          char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
 */
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -311,14 +311,17 @@ static void TuneToPeak() {
   SetF(scanInfo.f);
 }
 static void DeInitSpectrum(bool ComeBack) {
-  SetF(initialFreq);
+  
   RestoreRegisters();
+  currentFreq = initialFreq = gScanRangeStart = 0;
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
-  
+  SetState(SPECTRUM);
   if(!ComeBack) {
     uint8_t Spectrum_state = 0; //Spectrum Not Active
-    EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);}
+    EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+    //SetF(initialFreq);
+    }
     
   else {
     EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
@@ -327,9 +330,6 @@ static void DeInitSpectrum(bool ComeBack) {
     StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
     Ptt_Toggle_Mode =0;
     }
-
-
-  currentFreq = initialFreq = gScanRangeStart = 0;
   ToggleNormalizeRssi(false);
 }
 
@@ -337,17 +337,18 @@ static void ExitAndCopyToVfo() {
   RestoreRegisters();
   switch (currentState) {
     case HISTORY_LIST: 
-      SETTINGS_SetVfoFrequency(freqHistory[indexFd]);  
+      SETTINGS_SetVfoFrequency(freqHistory[historyListIndex+1]); 
+      gTxVfo->Modulation = MODULATION_FM;
+      //SetF(freqHistory[historyListIndex+1]);
+      gRequestSaveChannel = 1;
       DeInitSpectrum(0);
       break;
     case SPECTRUM:
       DeInitSpectrum(1);
       break;      
-    case SCANLIST_SELECT:
-      break;
-    case BAND_LIST_SELECT:
-      break;
+    
     default:
+      DeInitSpectrum(0);
       break;
   }
     // Additional delay to debounce keys
@@ -902,6 +903,8 @@ static void DrawStatus() {
       len = sprintf(&String[pos], "%ux ", GetStepsCount());
       pos += len;
     }
+    len = sprintf(&String[pos],"%dms ", DelayRssi/1000);
+    pos += len;
     
   if (appMode==CHANNEL_MODE)
     {
@@ -915,7 +918,6 @@ static void DrawStatus() {
     else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
     }
   }
-  sprintf(&String[pos]," %dms", DelayRssi/1000);
   GUI_DisplaySmallest(String, 0, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -2105,7 +2107,7 @@ void LoadValidMemoryChannels(void)
       for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
         {gainOffset[i] = max - rssiHistory[i];}
       isNormalizationApplied = true;
-      settings.rssiTriggerLevel=RSSI_MAX_VALUE;
+      //settings.rssiTriggerLevel=RSSI_MAX_VALUE;
     }
     else {
       memset(gainOffset, 0, sizeof(gainOffset));
