@@ -315,14 +315,18 @@ static void DeInitSpectrum(bool ComeBack) {
   RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
-  uint8_t Spectrum_state = 0; //Spectrum Not Active
-  if(!ComeBack)  EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+  
+  if(!ComeBack) {
+    uint8_t Spectrum_state = 0; //Spectrum Not Active
+    EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);}
+    
   else {
     EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
 	  Spectrum_state+=10;
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
     StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
-    Ptt_Toggle_Mode =0;}
+    Ptt_Toggle_Mode =0;
+    }
 
 
   currentFreq = initialFreq = gScanRangeStart = 0;
