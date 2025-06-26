@@ -18,7 +18,29 @@
 #endif
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 100
-uint16_t DelayRssi=11000;
+//////////////////Parameters:
+uint8_t DelayRssi=11;
+uint8_t RandomEmission = 0;
+static Parameter_t parameters[] = {
+  {
+    .name = "Rssi Delay",
+    .valuePtr = &DelayRssi,
+    .type = PARAM_TYPE_UINT16,
+    .minValue = 1,
+    .maxValue = 12
+  },
+  {
+    .name = "Random Emission",
+    .valuePtr = &RandomEmission,
+    .type = PARAM_TYPE_BOOL,
+    .minValue = 0,
+    .maxValue = 1
+  },
+  // Add new params here easily
+};
+
+#define PARAMETER_COUNT (sizeof(parameters)/sizeof(parameters[0]))
+/////////////////////////////
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
 uint8_t historyListIndex = 0;
@@ -32,6 +54,8 @@ static int bandListScrollOffset = 0;
 static void RenderBandSelect();
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
+uint8_t parametersSelectedIndex = 0;
+uint8_t parametersScrollOffset = 0;
 static uint8_t validScanListCount = 0;
 bool inScanListMenu = false;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0,0};
@@ -373,7 +397,7 @@ uint16_t GetRssi() {
   // testing resolution to sticky squelch issue
   // was 100 , some k5 bug when starting spectrum
   BK4819_ReadRegister(0x63);
-  SYSTICK_DelayUs(DelayRssi);
+  SYSTICK_DelayUs(DelayRssi* 1000); // Delay in microseconds
   rssi = BK4819_GetRSSI();
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
@@ -903,7 +927,7 @@ static void DrawStatus() {
       len = sprintf(&String[pos], "%ux ", GetStepsCount());
       pos += len;
     }
-    len = sprintf(&String[pos],"%dms ", DelayRssi/1000);
+    len = sprintf(&String[pos],"%dms ", DelayRssi);
     pos += len;
     
   if (appMode==CHANNEL_MODE)
@@ -1351,8 +1375,47 @@ static void OnKeyDown(uint8_t key) {
         default:
                 break;
         }
-        return; // Finish handling if we were in BAND_LIST_SELECT
+        return; // Finish handling if we were in SCAN_LIST_SELECT
       }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      // If we're in PARAMETERS_SELECT selection mode, use dedicated key logic
+    if (currentState == PARAMETERS_SELECT) {
+      Parameter_t *param = &parameters[parametersSelectedIndex];
+      switch (key) {
+        case KEY_UP:
+          if (param->type == PARAM_TYPE_BOOL) {
+            *(uint8_t *)param->valuePtr = !*(uint8_t *)param->valuePtr;
+          } else {
+            int val = *(int *)param->valuePtr;
+            if (val < param->maxValue) val++;
+            *(int *)param->valuePtr = val;
+          }
+          redrawScreen = true;
+          break;
+
+        case KEY_DOWN:
+          if (param->type == PARAM_TYPE_BOOL) {
+            *(uint8_t *)param->valuePtr = !*(uint8_t *)param->valuePtr;
+          } else {
+            int val = *(int *)param->valuePtr;
+            if (val > param->minValue) val--;
+            *(int *)param->valuePtr = val;
+          }
+          redrawScreen = true;
+          break;
+
+        case KEY_EXIT:
+          // Exit parameters menu to previous menu/state
+          SetState(previousState);
+          redrawScreen = true;
+          break;
+
+        default:
+          break;
+      }
+      return; // Finish handling if we were in PARAMETERS_SELECT
+    }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
 
   switch (key) {
@@ -1466,9 +1529,10 @@ static void OnKeyDown(uint8_t key) {
     break;
 
   case KEY_5:
-    if(appMode==FREQUENCY_MODE) FreqInput();
-    DelayRssi +=1000; 
-    if (DelayRssi > 12000) DelayRssi = 2000;
+    //if(appMode==FREQUENCY_MODE) FreqInput();
+    SetState(PARAMETERS_SELECT);
+    //DelayRssi +=1000; 
+    //if (DelayRssi > 12000) DelayRssi = 2000;
     redrawStatus = true;
     break;
   case KEY_0:
@@ -1761,6 +1825,9 @@ static void Render() {
 
     case SCANLIST_SELECT:
       RenderScanListSelect();
+    break;
+    case PARAMETERS_SELECT:
+      RenderParametersSelect();
     break;
   }
 
@@ -2121,7 +2188,8 @@ void LoadValidMemoryChannels(void)
 
 typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
-    uint16_t DelayRssi;
+    uint8_t DelayRssi;
+    uint8_t RandomEmission; 
     uint8_t BPRssiTriggerLevel[32]; // 32 bytes of trigger levels
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
@@ -2150,6 +2218,7 @@ void LoadSettings()
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
     DelayRssi = eepromData.DelayRssi;
+    RandomEmission = eepromData.RandomEmission;
     validScanListCount = 0;
     ChannelAttributes_t att;
     for (int i = 0; i < 200; i++) {
@@ -2169,6 +2238,7 @@ void SaveSettings()
   eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
+  eepromData.RandomEmission = RandomEmission;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
@@ -2235,6 +2305,32 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     uint8_t realIndex = validScanListIndices[displayIndex];
     GetScanListLabel(realIndex, buffer);
 }
+
+static void GetParametersText(uint8_t index, char *buffer) {
+  if (index >= PARAMETER_COUNT) {
+    strcpy(buffer, "");
+    return;
+  }
+  Parameter_t *param = &parameters[index];
+
+  switch (param->type) {
+    case PARAM_TYPE_UINT16:
+      sprintf(buffer, "%-15s : %u", param->name, *(uint16_t *)param->valuePtr);
+      break;
+    case PARAM_TYPE_UINT8:
+    case PARAM_TYPE_INT8:
+      sprintf(buffer, "%-15s : %d", param->name, *(int *)param->valuePtr);
+      break;
+    case PARAM_TYPE_BOOL:
+      sprintf(buffer, "%-15s : %s", param->name, (*(uint8_t *)param->valuePtr) ? "On" : "Off");
+      break;
+    default:
+      sprintf(buffer, "%-15s : ?", param->name);
+      break;
+  }
+}
+
+
 
 //  skrócenia dla GetBandItemText
 static void GetBandItemText(uint8_t index, char* buffer) {
@@ -2333,6 +2429,10 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 static void RenderScanListSelect() {
     BuildValidScanListIndices(); 
     RenderList("SCANLISTS:", validScanListCount,scanListSelectedIndex, scanListScrollOffset, GetFilteredScanListText);
+}
+
+static void RenderParametersSelect() {
+  RenderList("PARAMETERS:", validScanListCount,parametersSelectedIndex, parametersScrollOffset, GetParametersText);
 }
 
 static void RenderBandSelect() {RenderList("BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}

@@ -89,13 +89,30 @@ static const uint16_t scanStepBWRegValues[] = {
 //     0b0100100001011000, // 6.25
 // };
 
+typedef enum {
+  PARAM_TYPE_UINT8,
+  PARAM_TYPE_UINT16,
+  PARAM_TYPE_BOOL,
+  PARAM_TYPE_INT8,
+  // add more types if needed
+} ParamType_t;
+
+typedef struct {
+  const char *name;
+  void *valuePtr;          // pointer to the actual parameter variable
+  ParamType_t type;
+  uint16_t minValue;       // min for numeric params
+  uint16_t maxValue;       // max for numeric params
+} Parameter_t;
+
 typedef enum State {
   SPECTRUM,
   FREQ_INPUT,
   STILL,
   HISTORY_LIST,
   BAND_LIST_SELECT,
-  SCANLIST_SELECT
+  SCANLIST_SELECT,
+  PARAMETERS_SELECT,
 } State;
 
 
