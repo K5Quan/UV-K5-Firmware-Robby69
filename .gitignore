@@ -10,3 +10,4 @@ compiled-firmware/firmware
 compiled-firmware/firmware.bin
 compiled-firmware/firmware.packed.bin
 compiled-firmware/firmware.ld
+compiled-firmware/robzyl.fr.packed.bin

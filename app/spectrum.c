@@ -49,6 +49,7 @@ static uint32_t PreviousRecorded = 0;
 static int historyScrollOffset = 0;
 static void RenderHistoryList();
 static void RenderScanListSelect();
+static void RenderParametersSelect();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
@@ -1879,6 +1880,9 @@ bool HandleUserInput() {
                 // OnKeyDownBandListSelect(kbd.current, kbd.counter);
                 break;
             case SCANLIST_SELECT:
+                OnKeyDown(kbd.current);
+                break;
+            case PARAMETERS_SELECT:
                 OnKeyDown(kbd.current);
                 break;
         }
