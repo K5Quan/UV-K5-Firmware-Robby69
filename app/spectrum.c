@@ -21,7 +21,7 @@
 //////////////////Parameters:
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
-#define PARAMETER_COUNT 2
+#define PARAMETER_COUNT 3
 /////////////////////////////
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
@@ -74,7 +74,7 @@ static void SaveSettings();
 static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
 const uint16_t RSSI_MAX_VALUE = 65535;
-#define SQUELCH_OFF_DELAY 100 //Robby69
+uint16_t SQUELCH_OFF_DELAY = 0;
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[100];
@@ -1396,6 +1396,7 @@ static void OnKeyDown(uint8_t key) {
                       if (DelayRssi > 12) DelayRssi = 2;
                       redrawStatus = true;}
                 if (parametersSelectedIndex == 1)RandomEmission = !RandomEmission; 
+                if (parametersSelectedIndex == 2){SQUELCH_OFF_DELAY +=1000;if (SQUELCH_OFF_DELAY > 20000) SQUELCH_OFF_DELAY = 20000;}
                 break;
           case KEY_7:   
                 if (parametersSelectedIndex == 0){
@@ -1403,6 +1404,7 @@ static void OnKeyDown(uint8_t key) {
                       if (DelayRssi < 2) DelayRssi = 12;
                       redrawStatus = true;}
                 if (parametersSelectedIndex == 1)RandomEmission = !RandomEmission; 
+                if (parametersSelectedIndex == 2){SQUELCH_OFF_DELAY -=1000;if (SQUELCH_OFF_DELAY > 20000) SQUELCH_OFF_DELAY = 0;}
                 break;
         case KEY_EXIT:
           // Exit parameters menu to previous menu/state
@@ -2309,8 +2311,9 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 }
 
 static void GetParametersText(uint8_t index, char *buffer) {
-  if (index == 0) sprintf(buffer, "RSSI Delay : %d", DelayRssi);
-  if (index == 1) sprintf(buffer, "Rnd Emit : %d", RandomEmission);
+  if (index == 0) sprintf(buffer, "RSSI Delay: %d", DelayRssi);
+  if (index == 1) sprintf(buffer, "Rnd Emit: %d", RandomEmission);
+  if (index == 2) sprintf(buffer, "SQ_DELAY: %d", SQUELCH_OFF_DELAY);
  }
   
 
