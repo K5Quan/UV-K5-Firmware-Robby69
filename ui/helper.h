@@ -46,4 +46,6 @@ void PutPixelStatus(uint8_t x, uint8_t y, bool fill);
 void DrawVLine(int sy, int ey, int nx, bool fill);
 void GUI_DisplaySmallest(const char *pString, uint8_t x, uint8_t y, bool statusbar, bool fill);
 
+#ifdef ENABLE_PL_BAND
 void UI_PrintStringSmallScrolling(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, uint8_t scrollOffset);
+#endif

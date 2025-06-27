@@ -315,6 +315,7 @@ void GUI_DisplaySmallest(const char *pString, uint8_t x, uint8_t y,
   }
 }
 
+#ifdef ENABLE_PL_BAND
 void UI_PrintStringSmallScrolling(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, uint8_t scrollOffset)
 {
     const size_t Length = strlen(pString);
@@ -375,3 +376,4 @@ void UI_PrintStringSmallScrolling(const char *pString, uint8_t Start, uint8_t En
         }
     }
 }
+#endif

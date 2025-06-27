@@ -962,7 +962,7 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
         }
 }
 
-
+#ifdef ENABLE_PL_BAND
 static void DrawF(uint32_t f) {
     if (f == 0) return;
 
@@ -1136,6 +1136,8 @@ if (appMode == CHANNEL_MODE && !isListening) {
 if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1); // Line 2 (Freq/Name/Code)
 if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 }
+#endif
+
 
 
 void LookupChannelInfo() {
