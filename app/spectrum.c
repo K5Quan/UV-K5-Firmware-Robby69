@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
@@ -331,6 +331,16 @@ static void DeInitSpectrum(bool ComeBack) {
   gScanRangeStart = 0;
 }
 
+uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
+  uint32_t rssi = rssiHistory[1]*rssiHistory[maxChannels];
+  if (maxChannels == 0 || rssi == 0) {
+        return 1;  // Fallback to channel 1 if invalid input
+    }
+    // Scale RSSI to [1, maxChannels]
+    return 1 + (rssi % maxChannels);
+}
+
+
 static void ExitAndCopyToVfo() {
   RestoreRegisters();
 
@@ -344,17 +354,13 @@ static void ExitAndCopyToVfo() {
       break;
     case SPECTRUM:
     if (RandomEmission){
-        uint8_t min=255;
-        uint8_t imin=1;
-        for (int i=1;i<scanChannelsCount;i++)
-                /////////////////////////DEBUG//////////////////////////
-          {if (rssiHistory[i] < min) {
-            min = rssiHistory[i];
-            imin=i;
-            }}
+      uint16_t randomChannel = GetRandomChannelFromRSSI(scanChannelsCount);
       static uint32_t rndfreq;
-      rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[imin]].Frequency;
-      char str[250] = "";sprintf(str, "%d %d %d\n",imin,rssiHistory[imin],rndfreq);LogUart(str);
+    
+      while (rssiHistory[randomChannel]> settings.rssiTriggerLevel) //check channel availability
+      {randomChannel++;
+      if (randomChannel >scanChannelsCount)randomChannel = 1;}
+      rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[randomChannel]].Frequency;
       SETTINGS_SetVfoFrequency(rndfreq);
       gTxVfo->Modulation = MODULATION_FM;
       gTxVfo->STEP_SETTING = STEP_0_01kHz;
@@ -2502,7 +2508,7 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 
 static void GetParametersText(uint8_t index, char *buffer) {
   if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
-  if (index == 1) sprintf(buffer, "Rnd Emission: %s", RandomEmission ? "ON" : "OFF");
+  if (index == 1) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
   if (index == 2) sprintf(buffer, "SQ_OFF_DELAY:%2u.%1u", SQUELCH_OFF_DELAY / 1000, (SQUELCH_OFF_DELAY % 1000) / 100);
   
  }
