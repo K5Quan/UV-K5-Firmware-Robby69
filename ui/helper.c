@@ -314,3 +314,64 @@ void GUI_DisplaySmallest(const char *pString, uint8_t x, uint8_t y,
     x += 4;
   }
 }
+
+void UI_PrintStringSmallScrolling(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, uint8_t scrollOffset)
+{
+    const size_t Length = strlen(pString);
+    const unsigned int char_width = ARRAY_SIZE(gFontSmall[0]);
+    const unsigned int char_spacing = char_width + 1;
+    
+    if (Length == 0) return;
+    
+    // Calculate available width and maximum characters that can fit
+    uint8_t availableWidth = End - Start;
+    uint8_t maxChars = availableWidth / char_spacing;
+    
+    if (maxChars == 0) return;
+    
+    // Calculate starting character position based on scroll offset
+    uint8_t startChar = scrollOffset % (Length + 5); // Add pause at end
+    
+    // Calculate how many characters to display
+    uint8_t displayLength = (Length - startChar > maxChars) ? maxChars : Length - startChar;
+    
+    // If we reach the end and there's still space, wrap around to show beginning
+    uint8_t wrapChars = 0;
+    if (displayLength < maxChars && scrollOffset > 0) {
+        wrapChars = maxChars - displayLength;
+        if (wrapChars > Length) wrapChars = Length;
+    }
+    
+    // Center the text horizontally
+    uint8_t totalDisplayChars = displayLength + wrapChars;
+    uint8_t actualStart = Start;
+    if (End > Start && totalDisplayChars > 0) {
+        actualStart = Start + (((End - Start) - (totalDisplayChars * char_spacing)) + 1) / 2;
+    }
+    
+    uint8_t *pFb = gFrameBuffer[Line] + actualStart;
+    
+    // Draw main part from startChar
+    for (uint8_t i = 0; i < displayLength; i++)
+    {
+        char c = pString[startChar + i];
+        if (c > ' ')
+        {
+            const unsigned int index = (unsigned int)c - ' ' - 1;
+            if (index < ARRAY_SIZE(gFontSmall))
+                memmove(pFb + (i * char_spacing) + 1, &gFontSmall[index], char_width);
+        }
+    }
+    
+    // Draw wrapped part from beginning if needed
+    for (uint8_t i = 0; i < wrapChars; i++)
+    {
+        char c = pString[i];
+        if (c > ' ')
+        {
+            const unsigned int index = (unsigned int)c - ' ' - 1;
+            if (index < ARRAY_SIZE(gFontSmall))
+                memmove(pFb + ((displayLength + i) * char_spacing) + 1, &gFontSmall[index], char_width);
+        }
+    }
+}

@@ -1010,14 +1010,74 @@ static void DrawF(uint32_t f) {
     if (appMode == SCAN_BAND_MODE && !isListening) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
     } else if (appMode == CHANNEL_MODE && !isListening) {
-              // Count enabled scan lists
-              uint8_t enabledCount = 0;
-              for (int i = 0; i < 15; i++) {
-                if (settings.scanListEnabled[i]) enabledCount++;
-              }
-            snprintf(line1, sizeof(line1), "Scan Lists (%d)", enabledCount);
+      // Static variables for scrolling functionality
+    static char storedScanListText[256] = "";
+    static uint8_t scrollOffset = 0;
+    static uint16_t scrollTimer = 0;
+    static bool needsScrolling = false;
+    
+    // Count enabled scan lists and build list of numbers
+    uint8_t enabledCount = 0;
+    char enabledLists[128] = "";
+    bool first = true;
+    
+    for (int i = 0; i < 15; i++) {
+        if (settings.scanListEnabled[i]) {
+            enabledCount++;
+            if (!first) {
+                strcat(enabledLists, ",");
             }
+            char listNum[4];
+            sprintf(listNum, "%d", i + 1);
+            strcat(enabledLists, listNum);
+            first = false;
+        }
+    }
+    
+    // Build the complete string
+    char fullScanListText[256];
+    if (enabledCount > 0) {
+        snprintf(fullScanListText, sizeof(fullScanListText), "SL (%d) %s  - ", enabledCount, enabledLists);
+    } else {
+        snprintf(fullScanListText, sizeof(fullScanListText), "Scan Lists (ALL)");
+    }
+    
+    // Update stored text if it changed
+    if (strcmp(storedScanListText, fullScanListText) != 0) {
+        strncpy(storedScanListText, fullScanListText, sizeof(storedScanListText) - 1);
+        storedScanListText[sizeof(storedScanListText) - 1] = '\0';
+        scrollOffset = 0;
+        scrollTimer = 0;
+        
+        // Check if scrolling is needed (if more than one list and text is long)
+        const unsigned int char_spacing = 8; // Approximate character spacing for small font
+        uint8_t availableWidth = 126; // Available display width (128 - 2 for margins)  
+        uint8_t maxVisibleChars = availableWidth / char_spacing;
+        needsScrolling = (enabledCount > 1) && (strlen(storedScanListText) > maxVisibleChars);
+    }
+    
+    if (needsScrolling) {
+        // Implement scrolling
+        scrollTimer++;
+if (scrollTimer > 1) { // Najszybsze możliwe przewijanie
+    scrollOffset += 1; // Potrójny skok pozycji
+    if (scrollOffset > strlen(storedScanListText) + 1) { // Minimalna pauza
+        scrollOffset = 0;
+    }
+    scrollTimer = 0;
+}
 
+        
+        // Use scrolling display function
+        UI_PrintStringSmallScrolling(storedScanListText, 1, 127, 0, scrollOffset);
+        line1[0] = '\0'; // Clear line1 so it doesn't get displayed again
+    } else {
+        // Use normal display for short text
+        strncpy(line1, storedScanListText, sizeof(line1) - 1);
+        line1[sizeof(line1) - 1] = '\0';
+    }
+}
+ 
     // --- If Listening or Code Detected ---
     if (isListening || refresh > 1) {
         // Priority 1: Show Frequency + Code (if available)
@@ -1060,10 +1120,21 @@ static void DrawF(uint32_t f) {
         }
     }
 
-    // --- Render to Screen ---
-    UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
-    if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
-    if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
+    // --- Render to Screen --- 
+if (appMode == CHANNEL_MODE && !isListening) {
+    // Static variables are already handled above, check if scrolling was used
+    static bool scrollingUsed = false;
+    scrollingUsed = (line1[0] == '\0'); // If line1 was cleared, scrolling was used
+    
+    if (!scrollingUsed) {
+        UI_PrintStringSmallBold(line1, 1, 1, 0); // Line 1 (Band/Scan List)
+    }
+    // If scrolling was used, text is already drawn by UI_PrintStringSmallScrolling
+} else {
+    UI_PrintStringSmallBold(line1, 1, 1, 0); // Line 1 (Band/Scan List)
+}
+if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1); // Line 2 (Freq/Name/Code)
+if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 }
 
 
@@ -2155,7 +2226,6 @@ void LoadValidMemoryChannels(void)
       for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
         {gainOffset[i] = max - rssiHistory[i];}
       isNormalizationApplied = true;
-      //settings.rssiTriggerLevel=RSSI_MAX_VALUE;
     }
     else {
       memset(gainOffset, 0, sizeof(gainOffset));
