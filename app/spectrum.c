@@ -1138,6 +1138,128 @@ if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 }
 #endif
 
+#ifdef ENABLE_FR_BAND
+static void DrawF(uint32_t f) {
+    if (f == 0) return;
+
+    // --- Frequency Formatting ---
+    uint8_t Code;
+    if (GetScanStep() == 833) {
+        uint32_t base = f / 2500 * 2500;
+        int chno = (f - base) / 700;
+        f = base + (chno * 833) + (chno == 3);
+    }
+    char freqStr[16];
+    sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
+    RemoveTrailZeros(freqStr);
+
+    // --- CTCSS/DCS Detection ---
+    if (refresh == 0) {
+        BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+        refresh = 1;
+        if (scanResult == BK4819_CSS_RESULT_CDCSS) {
+            Code = DCS_GetCdcssCode(cdcssFreq);
+            refresh = 30;
+            if (Code != 0xFF) sprintf(StringCode, "D%03oN", DCS_Options[Code]);
+        } else if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+            Code = DCS_GetCtcssCode(ctcssFreq);
+            refresh = 30;
+            sprintf(StringCode, "%u.%uHz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
+        }
+    }
+    refresh--;
+    if (refresh == 0) memset(StringCode, 0, sizeof(StringCode));
+
+    // Count enabled scan lists and build list of numbers
+    uint8_t enabledCount = 0;
+    char enabledLists[128] = "";
+    bool first = true;
+    
+    for (int i = 0; i < 15; i++) {
+        if (settings.scanListEnabled[i]) {
+            enabledCount++;
+            if (!first) {
+                strcat(enabledLists, ",");
+            }
+            char listNum[4];
+            sprintf(listNum, "%d", i + 1);
+            strcat(enabledLists, listNum);
+            first = false;
+        }
+    }
+
+    // --- Prepare Display Lines ---
+    char line1[19] = "";
+    char line2[19] = "";
+    char line3[19] = "";
+
+    f = freqHistory[indexFd];
+    bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
+    int channelFd = BOARD_gMR_fetchChannel(f);
+    isKnownChannel = channelFd != -1;
+    
+    strncpy(line1, freqStr, 18);
+    
+    // --- Default: Band Name or Scan List (Top Line) ---
+    if (appMode == SCAN_BAND_MODE && !isListening) {
+        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
+    } else if (appMode == CHANNEL_MODE && !isListening) {
+              if (enabledCount > 0) {
+                snprintf(line1, sizeof(line1), "%s", enabledLists);
+              } else {
+                snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
+              }
+            }
+
+    // --- If Listening or Code Detected ---
+    if (isListening || refresh > 1) {
+        // Priority 1: Show Frequency + Code (if available)
+        if (refresh > 1 && StringCode[0]) {
+            if (isKnownChannel) {
+                // Try to fit "Name Code" on one line
+                if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
+                    snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
+                } else {
+                    // Split into two lines
+                    strncpy(line1, channelName, 18);
+                    strncpy(line2, StringCode, 18);
+                }
+            } else {
+                // Show "Frequency Code"
+                snprintf(line2, sizeof(line2), "%s %s", freqStr, StringCode);
+            }
+        } 
+        // Priority 2: Show Channel Name + Frequency (if known)
+        else if (isKnownChannel) {
+            if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
+                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
+            } else {
+                strncpy(line1, channelName, 18);
+                strncpy(line2, freqStr, 18);
+            }
+        } 
+        // Priority 3: Just Frequency (if unknown channel)
+    } 
+
+    // --- Show History (if enabled) ---
+    if (showHistory) {
+        if (line3[0]) {
+            // If line3 is already used, overwrite it with history
+            formatHistory(line3, indexFd, channelFd, f);
+        } else if (line2[0]) {
+            formatHistory(line3, indexFd, channelFd, f);
+        } else {
+            formatHistory(line2, indexFd, channelFd, f);
+        }
+    }
+
+    // --- Render to Screen ---
+    UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
+    if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
+    if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
+}
+#endif
+
 
 
 void LookupChannelInfo() {
