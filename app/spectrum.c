@@ -21,6 +21,7 @@
 //////////////////Parameters:
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
+uint16_t SQUELCH_OFF_DELAY = 500;
 #define PARAMETER_COUNT 3
 /////////////////////////////
 bool FreeTriggerLevel = 0;
@@ -48,10 +49,8 @@ struct FrequencyBandInfo {
     uint32_t upper;
     uint32_t middle;
 };
-
 bool isBlacklistApplied;
 bool saved_params= false;
-
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
@@ -74,7 +73,6 @@ static void SaveSettings();
 static void AutoTriggerLevel(void);
 static void AutoTriggerLevelbands(void);
 const uint16_t RSSI_MAX_VALUE = 65535;
-uint16_t SQUELCH_OFF_DELAY = 0;
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[100];
@@ -179,19 +177,14 @@ static void SetRegMenuValue(uint8_t st, bool add) {
   } else if (!add && v >= 0 + s.inc) {
     v -= s.inc;
   }
-  // TODO: use max value for bits count in max value, or reset by additional
-  // mask in spec
   reg &= ~(s.mask << s.offset);
   BK4819_WriteRegister(s.num, reg | (v << s.offset));
   redrawScreen = true;
 }
 
 // Utility functions
-
 KEY_Code_t GetKey() {
   KEY_Code_t btn = KEYBOARD_Poll();
-  
-  
   // Gestion PTT existante
   if (btn == KEY_INVALID && !GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT)) {
     btn = KEY_PTT;
@@ -242,7 +235,6 @@ static void RestoreRegisters() {
   BK4819_WriteRegister(BK4819_REG_7E, R7E);
   BK4819_WriteRegister(BK4819_REG_02, R02);
   BK4819_WriteRegister(BK4819_REG_3F, R3F);
-
 }
 
 static void ToggleAFDAC(bool on) {
@@ -320,14 +312,12 @@ static void TuneToPeak() {
 static void DeInitSpectrum(bool ComeBack) {
   
   RestoreRegisters();
-  currentFreq = initialFreq = gScanRangeStart = 0;
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   SetState(SPECTRUM);
   if(!ComeBack) {
     uint8_t Spectrum_state = 0; //Spectrum Not Active
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
-    //SetF(initialFreq);
     }
     
   else {
@@ -338,6 +328,7 @@ static void DeInitSpectrum(bool ComeBack) {
     Ptt_Toggle_Mode =0;
     }
   ToggleNormalizeRssi(false);
+  currentFreq = initialFreq = gScanRangeStart = 0;
 }
 
 static void ExitAndCopyToVfo() {
@@ -346,7 +337,6 @@ static void ExitAndCopyToVfo() {
     case HISTORY_LIST: 
       SETTINGS_SetVfoFrequency(freqHistory[historyListIndex+1]); 
       gTxVfo->Modulation = MODULATION_FM;
-      //SetF(freqHistory[historyListIndex+1]);
       gRequestSaveChannel = 1;
       DeInitSpectrum(0);
       break;
@@ -439,7 +429,6 @@ void FillfreqHistory(bool count) {
   // automatically switch modulation & bw if known channel
   if (on && isKnownChannel) {
     settings.modulationType = channelModulation;
-    //  settings.listenBw = channelBandwidth;
     memmove(rxChannelName, channelName, sizeof(rxChannelName));
     RADIO_SetModulation(settings.modulationType);
     BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
@@ -457,26 +446,19 @@ void FillfreqHistory(bool count) {
   if (on)
   { listenT = SQUELCH_OFF_DELAY;
     BK4819_SetFilterBandwidth(settings.listenBw, false);
-
-    //gTailFound=false;
-
     // turn on CSS tail found interrupt
     BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
-
     // keep backlight and bold channel name display on as long as we are receiving
     gBacklightCountdown = 0;
     rxChannelDisplayCountdown = 0;
   } else
-  {   if(appMode!=CHANNEL_MODE)
-      BK4819_WriteRegister(0x43, GetBWRegValueForScan());
-
-    // keep displaying the received channel for a second or so
-    rxChannelDisplayCountdown = 0; //4 Robby69
-  }
+    { if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
+      // keep displaying the received channel for a second or so
+      rxChannelDisplayCountdown = 0; //4 Robby69
+    }
 }
 
 // Scan info
-
 static void ResetScanStats() {
   scanInfo.rssi = 0;
   scanInfo.rssiMax = 0;
@@ -543,15 +525,12 @@ static bool InitScan() {
 }
 
 static void AutoTriggerLevel() {
-  //if (settings.rssiTriggerLevel == RSSI_MAX_VALUE) {
-  //settings.rssiTriggerLevel = clamp(scanInfo.rssiMax +10, 0, RSSI_MAX_VALUE); //Robby69 +8
   uint8_t max = 0;
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
   settings.rssiTriggerLevel = clamp(max +8, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-  //}
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -626,7 +605,6 @@ static void Measure()
     
     if (IsPeakOverLevel())  {FillfreqHistory(true);}
     else if (IsPeakOverLevelH()) FillfreqHistory(false);
-    //if (rssi > settings.rssiTriggerLevelH) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -1269,7 +1247,7 @@ static void OnKeyDown(uint8_t key) {
                     bandListSelectedIndex++;
                 }
                 break;
-            case KEY_5:   
+            case KEY_5: // Band selection
                 if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
                     // Set the selected band as the only active one for scanning
                     memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled)); // Clear all flags
@@ -1339,7 +1317,7 @@ static void OnKeyDown(uint8_t key) {
                 scanListSelectedIndex++;
                 redrawScreen = true;
                 break;
-            case KEY_5:   
+            case KEY_5: // Scan list selection
                 ToggleScanList(scanListSelectedIndex, 1);
                  redrawScreen = true;
                 break;
@@ -1390,24 +1368,29 @@ static void OnKeyDown(uint8_t key) {
                     }
                 }
                 break;
-          case KEY_1: // Scan list selection
+          case KEY_3: // Scan list selection
                 if (parametersSelectedIndex == 0){
                       DelayRssi ++; 
                       if (DelayRssi > 12) DelayRssi = 2;
                       redrawStatus = true;}
-                if (parametersSelectedIndex == 1)RandomEmission = !RandomEmission; 
-                if (parametersSelectedIndex == 2){SQUELCH_OFF_DELAY +=1000;if (SQUELCH_OFF_DELAY > 20000) SQUELCH_OFF_DELAY = 20000;}
+                  else if (parametersSelectedIndex == 1) {
+                      RandomEmission = !RandomEmission;
+                  } else if (parametersSelectedIndex == 2) {
+                      SQUELCH_OFF_DELAY += (SQUELCH_OFF_DELAY < 10000) ? 500 : 5000;
+                      if (SQUELCH_OFF_DELAY > 60000) SQUELCH_OFF_DELAY = 60000;}
                 break;
-          case KEY_7:   
+          case KEY_1:   
                 if (parametersSelectedIndex == 0){
                       DelayRssi --; 
                       if (DelayRssi < 2) DelayRssi = 12;
                       redrawStatus = true;}
-                if (parametersSelectedIndex == 1)RandomEmission = !RandomEmission; 
-                if (parametersSelectedIndex == 2){SQUELCH_OFF_DELAY -=1000;if (SQUELCH_OFF_DELAY > 20000) SQUELCH_OFF_DELAY = 0;}
+                  else if (parametersSelectedIndex == 1) {
+                      RandomEmission = !RandomEmission;
+                  } else if (parametersSelectedIndex == 2) {
+                      SQUELCH_OFF_DELAY -= (SQUELCH_OFF_DELAY <= 10000) ? 500 : 5000;
+                      if (SQUELCH_OFF_DELAY < 500) SQUELCH_OFF_DELAY = 500;}
                 break;
-        case KEY_EXIT:
-          // Exit parameters menu to previous menu/state
+        case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(previousState);
           
           break;
@@ -1555,12 +1538,10 @@ static void OnKeyDown(uint8_t key) {
   case KEY_MENU:
   if (kbd.counter == 3) SaveSettings(); // short press
   else {
-        //int validIndices[FMaxNumb + 1];
         int validCount = 0;
         
         for (int k = 1; k <= FMaxNumb; ++k) {
             if (freqHistory[k] != 0) {
-                //validIndices[validCount] = k;
                 validCount++;
             }
         }
@@ -1571,7 +1552,6 @@ static void OnKeyDown(uint8_t key) {
           SetF(fMeasure);
         }
         else if (historyListIndex < validCount && ShowHistory) {
-            //int realIndex = validIndices[historyListIndex];
             uint32_t selectedFreq = freqHistory[indexFd];
             currentFreq = selectedFreq;
             fMeasure = selectedFreq;
@@ -2293,7 +2273,6 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     return false; // Aucun canal associé à cette scanlist
 }
 
-
 static void BuildValidScanListIndices() {
     uint8_t ScanListCount = 0;
     for (uint8_t i = 0; i < 15; i++) {
@@ -2304,31 +2283,25 @@ static void BuildValidScanListIndices() {
     }
 }
 
-
 static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     uint8_t realIndex = validScanListIndices[displayIndex];
     GetScanListLabel(realIndex, buffer);
 }
 
 static void GetParametersText(uint8_t index, char *buffer) {
-  if (index == 0) sprintf(buffer, "RSSI Delay: %d", DelayRssi);
-  if (index == 1) sprintf(buffer, "Rnd Emit: %d", RandomEmission);
-  if (index == 2) sprintf(buffer, "SQ_DELAY: %d", SQUELCH_OFF_DELAY);
- }
+  if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
+  if (index == 1) sprintf(buffer, "Rnd Emission: %s", RandomEmission ? "ON" : "OFF");
+  if (index == 2) sprintf(buffer, "SQ_OFF_DELAY:%2u.%1u", SQUELCH_OFF_DELAY / 1000, (SQUELCH_OFF_DELAY % 1000) / 100);
   
+ }
 
-
-
-//  skrócenia dla GetBandItemText
-static void GetBandItemText(uint8_t index, char* buffer) {
+ static void GetBandItemText(uint8_t index, char* buffer) {
     
     sprintf(buffer, "%d:%-12s%s", 
             index + 1, 
             BParams[index].BandName,
             settings.bandEnabled[index] ? "*" : "");
 }
-
-
 
 static void GetHistoryItemText(uint8_t index, char* buffer) {
     uint8_t realIndex = GetHistoryRealIndex(index);
