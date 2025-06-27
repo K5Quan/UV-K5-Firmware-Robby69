@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
@@ -328,11 +328,13 @@ static void DeInitSpectrum(bool ComeBack) {
     Ptt_Toggle_Mode =0;
     }
   ToggleNormalizeRssi(false);
-  currentFreq = initialFreq = gScanRangeStart = 0;
+  gScanRangeStart = 0;
 }
 
 static void ExitAndCopyToVfo() {
   RestoreRegisters();
+
+
   switch (currentState) {
     case HISTORY_LIST: 
       SETTINGS_SetVfoFrequency(freqHistory[historyListIndex+1]); 
@@ -341,6 +343,23 @@ static void ExitAndCopyToVfo() {
       DeInitSpectrum(0);
       break;
     case SPECTRUM:
+    if (RandomEmission){
+        uint8_t min=255;
+        uint8_t imin=1;
+        for (int i=1;i<scanChannelsCount;i++)
+                /////////////////////////DEBUG//////////////////////////
+          {if (rssiHistory[i] < min) {
+            min = rssiHistory[i];
+            imin=i;
+            }}
+      static uint32_t rndfreq;
+      rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[imin]].Frequency;
+      char str[250] = "";sprintf(str, "%d %d %d\n",imin,rssiHistory[imin],rndfreq);LogUart(str);
+      SETTINGS_SetVfoFrequency(rndfreq);
+      gTxVfo->Modulation = MODULATION_FM;
+      gTxVfo->STEP_SETTING = STEP_0_01kHz;
+      gRequestSaveChannel = 1;
+      }
       DeInitSpectrum(1);
       break;      
     
@@ -963,7 +982,7 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
 }
 
 #ifdef ENABLE_PL_BAND
-static void DrawF(uint32_t f) {
+static void DrawF(uint32_t f) { //PL
     if (f == 0) return;
 
     // --- Frequency Formatting ---
@@ -1059,10 +1078,10 @@ static void DrawF(uint32_t f) {
     if (needsScrolling) {
         // Implement scrolling
         scrollTimer++;
-if (scrollTimer > 1) { // Najszybsze możliwe przewijanie
-    scrollOffset += 1; // Potrójny skok pozycji
-    if (scrollOffset > strlen(storedScanListText) + 1) { // Minimalna pauza
-        scrollOffset = 0;
+        if (scrollTimer > 1) { // Najszybsze możliwe przewijanie
+          scrollOffset += 1; // Potrójny skok pozycji
+        if (scrollOffset > strlen(storedScanListText) + 1) { // Minimalna pauza
+          scrollOffset = 0;
     }
     scrollTimer = 0;
 }
@@ -1139,7 +1158,7 @@ if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 #endif
 
 #ifdef ENABLE_FR_BAND
-static void DrawF(uint32_t f) {
+static void DrawF(uint32_t f) {//FR
     if (f == 0) return;
 
     // --- Frequency Formatting ---
@@ -1205,7 +1224,7 @@ static void DrawF(uint32_t f) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
     } else if (appMode == CHANNEL_MODE && !isListening) {
               if (enabledCount > 0) {
-                snprintf(line1, sizeof(line1), "%s", enabledLists);
+                snprintf(line1, sizeof(line1), "SL %s", enabledLists);
               } else {
                 snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
               }
@@ -1232,7 +1251,7 @@ static void DrawF(uint32_t f) {
         // Priority 2: Show Channel Name + Frequency (if known)
         else if (isKnownChannel) {
             if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
-                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
+                snprintf(line1, sizeof(line2), "SL %s %s", channelName, freqStr);
             } else {
                 strncpy(line1, channelName, 18);
                 strncpy(line2, freqStr, 18);
@@ -1569,7 +1588,7 @@ static void OnKeyDown(uint8_t key) {
                       if (DelayRssi > 12) DelayRssi = 2;
                       redrawStatus = true;}
                   else if (parametersSelectedIndex == 1) {
-                      RandomEmission = !RandomEmission;
+                      RandomEmission = 1;
                   } else if (parametersSelectedIndex == 2) {
                       SQUELCH_OFF_DELAY += (SQUELCH_OFF_DELAY < 10000) ? 500 : 5000;
                       if (SQUELCH_OFF_DELAY > 60000) SQUELCH_OFF_DELAY = 60000;}
@@ -1580,7 +1599,7 @@ static void OnKeyDown(uint8_t key) {
                       if (DelayRssi < 2) DelayRssi = 12;
                       redrawStatus = true;}
                   else if (parametersSelectedIndex == 1) {
-                      RandomEmission = !RandomEmission;
+                      RandomEmission = 0;
                   } else if (parametersSelectedIndex == 2) {
                       SQUELCH_OFF_DELAY -= (SQUELCH_OFF_DELAY <= 10000) ? 500 : 5000;
                       if (SQUELCH_OFF_DELAY < 500) SQUELCH_OFF_DELAY = 500;}
@@ -2327,9 +2346,7 @@ void LoadValidMemoryChannels(void)
     if (appMode == CHANNEL_MODE) {
         if (single) {memset(settings.scanListEnabled, 0, sizeof(settings.scanListEnabled));}
         settings.scanListEnabled[scanListNumber] = !settings.scanListEnabled[scanListNumber];
-      //LoadValidMemoryChannels();
       }
-    //ResetModifiers();
   }
 
   // flattens spectrum by bringing all the rssi readings to the peak value
@@ -2394,8 +2411,9 @@ void LoadSettings()
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
     DelayRssi = eepromData.DelayRssi;
     if (DelayRssi > 12) DelayRssi =12;
-    RandomEmission = eepromData.RandomEmission;
     if (RandomEmission > 1) RandomEmission =0;
+    RandomEmission = eepromData.RandomEmission;
+    
     
     validScanListCount = 0;
     ChannelAttributes_t att;

@@ -41,12 +41,8 @@
 
 
 
-#ifdef ENABLE_SPECTRUM_ARROW
-static const uint8_t DrawingEndY = 40; //Robby69 40
-#else
-static const uint8_t DrawingEndY = 50; //Robby69 48  55
-#endif
 
+static const uint8_t DrawingEndY = 50; //Robby69 48  55
 
 static const uint8_t U8RssiMap[] = {
     121, 115, 109, 103, 97, 91, 85, 79, 73, 63,
