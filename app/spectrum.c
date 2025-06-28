@@ -336,7 +336,7 @@ static void DeInitSpectrum(bool ComeBack) {
 }
 
 uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
-  uint32_t rssi = rssiHistory[1]*rssiHistory[maxChannels];
+  uint32_t rssi = rssiHistory[1]*rssiHistory[maxChannels/2];
   if (maxChannels == 0 || rssi == 0) {
         return 1;  // Fallback to channel 1 if invalid input
     }
@@ -360,12 +360,20 @@ static void ExitAndCopyToVfo() {
     if (RandomEmission){
       uint16_t randomChannel = GetRandomChannelFromRSSI(scanChannelsCount);
       static uint32_t rndfreq;
+      uint8_t i = 0;
     
       while (rssiHistory[randomChannel]> settings.rssiTriggerLevel) //check channel availability
-      {randomChannel++;
-      if (randomChannel >scanChannelsCount)randomChannel = 1;}
+        {i++;
+        randomChannel++;
+        if (randomChannel >scanChannelsCount)randomChannel = 1;
+        if (i>200) break;}
       rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[randomChannel]].Frequency;
       SETTINGS_SetVfoFrequency(rndfreq);
+      //SETTINGS_UpdateChannel(scanChannel[randomChannel],gTxVfo,1);
+      gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[randomChannel];
+			gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[randomChannel];
+      //gVfoConfigureMode = VFO_CONFIGURE;
+	    //gFlagResetVfos    = true;
       gTxVfo->Modulation = MODULATION_FM;
       gTxVfo->STEP_SETTING = STEP_0_01kHz;
       gRequestSaveChannel = 1;
