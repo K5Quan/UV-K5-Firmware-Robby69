@@ -21,9 +21,13 @@
 //////////////////Parameters:
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
-uint16_t SQUELCH_OFF_DELAY = 500;
+uint16_t SpectrumDelay = 0;
 #define PARAMETER_COUNT 3
+
 /////////////////////////////
+
+uint16_t WaitSpectrum = 0; 
+#define SQUELCH_OFF_DELAY 100;
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
 uint8_t historyListIndex = 0;
@@ -1596,8 +1600,8 @@ static void OnKeyDown(uint8_t key) {
                   else if (parametersSelectedIndex == 1) {
                       RandomEmission = 1;
                   } else if (parametersSelectedIndex == 2) {
-                      SQUELCH_OFF_DELAY += (SQUELCH_OFF_DELAY < 10000) ? 500 : 5000;
-                      if (SQUELCH_OFF_DELAY > 60000) SQUELCH_OFF_DELAY = 60000;}
+                      SpectrumDelay += (SpectrumDelay < 10000) ? 500 : 5000;
+                      if (SpectrumDelay > 60000) SpectrumDelay = 60000;}
                 break;
           case KEY_1:   
                 if (parametersSelectedIndex == 0){
@@ -1607,8 +1611,8 @@ static void OnKeyDown(uint8_t key) {
                   else if (parametersSelectedIndex == 1) {
                       RandomEmission = 0;
                   } else if (parametersSelectedIndex == 2) {
-                      SQUELCH_OFF_DELAY -= (SQUELCH_OFF_DELAY <= 10000) ? 500 : 5000;
-                      if (SQUELCH_OFF_DELAY < 500) SQUELCH_OFF_DELAY = 500;}
+                      SpectrumDelay -= (SpectrumDelay < 10000) ? 500 : 5000;
+                      if (SpectrumDelay < 500) SpectrumDelay = 0;}
                 break;
         case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(previousState);
@@ -1728,6 +1732,7 @@ static void OnKeyDown(uint8_t key) {
       getScreenShot();
     #endif
     Blacklist();
+    WaitSpectrum = 0; //don't wait if this frequency not interesting
     break;
   
   case KEY_4:
@@ -2121,8 +2126,17 @@ static void NextScanStep() {
     }
 }
 
+
 static void UpdateScan() {
+  
+  if (WaitSpectrum > 0) {
+    WaitSpectrum--;
+    SYSTEM_DelayMs(1);
+    return;
+  }
+
   Scan();
+
   if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
@@ -2138,12 +2152,19 @@ static void UpdateScan() {
   UpdatePeakInfo();
       
   if (IsPeakOverLevel()) {
+    // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
-	return;
+    WaitSpectrum = SpectrumDelay;
+    return;
   }
-
-  newScanStart = true;
+  
+  // If we were receiving but signal dropped
+  if (isListening) {
+    ToggleRX(false);
+  }
+  
+    newScanStart = true;
 }
 
 static void UpdateStill() {
@@ -2159,6 +2180,7 @@ static void UpdateListening() {
   preventKeypress = false;
   if (currentState == STILL) {
     listenT = 0;
+    SpectrumDelay = 0;
   }
   if (listenT) {
     listenT--;
@@ -2509,7 +2531,7 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 static void GetParametersText(uint8_t index, char *buffer) {
   if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
   if (index == 1) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
-  if (index == 2) sprintf(buffer, "SQ_OFF_DELAY:%2u.%1u", SQUELCH_OFF_DELAY / 1000, (SQUELCH_OFF_DELAY % 1000) / 100);
+    if (index == 2) sprintf(buffer, "S Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
   
  }
 
