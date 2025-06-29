@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.1b2
+VERSION_STRING := V5.1b5
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -54,6 +54,7 @@ ENABLE_SCANNER							:= 1
 ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
+ENABLE_NINJA			  				:= 0
 
 
 #############################################################
@@ -385,6 +386,10 @@ endif
 ifeq ($(ENABLE_SCREENSHOT),1)
 	CFLAGS  += -DENABLE_SCREENSHOT
 endif
+ifeq ($(ENABLE_NINJA),1)
+	CFLAGS  += -DENABLE_NINJA
+endif
+
 
 LDFLAGS =
 ifeq ($(ENABLE_CLANG),0)

@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
@@ -22,7 +22,11 @@
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
 uint16_t SpectrumDelay = 0;
+#ifdef ENABLE_NINJA
 #define PARAMETER_COUNT 3
+#else 
+#define PARAMETER_COUNT 2
+#endif
 
 /////////////////////////////
 
@@ -30,9 +34,10 @@ uint16_t WaitSpectrum = 0;
 #define SQUELCH_OFF_DELAY 100;
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
+bool PopUpclear = 0;
 uint8_t historyListIndex = 0;
 bool historyListActive = false;
-static uint32_t PreviousRecorded = 0;
+//static uint32_t PreviousRecorded = 0;
 static int historyScrollOffset = 0;
 static void RenderHistoryList();
 static void RenderScanListSelect();
@@ -152,6 +157,9 @@ static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzen
 uint8_t menuState = 0;
 uint16_t listenT = 0;
 uint8_t rxChannelDisplayCountdown = 0;
+//
+static bool wasReceiving = false;
+static uint32_t lastReceivingFreq = 0;
 
 RegisterSpec registerSpecs[] = {
     {},
@@ -434,66 +442,85 @@ void FillfreqHistory(bool count) {
     // Check if we've already recorded this frequency
     for (uint8_t i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == scanInfo.f) {
-            // Increment count only if it's a new detection
-            if (count && (PreviousRecorded != scanInfo.f)) {
+            // Found existing frequency
+            
+            // New counting logic: increment if:
+            // 1. count is true AND
+            // 2. (This is a different frequency OR we weren't receiving before on any frequency)
+            if (count && (lastReceivingFreq != scanInfo.f || !wasReceiving)) {
                 freqCount[i]++;
-                PreviousRecorded = scanInfo.f;
+                // Update state to indicate we're now receiving on this frequency
+                wasReceiving = true;
+                lastReceivingFreq = scanInfo.f;
             }
-            indexFd = i;  // Set current display index
-            return;       // Exit early since we found it
+            
+            indexFd = i; // Set current display index
+            return; // Exit early since we found it
         }
     }
 
     // If we get here, it's a new frequency
     freqHistory[indexFs] = scanInfo.f;
-    freqCount[indexFs] = 1;  // Start count at 1 for new detections
-    indexFd = indexFs;    // Set current display index
+    freqCount[indexFs] = 1; // Start count at 1 for new detections
+    indexFd = indexFs; // Set current display index
     
     // Advance storage index with wrap-around
     if (++indexFs > FMaxNumb) {
         indexFs = 1;
     }
     
-    PreviousRecorded = scanInfo.f;
-    
-}
-
-
- static void ToggleRX(bool on) {
-  isListening = on;
-  BACKLIGHT_TurnOn();
-
-  // automatically switch modulation & bw if known channel
-  if (on && isKnownChannel) {
-    settings.modulationType = channelModulation;
-    memmove(rxChannelName, channelName, sizeof(rxChannelName));
-    RADIO_SetModulation(settings.modulationType);
-    BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
-    redrawScreen = true;
-  }
-
-  // turn on green led only if screen brightness is over 7
-  if(gEeprom.BACKLIGHT_MAX > 7)
-    BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, on);
-
-  ToggleAudio(on);
-  ToggleAFDAC(on);
-  ToggleAFBit(on);
-
-  if (on)
-  { listenT = SQUELCH_OFF_DELAY;
-    BK4819_SetFilterBandwidth(settings.listenBw, false);
-    // turn on CSS tail found interrupt
-    BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
-    // keep backlight and bold channel name display on as long as we are receiving
-    gBacklightCountdown = 0;
-    rxChannelDisplayCountdown = 0;
-  } else
-    { if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
-      // keep displaying the received channel for a second or so
-      rxChannelDisplayCountdown = 0; //4 Robby69
+    // Update state for new frequency
+    if (count) {
+        wasReceiving = true;
+        lastReceivingFreq = scanInfo.f;
     }
 }
+
+static void ResetReceivingState() {
+    wasReceiving = false;
+    lastReceivingFreq = 0;
+}
+
+
+
+static void ToggleRX(bool on) {
+    isListening = on;
+    BACKLIGHT_TurnOn();
+    
+    // automatically switch modulation & bw if known channel
+    if (on && isKnownChannel) {
+        settings.modulationType = channelModulation;
+        memmove(rxChannelName, channelName, sizeof(rxChannelName));
+        RADIO_SetModulation(settings.modulationType);
+        BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+        redrawScreen = true;
+    }
+
+    // turn on green led only if screen brightness is over 7
+    if(gEeprom.BACKLIGHT_MAX > 7)
+        BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, on);
+    ToggleAudio(on);
+    ToggleAFDAC(on);
+    ToggleAFBit(on);
+    
+    if (on) { 
+        listenT = SQUELCH_OFF_DELAY;
+        BK4819_SetFilterBandwidth(settings.listenBw, false);
+        // turn on CSS tail found interrupt
+        BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
+        // keep backlight and bold channel name display on as long as we are receiving
+        gBacklightCountdown = 0;
+        rxChannelDisplayCountdown = 0;
+    } else { 
+        if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
+        // keep displaying the received channel for a second or so
+        rxChannelDisplayCountdown = 0; //4 Robby69
+        
+        // DODAJ TO: Reset receiving state when RX is turned off
+        ResetReceivingState();
+    }
+}
+
 
 // Scan info
 static void ResetScanStats() {
@@ -525,7 +552,6 @@ static bool InitScan() {
         uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
         while (checkedBandCount < 32) { // Sprawdź wszystkie 15 pasm co najwyżej raz
             if (settings.bandEnabled[nextBandToScanIndex]) {
-                int j=0;
                 bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
                 scanInfo.f = BParams[bl].Startfrequency;
                 scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
@@ -542,8 +568,7 @@ static bool InitScan() {
                 //redrawScreen = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                   else {if (!FreeTriggerLevel)settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
-                for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) j++;}
-                  if (j>1) settings.modulationType = BParams[bl].modulationType;
+                settings.modulationType = BParams[bl].modulationType;
                 break; // Znaleziono aktywne pasmo, przerwij pętlę while
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przejdź do następnego pasma
@@ -600,13 +625,16 @@ static void ResetModifiers() {
 }
 
 static void RelaunchScan() {
-  ResetPeak();
-  InitScan();
-  ToggleRX(false);
-  //settings.rssiTriggerLevel = RSSI_MAX_VALUE; //Robby69
-  preventKeypress = true;
-  scanInfo.rssiMin = RSSI_MAX_VALUE;
+    ResetPeak();
+    InitScan();
+    ToggleRX(false);
+    preventKeypress = true;
+    scanInfo.rssiMin = RSSI_MAX_VALUE;
+    
+    //  Reset receiving state when relaunching scan
+    ResetReceivingState();
 }
+
 
 static void UpdateScanInfo() {
   if (scanInfo.rssi > scanInfo.rssiMax) {
@@ -1001,6 +1029,13 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
 
 #ifdef ENABLE_PL_BAND
 static void DrawF(uint32_t f) { //PL
+    if (PopUpclear){
+        UI_DisplayPopup("History Cleared");
+        PopUpclear = 0;
+      	ST7565_BlitFullScreen();
+        SYSTEM_DelayMs(1000);
+        return;
+        }
     if (f == 0) return;
 
     // --- Frequency Formatting ---
@@ -1177,6 +1212,13 @@ if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 
 #ifdef ENABLE_FR_BAND
 static void DrawF(uint32_t f) {//FR
+    if (PopUpclear){
+        UI_DisplayPopup("History Cleared");
+        PopUpclear = 0;
+      	ST7565_BlitFullScreen();
+        SYSTEM_DelayMs(1000);
+        return;
+        }
     if (f == 0) return;
 
     // --- Frequency Formatting ---
@@ -1269,7 +1311,7 @@ static void DrawF(uint32_t f) {//FR
         // Priority 2: Show Channel Name + Frequency (if known)
         else if (isKnownChannel) {
             if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
-                snprintf(line1, sizeof(line2), "SL %s %s", channelName, freqStr);
+                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
             } else {
                 strncpy(line1, channelName, 18);
                 strncpy(line2, freqStr, 18);
@@ -1605,22 +1647,26 @@ static void OnKeyDown(uint8_t key) {
                       DelayRssi ++; 
                       if (DelayRssi > 12) DelayRssi = 2;
                       redrawStatus = true;}
+
                   else if (parametersSelectedIndex == 1) {
-                      RandomEmission = 1;
-                  } else if (parametersSelectedIndex == 2) {
                       SpectrumDelay += (SpectrumDelay < 10000) ? 500 : 5000;
                       if (SpectrumDelay > 60000) SpectrumDelay = 60000;}
+#ifdef ENABLE_NINJA
+                  else if (parametersSelectedIndex == 2) RandomEmission = 1;
+#endif
                 break;
           case KEY_1:   
                 if (parametersSelectedIndex == 0){
                       DelayRssi --; 
                       if (DelayRssi < 2) DelayRssi = 12;
                       redrawStatus = true;}
-                  else if (parametersSelectedIndex == 1) {
-                      RandomEmission = 0;
-                  } else if (parametersSelectedIndex == 2) {
+
+                    else if (parametersSelectedIndex == 1) {
                       SpectrumDelay -= (SpectrumDelay < 10000) ? 500 : 5000;
                       if (SpectrumDelay < 500) SpectrumDelay = 0;}
+#ifdef ENABLE_NINJA
+                    else if (parametersSelectedIndex == 2) RandomEmission = 0;
+#endif
                 break;
         case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(previousState);
@@ -1675,15 +1721,35 @@ static void OnKeyDown(uint8_t key) {
       break;
 
      case KEY_8:
-      if ((ShowHistory) &&  (kbd.counter == 16)) { //(long press):
-        memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0])); // ZMIANA: od pozycji 1
-        memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0])); // ZMIANA: od pozycji 1
-        indexFd = 1;
-        indexFs = 1;
-      }
-      else ShowHistory = !ShowHistory;
-      redrawStatus = true;
-      break;
+
+if ((ShowHistory) && (kbd.counter == 16)) { //(long press):
+    memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0]));
+    memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0]));
+    indexFd = 1;
+    indexFs = 1;
+    
+    // DODAJ TO: Reset receiving state when history is cleared
+    ResetReceivingState();
+    
+    // Jeśli jesteśmy w trybie HISTORY_LIST, wyjdź z niego
+    if (currentState == HISTORY_LIST) {
+        SetState(SPECTRUM);
+        historyListActive = false;
+        historyListIndex = 0;
+        historyScrollOffset = 0;
+    }
+    
+    // Wymuś pełne odświeżenie ekranu
+    redrawScreen = true;
+    redrawStatus = true;
+    ShowHistory = false;
+    PopUpclear = 1;
+
+}
+else ShowHistory = !ShowHistory;
+redrawStatus = true;
+break;
+
       
     case KEY_UP:
     redrawScreen = true;
@@ -2134,45 +2200,70 @@ static void NextScanStep() {
     }
 }
 
-
 static void UpdateScan() {
-  
-  if (WaitSpectrum > 0) {
-    WaitSpectrum--;
-    SYSTEM_DelayMs(1);
-    return;
-  }
+    // If WaitSpectrum is greater than 0, we are currently holding on a frequency.
+    if (WaitSpectrum > 0) {
+        WaitSpectrum--;
+        SYSTEM_DelayMs(1); // Small delay to simulate time passing for the hold duration
+        Measure(); // Keep measuring the RSSI of the current (held) frequency
 
-  Scan();
+        // NEW: Check if the signal is still high enough during the countdown
+        // and toggle RX if it is.
+        if (IsPeakOverLevel() || monitorMode) {
+            ToggleRX(true); // Continue or start listening if level is high
+        } else {
+            ToggleRX(false); // Turn off RX if signal drops during hold
+        }
+    }
 
-  if (scanInfo.i < GetStepsCount()) {
-    NextScanStep();
-    return;
-  }
+    // This block executes when WaitSpectrum is 0, meaning we are either
+    // starting a new scan step or have finished a hold period.
+    if (WaitSpectrum == 0) {
+        Scan(); // Perform the scan step (move to next frequency if not holding)
+        if (scanInfo.i < GetStepsCount()) {
+            NextScanStep(); // Move to the next frequency for the scan
+            return; // Exit UpdateScan to allow the next tick to process the new frequency
+        }
+    }
 
-  if(scanInfo.measurementsCount < 128)
-    memset(&rssiHistory[scanInfo.measurementsCount], 0, 
-      sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
+    // If we've reached the end of the scan steps for the current sweep
+    if (scanInfo.measurementsCount < 128) {
+        memset(&rssiHistory[scanInfo.measurementsCount], 0,
+               sizeof(rssiHistory) - scanInfo.measurementsCount * sizeof(rssiHistory[0]));
+    }
 
-  redrawScreen = true;
-  preventKeypress = false;
+    redrawScreen = true;
+    preventKeypress = false;
 
-  UpdatePeakInfo();
-      
-  if (IsPeakOverLevel()) {
-    // Signal detected or resumed
-    ToggleRX(true);
-    TuneToPeak();
-    WaitSpectrum = SpectrumDelay;
-    return;
-  }
-  
-  // If we were receiving but signal dropped
-  if (isListening) {
-    ToggleRX(false);
-  }
-  
-    newScanStart = true;
+    // Only update peak info if we are not holding on a frequency, or just finished a hold.
+    if (WaitSpectrum == 0) {
+        UpdatePeakInfo();
+    }
+
+    // Check if the peak signal is over the trigger level.
+    // This condition should only lead to tuning if we are not already holding.
+    if (IsPeakOverLevel()) {
+        if (WaitSpectrum == 0) WaitSpectrum = SpectrumDelay;
+        ToggleRX(true); // Turn on RX immediately upon initial detection
+        TuneToPeak(); // Tune to the detected peak frequency
+        char str[64] = "";sprintf(str, "IsPeakOverLevel\n");LogUart(str); // Log for debugging
+        }
+        return; // Exit to maintain the hold or continue the countdown
+    
+
+    // If we were receiving but the signal dropped, and we're not actively holding.
+    // This part handles turning off RX if it was previously on due to a signal,
+    // but the signal is no longer present and we're not in a forced hold.
+    if (isListening && WaitSpectrum == 0) { // Add WaitSpectrum == 0 to prevent turning off during active hold
+        char str[64] = "";sprintf(str, "isListening\n");LogUart(str); // Log for debugging
+        ToggleRX(false); // Turn off RX
+    }
+
+    // If WaitSpectrum is 0, it means either no signal was detected, or the hold time expired.
+    // In this case, start a new scan.
+    if (WaitSpectrum == 0) {
+        newScanStart = true;
+    }
 }
 
 static void UpdateStill() {
@@ -2538,8 +2629,11 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 
 static void GetParametersText(uint8_t index, char *buffer) {
   if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
-  if (index == 1) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
-    if (index == 2) sprintf(buffer, "S Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
+  if (index == 1) sprintf(buffer, "S Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
+#ifdef ENABLE_NINJA
+  if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
+#endif
+  
   
  }
 

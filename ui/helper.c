@@ -252,7 +252,7 @@ void UI_DisplayPopup(const char *string)
 	// }
 	// DrawRectangle(9,9, 118,38, true);
 	UI_PrintString(string, 9, 118, 2, 8);
-	UI_PrintStringSmall("Press EXIT", 9, 118, 6);
+	//UI_PrintStringSmall("Press EXIT", 9, 118, 6);
 }
 
 void UI_DrawDottedLineBuffer(uint8_t (*buffer)[128], int16_t x1, int16_t y1, int16_t x2, int16_t y2, bool black, int dotSpacing)
