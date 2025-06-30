@@ -94,6 +94,7 @@ typedef enum State {
   BAND_LIST_SELECT,
   SCANLIST_SELECT,
   PARAMETERS_SELECT,
+  SCANLIST_CHANNELS,  // NOWY STAN
 } State;
 
 

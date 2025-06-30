@@ -12,7 +12,7 @@ static const bandparameters BParams[32] = {
     {"DMR UHF1",      45000000,         46600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"DMR UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
     {"REMOTE CT",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
-    {"MARINE",        15605000,         16200000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"MARINE",        15550000,         16202500,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
     {"14MHz",          1400000,          1430000,       S_STEP_5_0kHz,    MODULATION_AM},
@@ -73,24 +73,20 @@ static const bandparameters BParams[32] = {
 #ifdef ENABLE_RO_BAND
 static const bandparameters BParams[32] = {
 // BandName Startfrequency Stopfrequency scanStep modulationType
-{"160M", 1800000, 2000000, S_STEP_1_0kHz, MODULATION_AM},
-{"80M", 3500000, 3800000, S_STEP_1_0kHz, MODULATION_AM},
-{"40M", 7000000, 7200000, S_STEP_1_0kHz, MODULATION_AM},
-{"30M", 10100000, 10150000, S_STEP_1_0kHz, MODULATION_AM},
-{"20M", 14000000, 14350000, S_STEP_1_0kHz, MODULATION_AM},
-{"17M", 18068000, 18168000, S_STEP_1_0kHz, MODULATION_AM},
-{"15M", 21000000, 21450000, S_STEP_1_0kHz, MODULATION_AM},
-{"12M", 24890000, 24990000, S_STEP_1_0kHz, MODULATION_AM},
-{"10M", 28000000, 29700000, S_STEP_1_0kHz, MODULATION_AM},
-{"6M", 5000000, 5200000, S_STEP_10_0kHz, MODULATION_FM},
-{"2M", 14400000, 14600000, S_STEP_12_5kHz, MODULATION_FM},
-{"70CM", 43000000, 44000000, S_STEP_10_0kHz, MODULATION_FM},
-{"TAXI", 46000000, 47000000, S_STEP_12_5kHz, MODULATION_FM}, // Banda taxi UHF
-{"CB", 2696500, 2740500, S_STEP_10_0kHz, MODULATION_FM},
-{"AIR 25kHz", 11800000, 13700000, S_STEP_25_0kHz, MODULATION_AM},
-{"AIR 8.33kHz", 11800000, 13700000, S_STEP_8_33kHz, MODULATION_AM},
-{"AMBULANTA", 16920000, 16937500, S_STEP_25_0kHz, MODULATION_FM},
-{"POLITIA", 17200000, 17397500, S_STEP_25_0kHz, MODULATION_FM},
-{"POMPIERI", 14866250, 14933750, S_STEP_25_0kHz, MODULATION_FM}
-};
+    {"20M",           1400000,           1435000,       S_STEP_1_0kHz,   MODULATION_AM},
+    {"17M",           1806800,           1816800,       S_STEP_1_0kHz,   MODULATION_AM},
+    {"15M",           2100000,           2145000,       S_STEP_1_0kHz,   MODULATION_AM},
+    {"12M",           2489000,           2499000,       S_STEP_1_0kHz,   MODULATION_AM},
+    {"10M",           2800000,           2970000,       S_STEP_1_0kHz,   MODULATION_AM},
+    {"6M",            5000000,           5200000,       S_STEP_10_0kHz,  MODULATION_FM},
+    {"2M",           14400000,          14600000,       S_STEP_12_5kHz,  MODULATION_FM},
+    {"70CM",         43000000,          44000000,       S_STEP_10_0kHz,  MODULATION_FM},
+    {"TAXI",         46000000,          47000000,       S_STEP_12_5kHz,  MODULATION_FM}, // Banda taxi UHF
+    {"CB",            2696500,           2740500,       S_STEP_10_0kHz,  MODULATION_FM},
+    {"AIR 25kHz",    11800000,          13700000,       S_STEP_25_0kHz,  MODULATION_AM},
+    {"AIR 8.33kHz",  11800000,          13700000,       S_STEP_8_33kHz,  MODULATION_AM},
+    {"AMBULANTA",    16920000,          16937500,       S_STEP_25_0kHz,  MODULATION_FM},
+    {"POLITIA",      17200000,          17397500,       S_STEP_25_0kHz,  MODULATION_FM},
+    {"POMPIERI",     14866250,          14933750,       S_STEP_25_0kHz,  MODULATION_FM}
+    };          
 #endif

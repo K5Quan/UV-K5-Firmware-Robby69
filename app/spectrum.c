@@ -8,7 +8,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
@@ -160,6 +160,19 @@ uint8_t rxChannelDisplayCountdown = 0;
 //
 static bool wasReceiving = false;
 static uint32_t lastReceivingFreq = 0;
+static uint8_t scanListChannels[200]; // Array to store channel indices for selected scanlist
+static uint8_t scanListChannelsCount = 0; // Number of channels in selected scanlist
+static uint8_t scanListChannelsSelectedIndex = 0;
+static uint8_t scanListChannelsScrollOffset = 0;
+static uint8_t selectedScanListIndex = 0; // Which scanlist we're viewing channels for
+
+static void BuildScanListChannels(uint8_t scanListIndex);
+static void GetScanListChannelText(uint8_t displayIndex, char* buffer);
+static void RenderScanListChannels();
+
+#define MAX_VALID_SCANLISTS 15
+
+static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
 
 RegisterSpec registerSpecs[] = {
     {},
@@ -1027,191 +1040,7 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
         }
 }
 
-#ifdef ENABLE_PL_BAND
-static void DrawF(uint32_t f) { //PL
-    if (PopUpclear){
-        UI_DisplayPopup("History Cleared");
-        PopUpclear = 0;
-      	ST7565_BlitFullScreen();
-        SYSTEM_DelayMs(1000);
-        return;
-        }
-    if (f == 0) return;
-
-    // --- Frequency Formatting ---
-    uint8_t Code;
-    if (GetScanStep() == 833) {
-        uint32_t base = f / 2500 * 2500;
-        int chno = (f - base) / 700;
-        f = base + (chno * 833) + (chno == 3);
-    }
-    char freqStr[16];
-    sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
-    RemoveTrailZeros(freqStr);
-
-    // --- CTCSS/DCS Detection ---
-    if (refresh == 0) {
-        BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
-        refresh = 1;
-        if (scanResult == BK4819_CSS_RESULT_CDCSS) {
-            Code = DCS_GetCdcssCode(cdcssFreq);
-            refresh = 30;
-            if (Code != 0xFF) sprintf(StringCode, "D%03oN", DCS_Options[Code]);
-        } else if (scanResult == BK4819_CSS_RESULT_CTCSS) {
-            Code = DCS_GetCtcssCode(ctcssFreq);
-            refresh = 30;
-            sprintf(StringCode, "%u.%uHz", CTCSS_Options[Code] / 10, CTCSS_Options[Code] % 10);
-        }
-    }
-    refresh--;
-    if (refresh == 0) memset(StringCode, 0, sizeof(StringCode));
-
-    // --- Prepare Display Lines ---
-    char line1[19] = "";
-    char line2[19] = "";
-    char line3[19] = "";
-
-    f = freqHistory[indexFd];
-    bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
-    int channelFd = BOARD_gMR_fetchChannel(f);
-    isKnownChannel = channelFd != -1;
-    
-    strncpy(line1, freqStr, 18);
-    
-    // --- Default: Band Name or Scan List (Top Line) ---
-    if (appMode == SCAN_BAND_MODE && !isListening) {
-        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
-    } else if (appMode == CHANNEL_MODE && !isListening) {
-      // Static variables for scrolling functionality
-    static char storedScanListText[256] = "";
-    static uint8_t scrollOffset = 0;
-    static uint16_t scrollTimer = 0;
-    static bool needsScrolling = false;
-    
-    // Count enabled scan lists and build list of numbers
-    uint8_t enabledCount = 0;
-    char enabledLists[128] = "";
-    bool first = true;
-    
-    for (int i = 0; i < 15; i++) {
-        if (settings.scanListEnabled[i]) {
-            enabledCount++;
-            if (!first) {
-                strcat(enabledLists, ",");
-            }
-            char listNum[4];
-            sprintf(listNum, "%d", i + 1);
-            strcat(enabledLists, listNum);
-            first = false;
-        }
-    }
-    
-    // Build the complete string
-    char fullScanListText[256];
-    if (enabledCount > 0) {
-        snprintf(fullScanListText, sizeof(fullScanListText), "SL (%d) %s  - ", enabledCount, enabledLists);
-    } else {
-        snprintf(fullScanListText, sizeof(fullScanListText), "Scan Lists (ALL)");
-    }
-    
-    // Update stored text if it changed
-    if (strcmp(storedScanListText, fullScanListText) != 0) {
-        strncpy(storedScanListText, fullScanListText, sizeof(storedScanListText) - 1);
-        storedScanListText[sizeof(storedScanListText) - 1] = '\0';
-        scrollOffset = 0;
-        scrollTimer = 0;
-        
-        // Check if scrolling is needed (if more than one list and text is long)
-        const unsigned int char_spacing = 8; // Approximate character spacing for small font
-        uint8_t availableWidth = 126; // Available display width (128 - 2 for margins)  
-        uint8_t maxVisibleChars = availableWidth / char_spacing;
-        needsScrolling = (enabledCount > 1) && (strlen(storedScanListText) > maxVisibleChars);
-    }
-    
-    if (needsScrolling) {
-        // Implement scrolling
-        scrollTimer++;
-        if (scrollTimer > 1) { // Najszybsze możliwe przewijanie
-          scrollOffset += 1; // Potrójny skok pozycji
-        if (scrollOffset > strlen(storedScanListText) + 1) { // Minimalna pauza
-          scrollOffset = 0;
-    }
-    scrollTimer = 0;
-}
-
-        
-        // Use scrolling display function
-        UI_PrintStringSmallScrolling(storedScanListText, 1, 127, 0, scrollOffset);
-        line1[0] = '\0'; // Clear line1 so it doesn't get displayed again
-    } else {
-        // Use normal display for short text
-        strncpy(line1, storedScanListText, sizeof(line1) - 1);
-        line1[sizeof(line1) - 1] = '\0';
-    }
-}
- 
-    // --- If Listening or Code Detected ---
-    if (isListening || refresh > 1) {
-        // Priority 1: Show Frequency + Code (if available)
-        if (refresh > 1 && StringCode[0]) {
-            if (isKnownChannel) {
-                // Try to fit "Name Code" on one line
-                if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
-                    snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
-                } else {
-                    // Split into two lines
-                    strncpy(line1, channelName, 18);
-                    strncpy(line2, StringCode, 18);
-                }
-            } else {
-                // Show "Frequency Code"
-                snprintf(line2, sizeof(line2), "%s %s", freqStr, StringCode);
-            }
-        } 
-        // Priority 2: Show Channel Name + Frequency (if known)
-        else if (isKnownChannel) {
-            if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
-                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
-            } else {
-                strncpy(line1, channelName, 18);
-                strncpy(line2, freqStr, 18);
-            }
-        } 
-        // Priority 3: Just Frequency (if unknown channel)
-    } 
-
-    // --- Show History (if enabled) ---
-    if (showHistory) {
-        if (line3[0]) {
-            // If line3 is already used, overwrite it with history
-            formatHistory(line3, indexFd, channelFd, f);
-        } else if (line2[0]) {
-            formatHistory(line3, indexFd, channelFd, f);
-        } else {
-            formatHistory(line2, indexFd, channelFd, f);
-        }
-    }
-
-    // --- Render to Screen --- 
-if (appMode == CHANNEL_MODE && !isListening) {
-    // Static variables are already handled above, check if scrolling was used
-    static bool scrollingUsed = false;
-    scrollingUsed = (line1[0] == '\0'); // If line1 was cleared, scrolling was used
-    
-    if (!scrollingUsed) {
-        UI_PrintStringSmallBold(line1, 1, 1, 0); // Line 1 (Band/Scan List)
-    }
-    // If scrolling was used, text is already drawn by UI_PrintStringSmallScrolling
-} else {
-    UI_PrintStringSmallBold(line1, 1, 1, 0); // Line 1 (Band/Scan List)
-}
-if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1); // Line 2 (Freq/Name/Code)
-if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
-}
-#endif
-
-#ifdef ENABLE_FR_BAND || #ifdef ENABLE_RO_BAND
-static void DrawF(uint32_t f) {//FR
+static void DrawF(uint32_t f) {
     if (PopUpclear){
         UI_DisplayPopup("History Cleared");
         PopUpclear = 0;
@@ -1337,9 +1166,6 @@ static void DrawF(uint32_t f) {//FR
     if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
     if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
 }
-#endif
-
-
 
 void LookupChannelInfo() {
     if (lastPeakFrequency == peak.f) 
@@ -1586,6 +1412,14 @@ static void OnKeyDown(uint8_t key) {
                     redrawScreen = true;
                 }
                 break;
+            case KEY_STAR: // NOWA OBSŁUGA - Show channels in selected scanlist
+                selectedScanListIndex = scanListSelectedIndex;
+                BuildScanListChannels(validScanListIndices[selectedScanListIndex]);
+                scanListChannelsSelectedIndex = 0;
+                scanListChannelsScrollOffset = 0;
+                SetState(SCANLIST_CHANNELS);
+                redrawScreen = true;
+                break;	
             case KEY_4: // Scan list selection
                 ToggleScanList(scanListSelectedIndex, 0);
                 scanListSelectedIndex++;
@@ -1620,6 +1454,38 @@ static void OnKeyDown(uint8_t key) {
         }
         return; // Finish handling if we were in SCAN_LIST_SELECT
       }
+      	  
+	// If we're in scanlist channels mode, use dedicated key logic
+if (currentState == SCANLIST_CHANNELS) {
+    switch (key) {
+    case KEY_UP:
+        if (scanListChannelsSelectedIndex > 0) {
+            scanListChannelsSelectedIndex--;
+            if (scanListChannelsSelectedIndex < scanListChannelsScrollOffset) {
+                scanListChannelsScrollOffset = scanListChannelsSelectedIndex;
+            }
+            redrawScreen = true;
+        }
+        break;
+    case KEY_DOWN:
+        if (scanListChannelsSelectedIndex < scanListChannelsCount - 1) {
+            scanListChannelsSelectedIndex++;
+            if (scanListChannelsSelectedIndex >= scanListChannelsScrollOffset + MAX_VISIBLE_LINES) {
+                scanListChannelsScrollOffset = scanListChannelsSelectedIndex - MAX_VISIBLE_LINES + 1;
+            }
+            redrawScreen = true;
+        }
+        break;
+    case KEY_EXIT: // Exit scanlist channels back to scanlist selection
+        SetState(SCANLIST_SELECT);
+        redrawScreen = true;
+        break;
+    default:
+        break;
+    }
+    return; // Finish handling if we were in SCANLIST_CHANNELS
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
       // If we're in PARAMETERS_SELECT selection mode, use dedicated key logic
     if (currentState == PARAMETERS_SELECT) {
@@ -2103,9 +1969,10 @@ static void Render() {
     break;
     case PARAMETERS_SELECT:
       RenderParametersSelect();
-                
-
     break;
+    case SCANLIST_CHANNELS: // NOWY CASE
+      RenderScanListChannels();
+      break;
   }
 
   ST7565_BlitFullScreen();
@@ -2159,6 +2026,9 @@ bool HandleUserInput() {
                 OnKeyDown(kbd.current);
                 break;
             case PARAMETERS_SELECT:
+                OnKeyDown(kbd.current);
+                break;
+            case SCANLIST_CHANNELS: // NOWY CASE
                 OnKeyDown(kbd.current);
                 break;
         }
@@ -2555,12 +2425,6 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
     return 1; // Fallback
 }
 
-// Fonction pour afficher un item ScanList
-#define MAX_VALID_SCANLISTS 15
-
-static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
-
-
 static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     ChannelAttributes_t att;
     char channel_name[10];
@@ -2712,4 +2576,39 @@ static void RenderHistoryList() {
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
 
+//
+static void BuildScanListChannels(uint8_t scanListIndex) {
+    scanListChannelsCount = 0;
+    ChannelAttributes_t att;
+    
+    for (int i = 0; i < 200; i++) {
+        att = gMR_ChannelAttributes[i];
+        if (att.scanlist == scanListIndex + 1) {
+            if (scanListChannelsCount < 200) {
+                scanListChannels[scanListChannelsCount++] = i;
+            }
+        }
+    }
+}
 
+static void GetScanListChannelText(uint8_t displayIndex, char* buffer) {
+    if (displayIndex >= scanListChannelsCount) {
+        sprintf(buffer, "Invalid");
+        return;
+    }
+    
+    uint8_t channelIndex = scanListChannels[displayIndex];
+    char channel_name[10];
+    SETTINGS_FetchChannelName(channel_name, channelIndex);
+    
+    sprintf(buffer, "%3d: %s", channelIndex + 1, channel_name);
+}
+
+static void RenderScanListChannels() {
+    char headerString[24];
+    uint8_t realScanListIndex = validScanListIndices[selectedScanListIndex];
+    sprintf(headerString, "SL %d CHANNELS:", realScanListIndex + 1);
+    
+    RenderList(headerString, scanListChannelsCount, scanListChannelsSelectedIndex, 
+               scanListChannelsScrollOffset, GetScanListChannelText);
+}
