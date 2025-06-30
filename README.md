@@ -9,6 +9,9 @@
 <h2><a href="https://t.me/k5robby69"> Ce canal Telegram pour discuter.</a></h2>
 <h2><a href="https://github.com/Robby69400/UV-K5-Firmware-Robby69/commits/master/"> Historique des versions</a></h2>
 
+Le logiciel est en anglais, les versions disponibles correspondent aux pays cibles: France, Pologne, Roumanie.
+Un grand merci à Zylka pour son aide sur une partie du développement.
+
 - Le développement de ce firmware est parti du firmware NUNU de NTOIVOLA. https://github.com/ntoivola/uv-k5-firmware-custom-nunu
 - Il est fourni tel quel, sans support ni garantie d'aucune sorte.
 - Le manuel est disponible à l'adresse : https://github.com/ntoivola/uv-k5-firmware-custom-nunu sauf mes évolutions décrites ci-dessous.
