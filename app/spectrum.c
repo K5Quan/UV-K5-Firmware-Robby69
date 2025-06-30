@@ -1210,7 +1210,7 @@ if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2); // Line 3 (Code/History)
 }
 #endif
 
-#ifdef ENABLE_FR_BAND
+#ifdef ENABLE_FR_BAND || #ifdef ENABLE_RO_BAND
 static void DrawF(uint32_t f) {//FR
     if (PopUpclear){
         UI_DisplayPopup("History Cleared");

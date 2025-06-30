@@ -53,6 +53,7 @@ ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
 ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
+ENABLE_RO_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
 ENABLE_NINJA			  				:= 0
 
@@ -382,6 +383,9 @@ ifeq ($(ENABLE_FR_BAND),1)
 endif
 ifeq ($(ENABLE_PL_BAND),1)
 	CFLAGS  += -DENABLE_PL_BAND
+endif
+ifeq ($(ENABLE_RO_BAND),1)
+	CFLAGS  += -DENABLE_RO_BAND
 endif
 ifeq ($(ENABLE_SCREENSHOT),1)
 	CFLAGS  += -DENABLE_SCREENSHOT
