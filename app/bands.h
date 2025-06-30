@@ -65,7 +65,8 @@ static const bandparameters BParams[32] = {
     {"CB PL",          2696000,          2740000,       S_STEP_10_0kHz,   MODULATION_AM},
     {"POGOTOWIE",     16852500,         16937500,       S_STEP_25_0kHz,   MODULATION_FM},
     {"POLICJA",       17200000,         17397500,       S_STEP_25_0kHz,   MODULATION_FM},
-    {"PSP",           14866250,         14933750,       S_STEP_25_0kHz,   MODULATION_FM}
+    {"PSP",           14866250,         14933750,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"MARINE",        15550000,         16202500,       S_STEP_25_0kHz,   MODULATION_FM}
     }; 
 #endif
 
