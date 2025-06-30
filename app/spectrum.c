@@ -2201,69 +2201,33 @@ static void NextScanStep() {
 }
 
 static void UpdateScan() {
-    // If WaitSpectrum is greater than 0, we are currently holding on a frequency.
-    if (WaitSpectrum > 0) {
-        WaitSpectrum--;
-        SYSTEM_DelayMs(1); // Small delay to simulate time passing for the hold duration
-        Measure(); // Keep measuring the RSSI of the current (held) frequency
+  
+  Scan();
 
-        // NEW: Check if the signal is still high enough during the countdown
-        // and toggle RX if it is.
-        if (IsPeakOverLevel() || monitorMode) {
-            ToggleRX(true); // Continue or start listening if level is high
-        } else {
-            ToggleRX(false); // Turn off RX if signal drops during hold
-        }
-    }
+  if (scanInfo.i < GetStepsCount()) {
+    NextScanStep();
+    return;
+  }
 
-    // This block executes when WaitSpectrum is 0, meaning we are either
-    // starting a new scan step or have finished a hold period.
-    if (WaitSpectrum == 0) {
-        Scan(); // Perform the scan step (move to next frequency if not holding)
-        if (scanInfo.i < GetStepsCount()) {
-            NextScanStep(); // Move to the next frequency for the scan
-            return; // Exit UpdateScan to allow the next tick to process the new frequency
-        }
-    }
+  if(scanInfo.measurementsCount < 128)
+    memset(&rssiHistory[scanInfo.measurementsCount], 0, 
+      sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
 
-    // If we've reached the end of the scan steps for the current sweep
-    if (scanInfo.measurementsCount < 128) {
-        memset(&rssiHistory[scanInfo.measurementsCount], 0,
-               sizeof(rssiHistory) - scanInfo.measurementsCount * sizeof(rssiHistory[0]));
-    }
+  redrawScreen = true;
+  preventKeypress = false;
 
-    redrawScreen = true;
-    preventKeypress = false;
-
-    // Only update peak info if we are not holding on a frequency, or just finished a hold.
-    if (WaitSpectrum == 0) {
-        UpdatePeakInfo();
-    }
-
-    // Check if the peak signal is over the trigger level.
-    // This condition should only lead to tuning if we are not already holding.
-    if (IsPeakOverLevel()) {
-        if (WaitSpectrum == 0) WaitSpectrum = SpectrumDelay;
-        ToggleRX(true); // Turn on RX immediately upon initial detection
-        TuneToPeak(); // Tune to the detected peak frequency
-        char str[64] = "";sprintf(str, "IsPeakOverLevel\n");LogUart(str); // Log for debugging
-        }
-        return; // Exit to maintain the hold or continue the countdown
-    
-
-    // If we were receiving but the signal dropped, and we're not actively holding.
-    // This part handles turning off RX if it was previously on due to a signal,
-    // but the signal is no longer present and we're not in a forced hold.
-    if (isListening && WaitSpectrum == 0) { // Add WaitSpectrum == 0 to prevent turning off during active hold
-        char str[64] = "";sprintf(str, "isListening\n");LogUart(str); // Log for debugging
-        ToggleRX(false); // Turn off RX
-    }
-
-    // If WaitSpectrum is 0, it means either no signal was detected, or the hold time expired.
-    // In this case, start a new scan.
-    if (WaitSpectrum == 0) {
-        newScanStart = true;
-    }
+  UpdatePeakInfo();
+      
+  if (IsPeakOverLevel()) {
+    // Signal detected or resumed
+    ToggleRX(true);
+    TuneToPeak();
+    return;
+  }
+  
+  // If we were receiving but signal dropped
+  if (isListening) {ToggleRX(false);}
+    newScanStart = true;
 }
 
 static void UpdateStill() {
