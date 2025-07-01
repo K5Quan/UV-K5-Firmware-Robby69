@@ -2092,6 +2092,7 @@ static void UpdateScan() {
     // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
+    if (SpectrumDelay) SetState(STILL);
     return;
   }
   
@@ -2113,7 +2114,7 @@ static void UpdateListening() {
   preventKeypress = false;
   if (currentState == STILL) {
     listenT = 0;
-    SpectrumDelay = 0;
+    //SpectrumDelay = 0;
   }
   if (listenT) {
     listenT--;
