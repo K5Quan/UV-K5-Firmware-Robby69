@@ -2071,7 +2071,9 @@ static void NextScanStep() {
 }
 
 static void UpdateScan() {
-  
+    if (WaitSpectrum > 0) {
+        WaitSpectrum--;
+        SYSTEM_DelayMs(1);}
   Scan();
 
   if (scanInfo.i < GetStepsCount()) {
@@ -2087,12 +2089,14 @@ static void UpdateScan() {
   preventKeypress = false;
 
   UpdatePeakInfo();
-      
+  
+  if (WaitSpectrum) SetState(STILL);      
+
   if (IsPeakOverLevel()) {
     // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
-    if (SpectrumDelay) SetState(STILL);
+    WaitSpectrum = SpectrumDelay;
     return;
   }
   
