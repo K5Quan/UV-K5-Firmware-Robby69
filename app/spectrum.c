@@ -2082,27 +2082,18 @@ static void UpdateScan() {
   if (WaitSpectrum > 0) {
       WaitSpectrum--;
       SYSTEM_DelayMs(1);
-      if (WaitSpectrum ==0) {
-        SetState(SPECTRUM);
-        newScanStart = true;}
+      if (WaitSpectrum ==0) {SetState(SPECTRUM); newScanStart = true;} 
       return;}
-  
   Scan();
-
   if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
     return;
   }
-
-  if(scanInfo.measurementsCount < 128)
-    memset(&rssiHistory[scanInfo.measurementsCount], 0, 
-      sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
-
+ if(scanInfo.measurementsCount < 128)
+    memset(&rssiHistory[scanInfo.measurementsCount], 0, sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
   redrawScreen = true;
   preventKeypress = false;
-
   UpdatePeakInfo();
-  
   if (IsPeakOverLevel()) {
     // Signal detected or resumed
     ToggleRX(true);
@@ -2111,9 +2102,7 @@ static void UpdateScan() {
     WaitSpectrum = SpectrumDelay;
     return;
   }
-  
-  // If we were receiving but signal dropped
-  if (isListening) {ToggleRX(false);}
+  else ToggleRX(false);
 }
 
 static void UpdateStill() {
