@@ -168,8 +168,8 @@ static uint32_t lastReceivingFreq = 0;
   static uint8_t scanListChannelsScrollOffset = 0;
   static uint8_t selectedScanListIndex = 0; // Which scanlist we're viewing channels for
   static void BuildScanListChannels(uint8_t scanListIndex);
-  static void GetScanListChannelText(uint8_t displayIndex, char* buffer);
   static void RenderScanListChannels();
+  static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItems, uint8_t selectedIndex, uint8_t scrollOffset);
   #define MAX_VALID_SCANLISTS 15
 #endif
   static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
@@ -1111,7 +1111,7 @@ static void DrawF(uint32_t f) {
     // --- Default: Band Name or Scan List (Top Line) ---
     if (appMode == SCAN_BAND_MODE && !isListening) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
-    } else if (appMode == CHANNEL_MODE && !isListening) {
+    } else if (appMode == CHANNEL_MODE && !isListening && currentState == SPECTRUM) {
               if (enabledCount > 0) {
                 snprintf(line1, sizeof(line1), "SL %s", enabledLists);
               } else {
@@ -1473,8 +1473,8 @@ static void OnKeyDown(uint8_t key) {
     case KEY_DOWN:
         if (scanListChannelsSelectedIndex < scanListChannelsCount - 1) {
             scanListChannelsSelectedIndex++;
-            if (scanListChannelsSelectedIndex >= scanListChannelsScrollOffset + MAX_VISIBLE_LINES) {
-                scanListChannelsScrollOffset = scanListChannelsSelectedIndex - MAX_VISIBLE_LINES + 1;
+            if (scanListChannelsSelectedIndex >= scanListChannelsScrollOffset + 3) { //MAX_VISIBLE_LINES=3
+                scanListChannelsScrollOffset = scanListChannelsSelectedIndex - 3 + 1;
             }
             redrawScreen = true;
         }
@@ -1533,7 +1533,7 @@ static void OnKeyDown(uint8_t key) {
 
                     else if (parametersSelectedIndex == 1) {
                       SpectrumDelay -= (SpectrumDelay < 10000) ? 500 : 5000;
-                      if (SpectrumDelay < 500) SpectrumDelay = 0;}
+                      if (SpectrumDelay <= 500) SpectrumDelay = 0;}
 #ifdef ENABLE_NINJA
                     else if (parametersSelectedIndex == 2) RandomEmission = 0;
 #endif
@@ -1769,6 +1769,7 @@ static void OnKeyDownFreqInput(uint8_t key) {
   case KEY_EXIT:
     if (freqInputIndex == 0) {
       SetState(previousState);
+      WaitSpectrum = 0;
       break;
     }
     UpdateFreqInput(key);
@@ -1847,6 +1848,7 @@ void OnKeyDownStill(KEY_Code_t key) {
   case KEY_EXIT:
     if (!menuState) {
       SetState(SPECTRUM);
+      SpectrumDelay = 0; //Prevent coming back to still directly
       monitorMode = false;
       RelaunchScan();
       break;
@@ -1879,6 +1881,12 @@ static void RenderSpectrum() {
 
 
 static void RenderStill() {
+  if (WaitSpectrum > 0 && WaitSpectrum <30000) { //30000 locks still mode
+      WaitSpectrum-=20;
+      SYSTEM_DelayMs(1);
+      if (WaitSpectrum ==0) SetState(SPECTRUM); 
+      }
+  
   DrawF(fMeasure);
   
   const uint8_t METER_PAD_LEFT = 3;
@@ -2079,11 +2087,6 @@ static void NextScanStep() {
 }
 
 static void UpdateScan() {
-  if (WaitSpectrum > 0) {
-      WaitSpectrum--;
-      SYSTEM_DelayMs(1);
-      if (WaitSpectrum ==0) {SetState(SPECTRUM); newScanStart = true;} 
-      return;}
   Scan();
   if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
@@ -2098,11 +2101,11 @@ static void UpdateScan() {
     // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
-    SetState(STILL);  
-    WaitSpectrum = SpectrumDelay;
+    if (SpectrumDelay)SetState(STILL);
     return;
   }
-  else ToggleRX(false);
+  newScanStart = true;
+
 }
 
 static void UpdateStill() {
@@ -2144,6 +2147,7 @@ static void UpdateListening() {
   }
 
   ToggleRX(false);
+  WaitSpectrum = SpectrumDelay;
   ResetScanStats();
 }
 
@@ -2164,7 +2168,8 @@ static void Tick() {
     if (IsPeakOverLevel()) {
         ToggleRX(true);
         TuneToPeak();
-		return;
+        if (SpectrumDelay)SetState(STILL);
+		    return;
       }
       redrawScreen = true;
       preventKeypress = false;
@@ -2462,7 +2467,10 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 
 static void GetParametersText(uint8_t index, char *buffer) {
   if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
-  if (index == 1) sprintf(buffer, "S Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
+  if (index == 1) {
+    if (SpectrumDelay <60000) sprintf(buffer, "SP Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
+      else sprintf(buffer, "SP Wait: Locked");
+  }
 #ifdef ENABLE_NINJA
   if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
 #endif
@@ -2596,25 +2604,53 @@ static void BuildScanListChannels(uint8_t scanListIndex) {
     }
 }
 
-static void GetScanListChannelText(uint8_t displayIndex, char* buffer) {
-    if (displayIndex >= scanListChannelsCount) {
-        sprintf(buffer, "Invalid");
-        return;
-    }
-    
-    uint8_t channelIndex = scanListChannels[displayIndex];
-    char channel_name[10];
-    SETTINGS_FetchChannelName(channel_name, channelIndex);
-    
-    sprintf(buffer, "%3d: %s", channelIndex + 1, channel_name);
-}
-
 static void RenderScanListChannels() {
     char headerString[24];
     uint8_t realScanListIndex = validScanListIndices[selectedScanListIndex];
     sprintf(headerString, "SL %d CHANNELS:", realScanListIndex + 1);
     
-    RenderList(headerString, scanListChannelsCount, scanListChannelsSelectedIndex, 
-               scanListChannelsScrollOffset, GetScanListChannelText);
+    // Specjalna obsługa dwulinijkowa
+    RenderScanListChannelsDoubleLines(headerString, scanListChannelsCount, 
+                                     scanListChannelsSelectedIndex,
+                                     scanListChannelsScrollOffset);
+}
+
+static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItems, 
+                                             uint8_t selectedIndex, uint8_t scrollOffset) {
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
+    UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
+    
+    const uint8_t MAX_ITEMS_VISIBLE = 3; // 3 kanały x 2 linie = 6 linii
+    
+    for (uint8_t i = 0; i < MAX_ITEMS_VISIBLE; i++) {
+        uint8_t itemIndex = i + scrollOffset;
+        if (itemIndex >= numItems) break;
+        
+        uint8_t channelIndex = scanListChannels[itemIndex];
+        char channel_name[10];
+        SETTINGS_FetchChannelName(channel_name, channelIndex);
+        
+        uint32_t freq = gMR_ChannelFrequencyAttributes[channelIndex].Frequency;
+        char freqStr[16];
+        sprintf(freqStr, "... %u.%05u", freq/100000, freq%100000);
+        RemoveTrailZeros(freqStr);
+        
+        uint8_t line1 = 1 + i * 2;
+        uint8_t line2 = 2 + i * 2;
+        
+        char nameText[20], freqText[20];
+        if (itemIndex == selectedIndex) {
+            sprintf(nameText, ">%3d: %s", channelIndex + 1, channel_name);
+            sprintf(freqText, " %s", freqStr);
+        } else {
+            sprintf(nameText, " %3d: %s", channelIndex + 1, channel_name);
+            sprintf(freqText, " %s", freqStr);
+        }
+        
+        UI_PrintStringSmall(nameText, 1, 0, line1);
+        UI_PrintStringSmall(freqText, 1, 0, line2);
+    }
+    
+    ST7565_BlitFullScreen();
 }
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
