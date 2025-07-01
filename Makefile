@@ -56,6 +56,7 @@ ENABLE_PL_BAND							:= 0
 ENABLE_RO_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
 ENABLE_NINJA			  				:= 0
+ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
 
 #############################################################
@@ -392,6 +393,9 @@ ifeq ($(ENABLE_SCREENSHOT),1)
 endif
 ifeq ($(ENABLE_NINJA),1)
 	CFLAGS  += -DENABLE_NINJA
+endif
+ifeq ($(ENABLE_SCANLIST_SHOW_DETAIL),1)
+	CFLAGS  += -DENABLE_SCANLIST_SHOW_DETAIL
 endif
 
 

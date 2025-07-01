@@ -160,19 +160,19 @@ uint8_t rxChannelDisplayCountdown = 0;
 //
 static bool wasReceiving = false;
 static uint32_t lastReceivingFreq = 0;
-static uint8_t scanListChannels[200]; // Array to store channel indices for selected scanlist
-static uint8_t scanListChannelsCount = 0; // Number of channels in selected scanlist
-static uint8_t scanListChannelsSelectedIndex = 0;
-static uint8_t scanListChannelsScrollOffset = 0;
-static uint8_t selectedScanListIndex = 0; // Which scanlist we're viewing channels for
 
-static void BuildScanListChannels(uint8_t scanListIndex);
-static void GetScanListChannelText(uint8_t displayIndex, char* buffer);
-static void RenderScanListChannels();
-
-#define MAX_VALID_SCANLISTS 15
-
-static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
+  static uint8_t scanListChannels[200]; // Array to store channel indices for selected scanlist
+  static uint8_t scanListChannelsCount = 0; // Number of channels in selected scanlist
+  static uint8_t scanListChannelsSelectedIndex = 0;
+  static uint8_t scanListChannelsScrollOffset = 0;
+  static uint8_t selectedScanListIndex = 0; // Which scanlist we're viewing channels for
+  static void BuildScanListChannels(uint8_t scanListIndex);
+  static void GetScanListChannelText(uint8_t displayIndex, char* buffer);
+  static void RenderScanListChannels();
+  #define MAX_VALID_SCANLISTS 15
+#endif
+  static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
 
 RegisterSpec registerSpecs[] = {
     {},
@@ -1412,6 +1412,7 @@ static void OnKeyDown(uint8_t key) {
                     redrawScreen = true;
                 }
                 break;
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
             case KEY_STAR: // NOWA OBSŁUGA - Show channels in selected scanlist
                 selectedScanListIndex = scanListSelectedIndex;
                 BuildScanListChannels(validScanListIndices[selectedScanListIndex]);
@@ -1420,6 +1421,7 @@ static void OnKeyDown(uint8_t key) {
                 SetState(SCANLIST_CHANNELS);
                 redrawScreen = true;
                 break;	
+#endif // ENABLE_SCANLIST_SHOW_DETAIL
             case KEY_4: // Scan list selection
                 ToggleScanList(scanListSelectedIndex, 0);
                 scanListSelectedIndex++;
@@ -1456,7 +1458,8 @@ static void OnKeyDown(uint8_t key) {
       }
       	  
 	// If we're in scanlist channels mode, use dedicated key logic
-if (currentState == SCANLIST_CHANNELS) {
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
+  if (currentState == SCANLIST_CHANNELS) {
     switch (key) {
     case KEY_UP:
         if (scanListChannelsSelectedIndex > 0) {
@@ -1485,6 +1488,7 @@ if (currentState == SCANLIST_CHANNELS) {
     }
     return; // Finish handling if we were in SCANLIST_CHANNELS
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
       // If we're in PARAMETERS_SELECT selection mode, use dedicated key logic
@@ -1970,9 +1974,11 @@ static void Render() {
     case PARAMETERS_SELECT:
       RenderParametersSelect();
     break;
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
     case SCANLIST_CHANNELS: // NOWY CASE
       RenderScanListChannels();
       break;
+#endif // ENABLE_SCANLIST_SHOW_DETAIL
   }
 
   ST7565_BlitFullScreen();
@@ -2028,9 +2034,11 @@ bool HandleUserInput() {
             case PARAMETERS_SELECT:
                 OnKeyDown(kbd.current);
                 break;
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
             case SCANLIST_CHANNELS: // NOWY CASE
                 OnKeyDown(kbd.current);
                 break;
+#endif // ENABLE_SCANLIST_SHOW_DETAIL
         }
         return true;
     }
@@ -2071,10 +2079,14 @@ static void NextScanStep() {
 }
 
 static void UpdateScan() {
-    if (WaitSpectrum > 0) {
-        WaitSpectrum--;
-        SYSTEM_DelayMs(1);
-        return;}
+  if (WaitSpectrum > 0) {
+      WaitSpectrum--;
+      SYSTEM_DelayMs(1);
+      if (WaitSpectrum ==0) {
+        SetState(SPECTRUM);
+        newScanStart = true;}
+      return;}
+  
   Scan();
 
   if (scanInfo.i < GetStepsCount()) {
@@ -2091,21 +2103,17 @@ static void UpdateScan() {
 
   UpdatePeakInfo();
   
-     
-
   if (IsPeakOverLevel()) {
     // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
+    SetState(STILL);  
     WaitSpectrum = SpectrumDelay;
-     if (WaitSpectrum) SetState(STILL);  
-        else WaitSpectrum = SpectrumDelay;
     return;
   }
   
   // If we were receiving but signal dropped
   if (isListening) {ToggleRX(false);}
-    newScanStart = true;
 }
 
 static void UpdateStill() {
@@ -2584,7 +2592,7 @@ static void RenderHistoryList() {
               historyListIndex, historyScrollOffset, GetHistoryItemText);
 }
 
-//
+#ifdef ENABLE_SCANLIST_SHOW_DETAIL
 static void BuildScanListChannels(uint8_t scanListIndex) {
     scanListChannelsCount = 0;
     ChannelAttributes_t att;
@@ -2620,3 +2628,4 @@ static void RenderScanListChannels() {
     RenderList(headerString, scanListChannelsCount, scanListChannelsSelectedIndex, 
                scanListChannelsScrollOffset, GetScanListChannelText);
 }
+#endif // ENABLE_SCANLIST_SHOW_DETAIL
