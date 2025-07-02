@@ -980,6 +980,7 @@ static void DrawStatus() {
       pos += len;}
     else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
     }
+  if(WaitSpectrum){len = sprintf(&String[pos],"%d", WaitSpectrum/20);pos += len;}
   }
   GUI_DisplaySmallest(String, 0, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
