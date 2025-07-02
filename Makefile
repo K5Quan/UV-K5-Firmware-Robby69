@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.1b6
+VERSION_STRING := V5.1b7
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -39,7 +39,7 @@ ENABLE_RSSI_BAR                         := 1
 ENABLE_AUDIO_BAR                        := 1
 ENABLE_COPY_CHAN_TO_VFO                 := 1
 ENABLE_SPECTRUM                         := 1
-ENABLE_REDUCE_LOW_POWER                 := 1
+ENABLE_REDUCE_LOW_POWER                 := 0 //UNUSED
 ENABLE_BYP_RAW_DEMODULATORS             := 0
 ENABLE_BLMIN_TMP_OFF                    := 0
 ENABLE_SCAN_RANGES                      := 1
@@ -50,7 +50,7 @@ ENABLE_MESSENGER_FSK_MUTE               := 0
 ENABLE_MESSENGER_NOTIFICATION           := 0
 ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
-ENABLE_SCANNER							:= 1
+ENABLE_SCANNER							:= 0
 ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
 ENABLE_RO_BAND							:= 0

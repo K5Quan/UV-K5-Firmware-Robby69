@@ -31,7 +31,7 @@ uint16_t SpectrumDelay = 0;
 /////////////////////////////
 
 uint16_t WaitSpectrum = 0; 
-#define SQUELCH_OFF_DELAY 100;
+#define SQUELCH_OFF_DELAY 10;
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
 bool PopUpclear = 0;
@@ -382,6 +382,7 @@ static void ExitAndCopyToVfo() {
       uint16_t randomChannel = GetRandomChannelFromRSSI(scanChannelsCount);
       static uint32_t rndfreq;
       uint8_t i = 0;
+      SpectrumDelay = 0; //not compatible with ninja
     
       while (rssiHistory[randomChannel]> settings.rssiTriggerLevel) //check channel availability
         {i++;
@@ -957,7 +958,6 @@ static void DrawStatus() {
   len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
   pos += len;  // Move position forward
 
-  if (currentState == SPECTRUM) {
     if(isNormalizationApplied){
       len = sprintf(&String[pos], "N(%ux) ", GetStepsCount());
       pos += len;
@@ -980,8 +980,9 @@ static void DrawStatus() {
       pos += len;}
     else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
     }
-  if(WaitSpectrum){len = sprintf(&String[pos],"%d", WaitSpectrum/20);pos += len;}
-  }
+  if(WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
+  else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
+
   GUI_DisplaySmallest(String, 0, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -1520,8 +1521,8 @@ static void OnKeyDown(uint8_t key) {
                       redrawStatus = true;}
 
                   else if (parametersSelectedIndex == 1) {
-                      SpectrumDelay += (SpectrumDelay < 10000) ? 500 : 5000;
-                      if (SpectrumDelay > 60000) SpectrumDelay = 60000;}
+                     if (SpectrumDelay < 61000) SpectrumDelay += (SpectrumDelay < 10000) ? 1000 : 5000;
+                       }
 #ifdef ENABLE_NINJA
                   else if (parametersSelectedIndex == 2) RandomEmission = 1;
 #endif
@@ -1533,8 +1534,8 @@ static void OnKeyDown(uint8_t key) {
                       redrawStatus = true;}
 
                     else if (parametersSelectedIndex == 1) {
-                      SpectrumDelay -= (SpectrumDelay < 10000) ? 500 : 5000;
-                      if (SpectrumDelay <= 500) SpectrumDelay = 0;}
+                      if (SpectrumDelay >= 1000) SpectrumDelay -= (SpectrumDelay < 10000) ? 1000 : 5000;
+                      }
 #ifdef ENABLE_NINJA
                     else if (parametersSelectedIndex == 2) RandomEmission = 0;
 #endif
@@ -1882,8 +1883,9 @@ static void RenderSpectrum() {
 
 
 static void RenderStill() {
-  if (WaitSpectrum > 0 && WaitSpectrum <30000) { //30000 locks still mode
+  if (WaitSpectrum > 0 && WaitSpectrum <61000) { //65000 locks still mode
       WaitSpectrum-=20;
+      redrawStatus = true;
       SYSTEM_DelayMs(1);
       if (WaitSpectrum ==0) SetState(SPECTRUM); 
       }
@@ -2469,8 +2471,8 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
 static void GetParametersText(uint8_t index, char *buffer) {
   if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
   if (index == 1) {
-    if (SpectrumDelay <60000) sprintf(buffer, "SP Wait:%2u.%1u", SpectrumDelay / 1000, (SpectrumDelay % 1000) / 100);
-      else sprintf(buffer, "SP Wait: Locked");
+    if (SpectrumDelay <65000) sprintf(buffer, "SpectrumDelay:%2us", SpectrumDelay / 1000);
+      else sprintf(buffer, "SpectrumDelay: oo");
   }
 #ifdef ENABLE_NINJA
   if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
