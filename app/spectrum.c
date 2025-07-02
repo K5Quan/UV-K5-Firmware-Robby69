@@ -31,7 +31,6 @@ uint16_t SpectrumDelay = 0;
 /////////////////////////////
 
 uint16_t WaitSpectrum = 0; 
-uint16_t spectrumDelayTimer = 0; // DODANE: Timer w milisekundach dla SpectrumDelay
 #define SQUELCH_OFF_DELAY 100;
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
@@ -644,8 +643,8 @@ static void RelaunchScan() {
     ToggleRX(false);
     preventKeypress = true;
     scanInfo.rssiMin = RSSI_MAX_VALUE;
-    spectrumDelayTimer = 0; // DODANE: Reset timera
-    // Reset receiving state when relaunching scan
+    
+    //  Reset receiving state when relaunching scan
     ResetReceivingState();
 }
 
@@ -1166,23 +1165,6 @@ static void DrawF(uint32_t f) {
     UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
     if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
     if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
-
-// DODANE: Wyświetlanie countdown timera w trybie STILL
-if (currentState == STILL && spectrumDelayTimer > 0) {
-    char countdownText[16];
-    uint16_t seconds = spectrumDelayTimer / 1000;
-    uint16_t tenths = (spectrumDelayTimer % 1000) / 100;
-    
-    // POPRAWKA: Jeśli sekund jest 0, pokaż tylko dziesiąte części
-    if (seconds > 0) {
-        sprintf(countdownText, "T:%u.%u", seconds, tenths);
-    } else {
-        sprintf(countdownText, "T:0.%u", tenths);
-    }
-    
-    UI_PrintStringSmall(countdownText, 90, 127, 3);
-}
-
 }
 
 void LookupChannelInfo() {
@@ -2127,82 +2109,26 @@ static void UpdateScan() {
 }
 
 static void UpdateStill() {
-    // Handle spectrum delay timer (countdown when signal is gone in STILL mode)
-    if (spectrumDelayTimer > 0) {
-        // POPRAWKA: Sprawdź przed dekrementacją aby uniknąć underflow
-        if (spectrumDelayTimer > 20) {
-            spectrumDelayTimer -= 20; // Dekrementuj o ~100ms na wywołanie
-        } else {
-            spectrumDelayTimer = 0; // Ustaw na 0 jeśli pozostało mniej niż 100
-        }
-        
-        redrawScreen = true; // Update display for countdown
-        
-        // Normal measurement during countdown
-        Measure();
-        peak.rssi = scanInfo.rssi;
-        
-        // If signal returned during countdown, cancel countdown and resume RX
-        if (IsPeakOverLevel() || monitorMode) {
-            spectrumDelayTimer = 0;
-            ToggleRX(true);
-            return;
-        }
-        
-        // If countdown finished, return to spectrum mode
-        if (spectrumDelayTimer == 0) {
-            SetState(SPECTRUM);
-            RelaunchScan();
-            return;
-        }
-        
-        // Continue countdown - keep RX off
-        ToggleRX(false);
-        return;
-    }
-    
-    // Normal STILL mode behavior (no countdown active)
   Measure();
   redrawScreen = true;
   preventKeypress = false;
+
   peak.rssi = scanInfo.rssi;
-    
-    bool shouldReceive = IsPeakOverLevel() || monitorMode;
-    if (shouldReceive) {
-        spectrumDelayTimer = 0; // Reset timer gdy ponownie odbieramy
-        ToggleRX(true);
-    } else {
-        // Signal is gone - start countdown if SpectrumDelay > 0
-        if (SpectrumDelay > 0 && spectrumDelayTimer == 0) {
-            spectrumDelayTimer = SpectrumDelay;
-            redrawScreen = true;
-        } else if (SpectrumDelay == 0) {
-            // Immediate return to spectrum if no delay set
-            SetState(SPECTRUM);
-            RelaunchScan();
-            return;
-        }
-        ToggleRX(false);
-    }
+  ToggleRX(IsPeakOverLevel() || monitorMode);
 }
-
-
-
 
 static void UpdateListening() {
   preventKeypress = false;
   if (currentState == STILL) {
     listenT = 0;
+    //SpectrumDelay = 0;
   }
-
-    // Handle listenT timer (existing squelch delay)
   if (listenT) {
     listenT--;
     SYSTEM_DelayMs(1);
     return;
   }
 
-    // Normal measurement
   if (currentState == SPECTRUM) {
     if(appMode!=CHANNEL_MODE)
       BK4819_WriteRegister(0x43, GetBWRegValueForScan());
@@ -2215,14 +2141,11 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-    // Check if signal is present
-    if ((IsPeakOverLevel() || monitorMode)) {
+  if ((IsPeakOverLevel() || monitorMode) ) {
     listenT = SQUELCH_OFF_DELAY;
-        spectrumDelayTimer = 0; // Cancel any countdown
     return;
   }
 
-    // Signal is gone
   ToggleRX(false);
   WaitSpectrum = SpectrumDelay;
   ResetScanStats();
