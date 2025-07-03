@@ -453,7 +453,7 @@ static void MAIN_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 			else
 			{
 				gScanKeepResult = false;
-				#ifdef ENABLE_SCANNER
+				#ifdef ENABLE_SCANNER1
 				CHFRSCANNER_Stop();
 				#endif
 				#ifdef ENABLE_VOICE
@@ -535,7 +535,7 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 		if (bFlag)
 		{
 			if (gScanStateDir != SCAN_OFF) {
-				#ifdef ENABLE_SCANNER
+				#ifdef ENABLE_SCANNER1
 				CHFRSCANNER_Stop();
 				#endif
 				return;
@@ -646,7 +646,7 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 		gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
 		return;
 	}
-	#ifdef ENABLE_SCANNER
+	#ifdef ENABLE_SCANNER1
 	// jump to the next channel
 	CHFRSCANNER_Start(false, Direction);
 	gScanPauseDelayIn_10ms = 1;
@@ -713,7 +713,7 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			MAIN_Key_EXIT(bKeyPressed, bKeyHeld);
 			break;
 		case KEY_STAR:
-			if (!gWasFKeyPressed) MAIN_Key_STAR(1);
+			if (gWasFKeyPressed) MAIN_Key_STAR(1);
 			else MAIN_Key_STAR(0);
 			break;
 		case KEY_F:

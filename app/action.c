@@ -108,7 +108,7 @@ void ACTION_Monitor(void)
 
 	gRequestDisplayScreen = gScreenToDisplay;
 }
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 void ACTION_Scan(bool bRestart)
 {
 	(void)bRestart;
@@ -378,7 +378,7 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		case ACTION_OPT_MONITOR:
 			ACTION_Monitor();
 			break;
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 		case ACTION_OPT_SCAN:
 			ACTION_Scan(true);
 			break;

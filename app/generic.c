@@ -131,7 +131,7 @@ void GENERIC_Key_PTT(bool bKeyPressed)
 
 	// PTT pressed
 
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 	if (SCANNER_IsScanning())
 	{	// CTCSS/CDCSS scanning .. stop
 		SCANNER_Stop();

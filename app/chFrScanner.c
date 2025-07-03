@@ -19,7 +19,7 @@ uint32_t            initialFrqOrChan;
 uint8_t           	initialCROSS_BAND_RX_TX;
 uint32_t            lastFoundFrqOrChan;
 
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 static void NextFreqChannel(void);
 static void NextMemChannel(void);
 

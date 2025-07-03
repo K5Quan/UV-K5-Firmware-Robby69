@@ -370,7 +370,7 @@ Skip:
 			#endif
 
 			gUpdateDisplay = true;
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 			if (gScanStateDir != SCAN_OFF)
 			{
 				switch (gEeprom.SCAN_RESUME_MODE)
@@ -457,7 +457,7 @@ void APP_StartListening(FUNCTION_Type_t Function)
 
 	if (gSetting_backlight_on_tx_rx >= BACKLIGHT_ON_TR_RX)
 		BACKLIGHT_TurnOn();
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 	if (gScanStateDir != SCAN_OFF)
 		CHFRSCANNER_Found();
 #endif
@@ -876,7 +876,7 @@ void APP_Update(void)
 #else
 	if (!SCANNER_IsScanning() && gScanStateDir != SCAN_OFF && gScheduleScanListen && !gPttIsPressed)
 #endif
-#ifdef ENABLE_SCANNER
+#ifdef ENABLE_SCANNER1
 	{	// scanning
 		CHFRSCANNER_ContinueScanning();
 	}
