@@ -60,7 +60,7 @@ const t_menu_item MenuList[] =
 
 	{"Demodu", VOICE_ID_INVALID,                       MENU_AM            }, // was "AM"
 	{"RxAGC",  VOICE_ID_INVALID,                       MENU_RX_AGC        }, // RX Auto Gain Control
-	#ifdef ENABLE_SCANNER
+	#ifdef ENABLE_SCANNER1
 	{"ScList", VOICE_ID_INVALID,					   MENU_S_LIST        },
 	#endif
 	{"ChSave", VOICE_ID_MEMORY_CHANNEL,                MENU_MEM_CH        }, // was "MEM-CH"
@@ -103,7 +103,7 @@ const t_menu_item MenuList[] =
 	{"MsgMod", VOICE_ID_INVALID,                       MENU_MSG_MODULATION}, // messenger modulation
 #endif
 	{"Sql",    VOICE_ID_SQUELCH,                       MENU_SQL           },
-#ifdef ENABLE_SCANNER	
+#ifdef ENABLE_SCANNER1	
 	{"ScnRev", VOICE_ID_INVALID,                       MENU_SC_REV        },
 #endif
 	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
