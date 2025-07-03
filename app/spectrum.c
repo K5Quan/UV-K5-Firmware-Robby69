@@ -1425,19 +1425,24 @@ static void OnKeyDown(uint8_t key) {
                 break;	
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
             case KEY_4: // Scan list selection
-                ToggleScanList(scanListSelectedIndex, 0);
-                scanListSelectedIndex++;
+                //ToggleScanList(scanListSelectedIndex, 0);
+				ToggleScanList(validScanListIndices[scanListSelectedIndex], 0);
+
+                if (scanListSelectedIndex < validScanListCount - 1) {
+                      scanListSelectedIndex++;
+                   }
+
                 redrawScreen = true;
                 break;
             case KEY_5: // Scan list selection
-                ToggleScanList(scanListSelectedIndex, 1);
+                ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
                  redrawScreen = true;
                 break;
 				
 				        
         case KEY_MENU:
             if (scanListSelectedIndex < 15) {
-                ToggleScanList(scanListSelectedIndex, 1);
+                ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
                 SetState(SPECTRUM);
                 ResetModifiers();
                 redrawScreen = true;
@@ -2461,7 +2466,9 @@ static void BuildValidScanListIndices() {
             validScanListIndices[ScanListCount++] = i;
         }
     }
+    validScanListCount = ScanListCount; // <-- KLUCZOWE!
 }
+
 
 static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     uint8_t realIndex = validScanListIndices[displayIndex];
