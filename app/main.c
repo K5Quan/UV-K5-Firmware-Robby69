@@ -194,17 +194,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 			break;
 
-		case KEY_4: //"Close call" , copy frequency from strong signal
-			gWasFKeyPressed          = false;
-
-			gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-			gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-			gUpdateStatus            = true;		
-			if (beep)
-				gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
-
-			SCANNER_Start(false);
-			gRequestDisplayScreen = DISPLAY_SCANNER;
+		case KEY_4:
+			if (beep) APP_RunSpectrum(1); //Channel scan
 			break;
 
 		case KEY_5:
@@ -560,73 +551,14 @@ static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
 			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 		return;
 	}
-	#ifdef ENABLE_SCANNER
-	if (bKeyHeld && !gWasFKeyPressed) // long press
-	{	 
-		if (!bKeyPressed) // released
-			return; 
-
-		ACTION_Scan(false);// toggle scanning
-
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
-		return;
-	}
-
-	if (bKeyPressed) // just pressed
-	{	
-		return;
-	}
 	
-	// just released
-	
-	if (!gWasFKeyPressed) // pressed without the F-key
-	{	
-		if (gScanStateDir == SCAN_OFF 
-#ifdef ENABLE_NOAA
-			&& !IS_NOAA_CHANNEL(gTxVfo->CHANNEL_SAVE)
-#endif
-#ifdef ENABLE_SCAN_RANGES
-			&& gScanRangeStart == 0
-#endif		
-		)
-		{	// start entering a DTMF string
-			gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
-			memmove(gDTMF_InputBox, gDTMF_String, MIN(sizeof(gDTMF_InputBox), sizeof(gDTMF_String) - 1));
-			gDTMF_InputBox_Index  = 0;
-			gDTMF_InputMode       = true;
-
-			gKeyInputCountdown    = key_input_timeout_500ms;
-
-			gRequestDisplayScreen = DISPLAY_MAIN;
-		}
-		else
-			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
-	}
-	else
-
-	{
-		#endif
-		// with the F-key
-		gWasFKeyPressed = false;
-
-#ifdef ENABLE_NOAA
-		if (IS_NOAA_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
-			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
-			return;
-		}				
-#endif
-
-		// scan the CTCSS/DCS code
-		gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-		gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-		SCANNER_Start(true);
-		gRequestDisplayScreen = DISPLAY_SCANNER;
-		#ifdef ENABLE_SCANNER
-	}
-	
-	gPttWasReleased = true;
-	gUpdateStatus   = true;
-	#endif
+	if (gWasFKeyPressed) { SCANNER_Start(false);}
+	else {SCANNER_Start(true);}
+	gWasFKeyPressed          = false;
+	gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
+	gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
+	gUpdateStatus            = true;		
+	gRequestDisplayScreen = DISPLAY_SCANNER;
 }
 
 static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
