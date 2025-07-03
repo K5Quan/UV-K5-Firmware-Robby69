@@ -81,6 +81,20 @@ void toggle_chan_scanlist(void)
 		gTxVfo->SCANLIST = 0;
 }
 
+static void MAIN_Key_STAR(bool closecall)
+{
+	if (gCurrentFunction == FUNCTION_TRANSMIT)
+		return;
+	
+	
+	gWasFKeyPressed          = false;
+	gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
+	gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
+	gUpdateStatus            = true;		
+	SCANNER_Start(closecall);
+	gRequestDisplayScreen = DISPLAY_SCANNER;
+}
+
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
 	//uint8_t Band;
@@ -212,7 +226,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			if (beep) APP_RunSpectrum(2); // Band scan
 			else ACTION_Power();
 			break;
-
+		
 		case KEY_7:
 #ifdef ENABLE_VOX
 			ACTION_Vox();
@@ -540,27 +554,6 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 	}
 }
 
-static void MAIN_Key_STAR(bool bKeyPressed, bool bKeyHeld)
-{
-	if (gCurrentFunction == FUNCTION_TRANSMIT)
-		return;
-	
-	if (gInputBoxIndex)
-	{
-		if (!bKeyHeld && bKeyPressed)
-			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
-		return;
-	}
-	
-	if (gWasFKeyPressed) { SCANNER_Start(false);}
-	else {SCANNER_Start(true);}
-	gWasFKeyPressed          = false;
-	gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-	gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-	gUpdateStatus            = true;		
-	gRequestDisplayScreen = DISPLAY_SCANNER;
-}
-
 static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 {
 	uint8_t Channel = gEeprom.ScreenChannel[gEeprom.TX_VFO];
@@ -720,7 +713,8 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			MAIN_Key_EXIT(bKeyPressed, bKeyHeld);
 			break;
 		case KEY_STAR:
-			MAIN_Key_STAR(bKeyPressed, bKeyHeld);
+			if (!gWasFKeyPressed) MAIN_Key_STAR(1);
+			else MAIN_Key_STAR(0);
 			break;
 		case KEY_F:
 			GENERIC_Key_F(bKeyPressed, bKeyHeld);
