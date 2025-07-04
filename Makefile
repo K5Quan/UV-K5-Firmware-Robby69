@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.1b8
+VERSION_STRING := V5.1
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -55,7 +55,7 @@ ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
 ENABLE_RO_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
-ENABLE_NINJA			  				:= 0
+ENABLE_NINJA			  				:= 1
 ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
 
