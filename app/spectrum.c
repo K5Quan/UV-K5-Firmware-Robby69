@@ -605,7 +605,7 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max +8, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(max*1.2, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
@@ -907,6 +907,21 @@ static void Blacklist() {
   ResetScanStats();
 }
 
+static void AutoTriggerLevelScanlist(void) {
+  if (appMode!=CHANNEL_MODE) return;
+  uint8_t rssiAnalyse = 0;
+  uint8_t topRssi = 0;
+  for (int i = 0; i <= scanChannelsCount; ++i) {
+      uint32_t FreqAnalyse = gMR_ChannelFrequencyAttributes[scanChannel[i]].Frequency;
+      SetF(FreqAnalyse);
+      while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
+      rssiAnalyse = BK4819_GetRSSI();
+      if (rssiAnalyse > topRssi) {topRssi = rssiAnalyse;}    
+  }
+    settings.rssiTriggerLevel = clamp(topRssi*1.2, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+}
+
 // Draw things
 
 // applied x2 to prevent initial rounding
@@ -951,21 +966,29 @@ static void DrawSpectrum()
         }
     }
 
+ // Format frequency string (remove trailing zeros)
+ void RemoveTrailZeros(char* freqStr){
+     
+     char *p = freqStr + strlen(freqStr) - 1;
+     while (p > freqStr && *p == '0') *p-- = '\0';
+    if (*p == '.') *p = '\0';
+}
 
 static void DrawStatus() {
   int len=0;
   int pos=0;
   len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
   pos += len;  // Move position forward
-
+  uint16_t steps=GetStepsCount();
     if(isNormalizationApplied){
-      len = sprintf(&String[pos], "N(%ux) ", GetStepsCount());
-      pos += len;
+      if (steps > 1000) {len = sprintf(&String[pos], "N%ukx ", steps/1000);}
+      else {len = sprintf(&String[pos], "N%ux ", steps);}
     }
     else {
-      len = sprintf(&String[pos], "%ux ", GetStepsCount());
-      pos += len;
+      if (steps > 1000) {len = sprintf(&String[pos], "%ukx ", steps/1000);}
+      else {len = sprintf(&String[pos], "%ux ", steps);}
     }
+    pos += len;
     len = sprintf(&String[pos],"%dms ", DelayRssi);
     pos += len;
     
@@ -975,11 +998,9 @@ static void DrawStatus() {
       pos += len;      
     }
     else
-    {if (scanInfo.scanStep<2500)
-      {len = sprintf(&String[pos],"%u.%02uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-      pos += len;}
-    else {len = sprintf(&String[pos],"%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);pos += len;}
-    }
+    {len = sprintf(&String[pos], scanInfo.scanStep % 100 ? "%uk%02u" : "%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
+    pos += len;}
+   
   if(WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
 
@@ -1002,14 +1023,6 @@ static void DrawStatus() {
       gStatusLine[i] = 0b00111110;
     }
   }
-}
-
- // Format frequency string (remove trailing zeros)
- void RemoveTrailZeros(char* freqStr){
-     
-     char *p = freqStr + strlen(freqStr) - 1;
-     while (p > freqStr && *p == '0') *p-- = '\0';
-    if (*p == '.') *p = '\0';
 }
 
 static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) {
@@ -1050,6 +1063,13 @@ static void DrawF(uint32_t f) {
         SYSTEM_DelayMs(1000);
         return;
         }
+    if(saved_params) //Display saved for a while
+      {UI_DisplayPopup("Params Saved");
+        saved_params = 0;
+        ST7565_BlitFullScreen();
+        SYSTEM_DelayMs(500);
+        return;
+      }
     if (f == 0) return;
 
     // --- Frequency Formatting ---
@@ -1263,11 +1283,6 @@ static void DrawNums() {
     sprintf(String, "BL");
     GUI_DisplaySmallest(String, 60, Bottom_print, false, true);
   }
-  if(saved_params) //Display saved for a while
-      {sprintf(String, "SA");
-      GUI_DisplaySmallest(String, 70, Bottom_print, false, true);
-      saved_params = false;
-      }
   
   if(AutoTriggerLevelbandsMode && appMode == SCAN_BAND_MODE){ //Display status
     sprintf(String, "AB");
@@ -2155,6 +2170,7 @@ static void UpdateListening() {
   }
 
   ToggleRX(false);
+  if(RandomEmission) AutoTriggerLevelScanlist();
   WaitSpectrum = SpectrumDelay;
   ResetScanStats();
 }
@@ -2213,7 +2229,6 @@ static void Tick() {
   }
 }
 
-
 void APP_RunSpectrum(uint8_t Spectrum_state) {
   Mode mode;
   if (StorePtt_Toggle_Mode) Ptt_Toggle_Mode = StorePtt_Toggle_Mode;
@@ -2224,6 +2239,7 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   LoadSettings();
+  if(RandomEmission) AutoTriggerLevelScanlist();
   appMode = mode;
   ResetModifiers();
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
@@ -2250,7 +2266,7 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   newScanStart = true;
 
 
-  ToggleRX(true), ToggleRX(false); // hack to prevent noise when squelch off
+  //ToggleRX(true), ToggleRX(false); // hack to prevent noise when squelch off
   if (appMode != SCAN_BAND_MODE){
       RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
       BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
@@ -2664,3 +2680,4 @@ static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItem
     ST7565_BlitFullScreen();
 }
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
+
