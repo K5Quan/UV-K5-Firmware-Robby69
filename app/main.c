@@ -49,11 +49,9 @@
 	#include "app/messenger.h"
 #endif
 
-void toggle_chan_scanlist(void)
+void toggle_scan_range(void)
 {	// toggle the selected channels scanlist setting
 
-	if ( SCANNER_IsScanning())
-		return;
 	SETTINGS_UpdateChannel(gTxVfo->CHANNEL_SAVE, gTxVfo, true);
 	gVfoConfigureMode = VFO_CONFIGURE;
 	gFlagResetVfos    = true;
@@ -77,8 +75,7 @@ void toggle_chan_scanlist(void)
 		return;
 	}
 #endif
-	if (++gTxVfo->SCANLIST > 15) 
-		gTxVfo->SCANLIST = 0;
+	//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
 }
 
 static void MAIN_Key_STAR(bool closecall)
@@ -218,7 +215,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 				else 	if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {APP_RunSpectrum(1);} //Channel scan
 						else if (!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) APP_RunSpectrum(4); //basic spectrum
 			}
-			else toggle_chan_scanlist();
+			else toggle_scan_range();
 			gRequestDisplayScreen = DISPLAY_MAIN;
 			break;
 
@@ -228,11 +225,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 		
 		case KEY_7:
-#ifdef ENABLE_VOX
-			ACTION_Vox();
-#else
-			toggle_chan_scanlist();
-#endif
+			//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
 			break;
 
 		case KEY_8:

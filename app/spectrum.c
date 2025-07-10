@@ -17,7 +17,7 @@
   #include "screenshot.h"
 #endif
 #define MAX_VISIBLE_LINES 6
-#define HISTORY_SIZE 100
+#define HISTORY_SIZE 250
 //////////////////Parameters:
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
@@ -143,7 +143,7 @@ uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
 uint32_t freqHistory[HISTORY_SIZE+1]= {0};
-uint8_t freqCount[HISTORY_SIZE+1] = {0};
+uint16_t freqCount[HISTORY_SIZE+1] = {0};
 uint8_t indexFd = 0;
 uint8_t indexFs = 1;
 bool ShowHistory = false;
@@ -605,7 +605,7 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max*1.2, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(max+15, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
@@ -918,7 +918,7 @@ static void AutoTriggerLevelScanlist(void) {
       rssiAnalyse = BK4819_GetRSSI();
       if (rssiAnalyse > topRssi) {topRssi = rssiAnalyse;}    
   }
-    settings.rssiTriggerLevel = clamp(topRssi*1.2, 0, RSSI_MAX_VALUE);
+    settings.rssiTriggerLevel = clamp(topRssi+15, 0, RSSI_MAX_VALUE);
     settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
@@ -2462,16 +2462,32 @@ static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
 static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
     ChannelAttributes_t att;
     char channel_name[10];
+    int first_channel = -1;
+    int channel_count = 0;
+
+    // Szukaj kanału należącego do tej scanlisty i licz kanały
     for (int i = 0; i < 200; i++) {
       att = gMR_ChannelAttributes[i];
-      if (att.scanlist == scanListIndex+1) {
-            //validScanListCount++;
-            SETTINGS_FetchChannelName(channel_name,i);
-            sprintf(bufferOut, "%2d: %s %s", scanListIndex + 1, channel_name,settings.scanListEnabled[scanListIndex] ? "*" : " ");
-            return true;
+        if (att.scanlist == scanListIndex + 1) {
+            if (first_channel == -1)
+                first_channel = i;
+            channel_count++;
         }
     }
-    return false; // Aucun canal associé à cette scanlist
+    if (first_channel == -1)
+        return false; // Brak kanałów
+
+    SETTINGS_FetchChannelName(channel_name, first_channel);
+    if (channel_name[0] == '\0') {
+        uint32_t freq = gMR_ChannelFrequencyAttributes[first_channel].Frequency;
+        char freqStr[12];
+        sprintf(freqStr, "%u.%05u", freq / 100000, freq % 100000);
+        RemoveTrailZeros(freqStr);
+        sprintf(bufferOut, "%2d:%s(%d)%s", scanListIndex + 1, freqStr, channel_count, settings.scanListEnabled[scanListIndex] ? " *" : "");
+    } else {
+        sprintf(bufferOut, "%2d:%s(%d)%s", scanListIndex + 1, channel_name, channel_count, settings.scanListEnabled[scanListIndex] ? " *" : "");
+    }
+    return true;
 }
 
 static void BuildValidScanListIndices() {

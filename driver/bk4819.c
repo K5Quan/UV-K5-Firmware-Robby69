@@ -32,8 +32,6 @@
 	#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-static const uint16_t FSK_RogerTable[7] = {0xF1A2, 0x7446, 0x61A4, 0x6544, 0x4E8A, 0xE044, 0xEA84};
-
 static const uint8_t DTMF_TONE1_GAIN = 65;
 static const uint8_t DTMF_TONE2_GAIN = 93;
 
@@ -1659,17 +1657,96 @@ void BK4819_PrepareFSKReceive(void)
 	BK4819_WriteRegister(BK4819_REG_59, 0x3068);
 }
 
+//###########################################################################################
+// Morse code for "Robzyl": .-. --- -... --.. -.-- .-..
+// Timing: 50ms per dot, 150ms per dash, 50ms between symbols, 150ms between letters
+// Total duration must fit in 1s (1000ms)
+
+// Tone frequencies
+#define TONE_HIGH  400  // 5kHz tone
+#define TONE_LOW   0     // Mute (or use another freq if needed)
+
+// Morse element durations (adjust for speed)
+#define DOT_DURATION   50  // ms
+#define DASH_DURATION  150 // ms
+#define SYM_GAP        50  // gap between symbols
+#define LETTER_GAP     150 // gap between letters
+
+void play_morse_element(uint32_t freq, uint32_t duration_ms) {
+    BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq));
+    BK4819_ExitTxMute();
+    SYSTEM_DelayMs(duration_ms);
+    BK4819_EnterTxMute();
+    SYSTEM_DelayMs(SYM_GAP); // Small gap after each element
+}
+
+void play_morse_letter(const char *pattern) {
+    while (*pattern) {
+        if (*pattern == '.') {
+            play_morse_element(TONE_HIGH, DOT_DURATION);
+        } else if (*pattern == '-') {
+            play_morse_element(TONE_HIGH, DASH_DURATION);
+        }
+        pattern++;
+    }
+    SYSTEM_DelayMs(LETTER_GAP - SYM_GAP); // Adjust for letter gap
+}
+
+void send_robzyl_morse() {
+    play_morse_letter(".-."); 	//R
+    //play_morse_letter("---"); //O
+    play_morse_letter("-...");  //B
+    play_morse_letter("--..");	//Z
+    //play_morse_letter("-.--");//Y
+    //play_morse_letter(".-..");	//L
+}
+
+// Call this to transmit "Robzyl" in <1s
+void play_fast_robzyl() {
+    send_robzyl_morse();
+    // Optional: End with a mute
+    BK4819_EnterTxMute();
+}
+//###########################################################################################
+
+
+//###########################################################################################
+// Définition des notes (fréquences en Hz)
+
+#define NOTE_C6  523
+#define NOTE_E6  660
+#define NOTE_G6  784
+
+// Durées rythmiques (en ms)
+#define DUR_QUARTER    200
+#define DUR_EIGHTH     100
+#define DUR_HALF       400
+
+void play_note(uint32_t freq, uint32_t duration) {
+    BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq));
+    BK4819_ExitTxMute();
+    SYSTEM_DelayMs(duration);
+    BK4819_EnterTxMute();
+    SYSTEM_DelayMs(10);
+}
+
+void play_mario_intro() {
+    play_note(NOTE_E6, DUR_EIGHTH);
+    play_note(NOTE_E6, DUR_EIGHTH);
+    play_note(0, DUR_EIGHTH);
+    play_note(NOTE_E6, DUR_EIGHTH);
+    play_note(0, DUR_EIGHTH);
+    play_note(NOTE_C6, DUR_EIGHTH);
+    play_note(NOTE_E6, DUR_EIGHTH);
+    play_note(0, DUR_EIGHTH);
+    play_note(NOTE_G6, DUR_EIGHTH);
+    play_note(0, DUR_HALF);
+    play_note(NOTE_C6, DUR_EIGHTH);
+}
+//###########################################################################################
+
 void BK4819_PlayRoger(void)
 {
-	#if 0
-		const uint32_t tone1_Hz = 500;
-		const uint32_t tone2_Hz = 700;
-	#else
-		// motorola type
-		const uint32_t tone1_Hz = 1540;
-		const uint32_t tone2_Hz = 1310;
-	#endif
-
 	BK4819_EnterTxMute();
 	BK4819_SetAF(BK4819_AF_MUTE);
 
@@ -1678,58 +1755,29 @@ void BK4819_PlayRoger(void)
 	BK4819_EnableTXLink();
 	SYSTEM_DelayMs(50);
 
-	BK4819_WriteRegister(BK4819_REG_71, scale_freq(tone1_Hz));
-
-	BK4819_ExitTxMute();
-	SYSTEM_DelayMs(80);
-	BK4819_EnterTxMute();
-
-	BK4819_WriteRegister(BK4819_REG_71, scale_freq(tone2_Hz));
-
-	BK4819_ExitTxMute();
-	SYSTEM_DelayMs(80);
-	BK4819_EnterTxMute();
-
+	send_robzyl_morse();
+	
 	BK4819_WriteRegister(BK4819_REG_70, 0x0000);
 	BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);   // 1 1 0000 0 1 1111 1 1 1 0
 }
 
-void BK4819_PlayRogerMDC(void)
-{
-	unsigned int i;
 
+
+void BK4819_PlayRogerMario(void)
+{
+	BK4819_EnterTxMute();
 	BK4819_SetAF(BK4819_AF_MUTE);
 
-	BK4819_WriteRegister(BK4819_REG_58, 0x37C3);   // FSK Enable,
-	                                               // RX Bandwidth FFSK 1200/1800
-	                                               // 0xAA or 0x55 Preamble
-	                                               // 11 RX Gain,
-	                                               // 101 RX Mode
-	                                               // TX FFSK 1200/1800
-	BK4819_WriteRegister(BK4819_REG_72, 0x3065);   // Set Tone-2 to 1200Hz
-	BK4819_WriteRegister(BK4819_REG_70, 0x00E0);   // Enable Tone-2 and Set Tone2 Gain
-	BK4819_WriteRegister(BK4819_REG_5D, 0x0D00);   // Set FSK data length to 13 bytes
-	BK4819_WriteRegister(BK4819_REG_59, 0x8068);   // 4 byte sync length, 6 byte preamble, clear TX FIFO
-	BK4819_WriteRegister(BK4819_REG_59, 0x0068);   // Same, but clear TX FIFO is now unset (clearing done)
-	BK4819_WriteRegister(BK4819_REG_5A, 0x5555);   // First two sync bytes
-	BK4819_WriteRegister(BK4819_REG_5B, 0x55AA);   // End of sync bytes. Total 4 bytes: 555555aa
-	BK4819_WriteRegister(BK4819_REG_5C, 0xAA30);   // Disable CRC
+	BK4819_WriteRegister(BK4819_REG_70, BK4819_REG_70_ENABLE_TONE1 | (66u << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN));
 
-	// Send the data from the roger table
-	for (i = 0; i < 7; i++)
-		BK4819_WriteRegister(BK4819_REG_5F, FSK_RogerTable[i]);
+	BK4819_EnableTXLink();
+	SYSTEM_DelayMs(50);
 
-	SYSTEM_DelayMs(20);
+	//send_robzyl_morse();
+	play_mario_intro();
 
-	// 4 sync bytes, 6 byte preamble, Enable FSK TX
-	BK4819_WriteRegister(BK4819_REG_59, 0x0868);
-
-	SYSTEM_DelayMs(180);
-
-	// Stop FSK TX, reset Tone-2, disable FSK
-	BK4819_WriteRegister(BK4819_REG_59, 0x0068);
 	BK4819_WriteRegister(BK4819_REG_70, 0x0000);
-	BK4819_WriteRegister(BK4819_REG_58, 0x0000);
+	BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);   // 1 1 0000 0 1 1111 1 1 1 0
 }
 
 void BK4819_Enable_AfDac_DiscMode_TxDsp(void)

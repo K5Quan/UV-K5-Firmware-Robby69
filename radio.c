@@ -1044,8 +1044,8 @@ void RADIO_SendEndOfTransmission(bool playRoger)
 		if (gEeprom.ROGER == ROGER_MODE_ROGER)
 			BK4819_PlayRoger();
 		else
-		if (gEeprom.ROGER == ROGER_MODE_MDC)
-			BK4819_PlayRogerMDC();
+		if (gEeprom.ROGER == ROGER_MODE_Mario)
+			BK4819_PlayRogerMario();
 	}
 
 	if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO)
