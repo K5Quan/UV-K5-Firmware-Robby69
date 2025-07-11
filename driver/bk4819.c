@@ -1741,7 +1741,7 @@ void play_mario_intro() {
     play_note(0, DUR_EIGHTH);
     play_note(NOTE_G6, DUR_EIGHTH);
     play_note(0, 300);
-    play_note(440, DUR_EIGHTH);
+    play_note(392, DUR_EIGHTH);
 }
 //###########################################################################################
 
