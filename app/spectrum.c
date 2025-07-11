@@ -2483,9 +2483,9 @@ static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
         char freqStr[12];
         sprintf(freqStr, "%u.%05u", freq / 100000, freq % 100000);
         RemoveTrailZeros(freqStr);
-        sprintf(bufferOut, "%2d:%s(%d)%s", scanListIndex + 1, freqStr, channel_count, settings.scanListEnabled[scanListIndex] ? " *" : "");
+        sprintf(bufferOut, "%2d:%s%s", scanListIndex + 1, freqStr, settings.scanListEnabled[scanListIndex] ? " *" : "");
     } else {
-        sprintf(bufferOut, "%2d:%s(%d)%s", scanListIndex + 1, channel_name, channel_count, settings.scanListEnabled[scanListIndex] ? " *" : "");
+        sprintf(bufferOut, "%2d:%s%s", scanListIndex + 1, channel_name, settings.scanListEnabled[scanListIndex] ? " *" : "");
     }
     return true;
 }
