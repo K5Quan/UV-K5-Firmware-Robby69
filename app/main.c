@@ -191,10 +191,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 
 		case KEY_2:
-			COMMON_SwitchVFOs();
+		//Nothing
 
-			if (beep)
-				gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 			break;
 
 		case KEY_3:

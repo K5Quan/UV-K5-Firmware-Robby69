@@ -397,9 +397,6 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		case ACTION_OPT_KEYLOCK:
 			COMMON_KeypadLockToggle();
 			break;
-		case ACTION_OPT_A_B:
-			COMMON_SwitchVFOs();
-			break;
 		case ACTION_OPT_VFO_MR:
 			COMMON_SwitchVFOMode();
 			break;
