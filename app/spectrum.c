@@ -22,14 +22,9 @@
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
 uint16_t SpectrumDelay = 0;
-#ifdef ENABLE_NINJA
-#define PARAMETER_COUNT 3
-#else 
-#define PARAMETER_COUNT 2
-#endif
-
+#define PARAMETER_COUNT 5
 /////////////////////////////
-
+bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 #define SQUELCH_OFF_DELAY 10;
 bool FreeTriggerLevel = 0;
@@ -343,6 +338,7 @@ static void DeInitSpectrum(bool ComeBack) {
   if(!ComeBack) {
     uint8_t Spectrum_state = 0; //Spectrum Not Active
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+    gScanRangeStart = 0;
     }
     
   else {
@@ -353,7 +349,6 @@ static void DeInitSpectrum(bool ComeBack) {
     Ptt_Toggle_Mode =0;
     }
   ToggleNormalizeRssi(false);
-  gScanRangeStart = 0;
 }
 
 uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
@@ -1515,8 +1510,7 @@ static void OnKeyDown(uint8_t key) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
       // If we're in PARAMETERS_SELECT selection mode, use dedicated key logic
     if (currentState == PARAMETERS_SELECT) {
-      
-      
+   
       switch (key) {
           case KEY_UP://PARAMETERS
                 if (parametersSelectedIndex > 0) {
@@ -1543,9 +1537,9 @@ static void OnKeyDown(uint8_t key) {
                   else if (parametersSelectedIndex == 1) {
                      if (SpectrumDelay < 61000) SpectrumDelay += (SpectrumDelay < 10000) ? 1000 : 5000;
                        }
-#ifdef ENABLE_NINJA
+
                   else if (parametersSelectedIndex == 2) RandomEmission = 1;
-#endif
+
                 break;
           case KEY_1:   
                 if (parametersSelectedIndex == 0){
@@ -1556,13 +1550,23 @@ static void OnKeyDown(uint8_t key) {
                     else if (parametersSelectedIndex == 1) {
                       if (SpectrumDelay >= 1000) SpectrumDelay -= (SpectrumDelay < 10000) ? 1000 : 5000;
                       }
-#ifdef ENABLE_NINJA
+
                     else if (parametersSelectedIndex == 2) RandomEmission = 0;
-#endif
+
+                    else if (parametersSelectedIndex == 3)
+                            {FreqInput();
+                              Key_1_pressed =1;
+                            }
+                    else if (parametersSelectedIndex == 4)
+                            {FreqInput();
+                            Key_1_pressed =1;
+                            }
                 break;
         case KEY_EXIT: // Exit parameters menu to previous menu/state
-          SetState(previousState);
-          
+          SetState(SPECTRUM);
+          if(Key_1_pressed) {
+            APP_RunSpectrum(3);
+          }
           break;
 
         default:
@@ -1801,12 +1805,16 @@ static void OnKeyDownFreqInput(uint8_t key) {
       break;
     }
     SetState(previousState);
-    currentFreq = tempFreq;
     if (currentState == SPECTRUM) {
+        currentFreq = tempFreq;
       ResetModifiers();
-    } else {
-      SetF(currentFreq);
     }
+    if (currentState == PARAMETERS_SELECT && parametersSelectedIndex == 3)
+        gScanRangeStart = tempFreq;
+    if (currentState == PARAMETERS_SELECT && parametersSelectedIndex == 4)
+        gScanRangeStop = tempFreq;
+    if(gScanRangeStart > gScanRangeStop)
+		    SWAP(gScanRangeStart, gScanRangeStop);
     break;
   default:
     break;
@@ -2238,7 +2246,7 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 2) mode = SCAN_BAND_MODE ;
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
-  LoadSettings();
+  if (!Key_1_pressed)LoadSettings();
   if(RandomEmission) AutoTriggerLevelScanlist();
   appMode = mode;
   ResetModifiers();
@@ -2513,11 +2521,10 @@ static void GetParametersText(uint8_t index, char *buffer) {
     if (SpectrumDelay <65000) sprintf(buffer, "SpectrumDelay:%2us", SpectrumDelay / 1000);
       else sprintf(buffer, "SpectrumDelay: oo");
   }
-#ifdef ENABLE_NINJA
-  if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
-#endif
-  
-  
+
+if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
+if (index == 3) sprintf(buffer, "FStart: %u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
+if (index == 4) sprintf(buffer, "FStop: %u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
  }
 
  static void GetBandItemText(uint8_t index, char* buffer) {

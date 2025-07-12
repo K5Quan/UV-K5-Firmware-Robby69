@@ -274,17 +274,7 @@ void UI_DisplayMain(void)
 
 		if (activeTxVFO != vfo_num) // this is not active TX VFO
 		{
-#ifdef ENABLE_SCAN_RANGES
-			if(gScanRangeStart) {
-					UI_PrintString("ScnRng", 5, 0, line, 8);
-					sprintf(String, "%3u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
-					UI_PrintStringSmall(String, 56, 0, line);
-					sprintf(String, "%3u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
-					UI_PrintStringSmall(String, 56, 0, line + 1);
-					
-				continue;
-			}
-#endif
+
 
 
 			if (
