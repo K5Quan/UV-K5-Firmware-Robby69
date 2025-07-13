@@ -32,9 +32,6 @@
 	#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-static const uint8_t DTMF_TONE1_GAIN = 65;
-static const uint8_t DTMF_TONE2_GAIN = 93;
-
 static uint16_t gBK4819_GpioOutState;
 
 bool gRxIdleMode;
@@ -87,29 +84,6 @@ void BK4819_Init(void)
 		(58u <<  4) |     // AF Rx Gain-2
 		( 8u <<  0));     // AF DAC Gain (after Gain-1 and Gain-2)
 
-#if 1
-	const uint8_t dtmf_coeffs[] = {111, 107, 103, 98, 80, 71, 58, 44, 65, 55, 37, 23, 228, 203, 181, 159};
-	for (unsigned int i = 0; i < ARRAY_SIZE(dtmf_coeffs); i++)
-		BK4819_WriteRegister(BK4819_REG_09, (i << 12) | dtmf_coeffs[i]);
-#else
-	// original code
-	BK4819_WriteRegister(BK4819_REG_09, 0x006F);  // 6F
-	BK4819_WriteRegister(BK4819_REG_09, 0x106B);  // 6B
-	BK4819_WriteRegister(BK4819_REG_09, 0x2067);  // 67
-	BK4819_WriteRegister(BK4819_REG_09, 0x3062);  // 62
-	BK4819_WriteRegister(BK4819_REG_09, 0x4050);  // 50
-	BK4819_WriteRegister(BK4819_REG_09, 0x5047);  // 47
-	BK4819_WriteRegister(BK4819_REG_09, 0x603A);  // 3A
-	BK4819_WriteRegister(BK4819_REG_09, 0x702C);  // 2C
-	BK4819_WriteRegister(BK4819_REG_09, 0x8041);  // 41
-	BK4819_WriteRegister(BK4819_REG_09, 0x9037);  // 37
-	BK4819_WriteRegister(BK4819_REG_09, 0xA025);  // 25
-	BK4819_WriteRegister(BK4819_REG_09, 0xB017);  // 17
-	BK4819_WriteRegister(BK4819_REG_09, 0xC0E4);  // E4
-	BK4819_WriteRegister(BK4819_REG_09, 0xD0CB);  // CB
-	BK4819_WriteRegister(BK4819_REG_09, 0xE0B5);  // B5
-	BK4819_WriteRegister(BK4819_REG_09, 0xF09F);  // 9F
-#endif
 
 	BK4819_WriteRegister(BK4819_REG_1F, 0x5454);
 	BK4819_WriteRegister(BK4819_REG_3E, 0xA037);
@@ -861,50 +835,7 @@ void BK4819_SetCompander(const unsigned int mode)
 	BK4819_WriteRegister(BK4819_REG_31, r31 | (1u << 3));
 }
 
-void BK4819_DisableVox(void)
-{
-	const uint16_t Value = BK4819_ReadRegister(BK4819_REG_31);
-	BK4819_WriteRegister(BK4819_REG_31, Value & 0xFFFB);
-}
 
-void BK4819_DisableDTMF(void)
-{
-	BK4819_WriteRegister(BK4819_REG_24, 0);
-}
-
-void BK4819_EnableDTMF(void)
-{
-	// no idea what this does
-	BK4819_WriteRegister(BK4819_REG_21, 0x06D8);        // 0000 0110 1101 1000
-
-	// REG_24
-	//
-	// <15>   1  ???
-	//
-	// <14:7> 24 Threshold
-	//
-	// <6>    1  ???
-	//
-	// <5>    0  DTMF/SelCall enable
-	//        1 = Enable
-	//        0 = Disable
-	//
-	// <4>    1  DTMF or SelCall detection mode
-	//        1 = for DTMF
-	//        0 = for SelCall
-	//
-	// <3:0>  14 Max symbol number for SelCall detection
-	//
-//	const uint16_t threshold = 24;    // default, but doesn't decode non-QS radios
-	const uint16_t threshold = 130;   // but 128 ~ 247 does
-	BK4819_WriteRegister(BK4819_REG_24,                      // 1 00011000 1 1 1 1110
-		(1u        << BK4819_REG_24_SHIFT_UNKNOWN_15) |
-		(threshold << BK4819_REG_24_SHIFT_THRESHOLD)  |      // 0 ~ 255
-		(1u        << BK4819_REG_24_SHIFT_UNKNOWN_6)  |
-		              BK4819_REG_24_ENABLE            |
-		              BK4819_REG_24_SELECT_DTMF       |
-		(15u       << BK4819_REG_24_SHIFT_MAX_SYMBOLS));     // 0 ~ 15
-}
 
 void BK4819_PlayTone(uint16_t Frequency, bool bTuningGainSwitch)
 {
@@ -993,18 +924,6 @@ void BK4819_TurnsOffTones_TurnsOnRX(void)
 		BK4819_REG_30_ENABLE_PLL_VCO   |
 		BK4819_REG_30_ENABLE_RX_DSP);
 }
-
-#ifdef ENABLE_AIRCOPY
-	void BK4819_SetupAircopy(void)
-	{
-		BK4819_WriteRegister(BK4819_REG_70, 0x00E0);    // Enable Tone2, tuning gain 48
-		BK4819_WriteRegister(BK4819_REG_72, 0x3065);    // Tone2 baudrate 1200
-		BK4819_WriteRegister(BK4819_REG_58, 0x00C1);    // FSK Enable, FSK 1.2K RX Bandwidth, Preamble 0xAA or 0x55, RX Gain 0, RX Mode
-		                                                // (FSK1.2K, FSK2.4K Rx and NOAA SAME Rx), TX Mode FSK 1.2K and FSK 2.4K Tx
-		BK4819_WriteRegister(BK4819_REG_5C, 0x5665);    // Enable CRC among other things we don't know yet
-		BK4819_WriteRegister(BK4819_REG_5D, 0x4700);    // FSK Data Length 72 Bytes (0xabcd + 2 byte length + 64 byte payload + 2 byte CRC + 0xdcba)
-	}
-#endif
 
 void BK4819_ResetFSK(void)
 {
@@ -1154,32 +1073,6 @@ void BK4819_Conditional_RX_TurnOn_and_GPIO6_Enable(void)
 	}
 }
 
-void BK4819_EnterDTMF_TX(bool bLocalLoopback)
-{
-	BK4819_EnableDTMF();
-	BK4819_EnterTxMute();
-	BK4819_SetAF(bLocalLoopback ? BK4819_AF_BEEP : BK4819_AF_MUTE);
-
-	BK4819_WriteRegister(BK4819_REG_70,
-		BK4819_REG_70_MASK_ENABLE_TONE1                |
-		(DTMF_TONE1_GAIN << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN) |
-		BK4819_REG_70_MASK_ENABLE_TONE2                |
-		(DTMF_TONE2_GAIN << BK4819_REG_70_SHIFT_TONE2_TUNING_GAIN));
-
-	BK4819_EnableTXLink();
-}
-
-void BK4819_ExitDTMF_TX(bool bKeep)
-{
-	BK4819_EnterTxMute();
-	BK4819_SetAF(BK4819_AF_MUTE);
-	BK4819_WriteRegister(BK4819_REG_70, 0x0000);
-	BK4819_DisableDTMF();
-	BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);
-	if (!bKeep)
-		BK4819_ExitTxMute();
-}
-
 void BK4819_EnableTXLink(void)
 {
 	BK4819_WriteRegister(BK4819_REG_30,
@@ -1193,62 +1086,6 @@ void BK4819_EnableTXLink(void)
 		BK4819_REG_30_DISABLE_MIC_ADC  |
 		BK4819_REG_30_ENABLE_TX_DSP    |
 		BK4819_REG_30_DISABLE_RX_DSP);
-}
-
-void BK4819_PlayDTMF(char Code)
-{
-	uint16_t tone1 = 0;
-	uint16_t tone2 = 0;
-
-	switch (Code)
-	{
-		case '0': tone1 = 941; tone2 = 1336; break;
-		case '1': tone1 = 697; tone2 = 1209; break;
-		case '2': tone1 = 697; tone2 = 1336; break;
-		case '3': tone1 = 697; tone2 = 1477; break;
-		case '4': tone1 = 770; tone2 = 1209; break;
-		case '5': tone1 = 770; tone2 = 1336; break;
-		case '6': tone1 = 770; tone2 = 1477; break;
-		case '7': tone1 = 852; tone2 = 1209; break;
-		case '8': tone1 = 852; tone2 = 1336; break;
-		case '9': tone1 = 852; tone2 = 1477; break;
-		case 'A': tone1 = 697; tone2 = 1633; break;
-		case 'B': tone1 = 770; tone2 = 1633; break;
-		case 'C': tone1 = 852; tone2 = 1633; break;
-		case 'D': tone1 = 941; tone2 = 1633; break;
-		case '*': tone1 = 941; tone2 = 1209; break;
-		case '#': tone1 = 941; tone2 = 1477; break;
-	}
-
-	if (tone1 > 0)
-		BK4819_WriteRegister(BK4819_REG_71, (((uint32_t)tone1 * 103244) + 5000) / 10000);   // with rounding
-	if (tone2 > 0)
-		BK4819_WriteRegister(BK4819_REG_72, (((uint32_t)tone2 * 103244) + 5000) / 10000);   // with rounding
-}
-
-void BK4819_PlayDTMFString(const char *pString, bool bDelayFirst, uint16_t FirstCodePersistTime, uint16_t HashCodePersistTime, uint16_t CodePersistTime, uint16_t CodeInternalTime)
-{
-	unsigned int i;
-
-	if (pString == NULL)
-		return;
-
-	for (i = 0; pString[i]; i++)
-	{
-		uint16_t Delay;
-		BK4819_PlayDTMF(pString[i]);
-		BK4819_ExitTxMute();
-		if (bDelayFirst && i == 0)
-			Delay = FirstCodePersistTime;
-		else
-		if (pString[i] == '*' || pString[i] == '#')
-			Delay = HashCodePersistTime;
-		else
-			Delay = CodePersistTime;
-		SYSTEM_DelayMs(Delay);
-		BK4819_EnterTxMute();
-		SYSTEM_DelayMs(CodeInternalTime);
-	}
 }
 
 void BK4819_TransmitTone(bool bLocalLoopback, uint32_t Frequency)
@@ -1589,11 +1426,6 @@ void BK4819_StopScan(void)
 	BK4819_Disable();
 }
 
-uint8_t BK4819_GetDTMF_5TONE_Code(void)
-{
-	return (BK4819_ReadRegister(BK4819_REG_0B) >> 8) & 0x0F;
-}
-
 uint8_t BK4819_GetCDCSSCodeType(void)
 {
 	return (BK4819_ReadRegister(BK4819_REG_0C) >> 14) & 3u;
@@ -1794,26 +1626,4 @@ void BK4819_GetVoxAmp(uint16_t *pResult)
 void BK4819_SetScrambleFrequencyControlWord(uint32_t Frequency)
 {
 	BK4819_WriteRegister(BK4819_REG_71, scale_freq(Frequency));
-}
-
-void BK4819_PlayDTMFEx(bool bLocalLoopback, char Code)
-{
-	BK4819_EnableDTMF();
-	BK4819_EnterTxMute();
-
-	BK4819_SetAF(bLocalLoopback ? BK4819_AF_BEEP : BK4819_AF_MUTE);
-
-	BK4819_WriteRegister(BK4819_REG_70,
-		BK4819_REG_70_MASK_ENABLE_TONE1                |
-		(DTMF_TONE1_GAIN << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN) |
-		BK4819_REG_70_MASK_ENABLE_TONE2                |
-		(DTMF_TONE2_GAIN << BK4819_REG_70_SHIFT_TONE2_TUNING_GAIN));
-
-	BK4819_EnableTXLink();
-
-	SYSTEM_DelayMs(50);
-
-	BK4819_PlayDTMF(Code);
-
-	BK4819_ExitTxMute();
 }

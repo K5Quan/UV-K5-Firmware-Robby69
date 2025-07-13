@@ -19,9 +19,8 @@
 
 #include <string.h>
 
-#ifdef ENABLE_FMRADIO
-	#include "app/fm.h"
-#endif
+#include "app/fm.h"
+
 #include "driver/eeprom.h"
 #include "driver/uart.h"
 #include "driver/bk4819.h"
@@ -49,11 +48,6 @@ void SETTINGS_SaveVfoIndices(void)
 	State[3] = gEeprom.ScreenChannel[1];
 	State[4] = gEeprom.MrChannel[1];
 	State[5] = gEeprom.FreqChannel[1];
-	#ifdef ENABLE_NOAA
-		State[6] = gEeprom.NoaaChannel[0];
-		State[7] = gEeprom.NoaaChannel[1];
-	#endif
-
 	EEPROM_WriteBuffer(0x0E80, State, true);
 }
 
@@ -64,19 +58,13 @@ void SETTINGS_SaveSettings(void)
 	State[0] = gEeprom.CHAN_1_CALL;
 	State[1] = gEeprom.SQUELCH_LEVEL;
 	State[2] = gEeprom.TX_TIMEOUT_TIMER;
-	#ifdef ENABLE_NOAA
-		State[3] = gEeprom.NOAA_AUTO_SCAN;
-	#else
+
 		State[3] = false;
-	#endif
+
 	State[4] = gEeprom.KEY_LOCK;
-	#ifdef ENABLE_VOX
-		State[5] = gEeprom.VOX_SWITCH;
-		State[6] = gEeprom.VOX_LEVEL;
-	#else
-		State[5] = false;
-		State[6] = 0;
-	#endif
+	State[5] = false;
+	State[6] = 0;
+
 	State[7] = gEeprom.MIC_SENSITIVITY;
 	EEPROM_WriteBuffer(0x0E70, State, true);
 
@@ -84,7 +72,6 @@ void SETTINGS_SaveSettings(void)
 	State[1] = gEeprom.CHANNEL_DISPLAY_MODE;
 	State[2] = gEeprom.CROSS_BAND_RX_TX;
 	State[3] = gEeprom.BATTERY_SAVE;
-	State[4] = gEeprom.DUAL_WATCH;
 	State[5] = gEeprom.BACKLIGHT_TIME;
 	State[7] = gEeprom.VFO_OPEN;
 	EEPROM_WriteBuffer(0x0E78, State, true);
@@ -110,20 +97,14 @@ void SETTINGS_SaveSettings(void)
 	EEPROM_WriteBuffer(0x0E98, State, true);
 
 	memset(State, 0xFF, sizeof(State));
-	#ifdef ENABLE_VOX
-		State[0] = gEeprom.VOX_DELAY;
-	#endif
 	State[1] = gEeprom.RX_AGC;
 	#ifdef ENABLE_PWRON_PASSWORD
 		State[2] = gEeprom.PASSWORD_WRONG_ATTEMPTS;
 	#endif
-	#ifdef ENABLE_MESSENGER
-		State[3] = gEeprom.MESSENGER_CONFIG.__val;
-	#endif
 	EEPROM_WriteBuffer(0x0EA0, State, true);
 
 	memset(State, 0xFF, sizeof(State));
-	#if defined(ENABLE_ALARM) || defined(ENABLE_TX1750)
+	#if defined(ENABLE_TX1750)
 		State[0] = gEeprom.ALARM_MODE;
 	#else
 		State[0] = false;
@@ -135,24 +116,9 @@ void SETTINGS_SaveSettings(void)
 	State[5] = gEeprom.SQL_TONE;
 	EEPROM_WriteBuffer(0x0EA8, State, true);
 
-	State[0] = gEeprom.DTMF_SIDE_TONE;
-#ifdef ENABLE_DTMF
-	State[1] = gEeprom.DTMF_SEPARATE_CODE;
-	State[2] = gEeprom.DTMF_GROUP_CALL_CODE;
-	State[3] = gEeprom.DTMF_DECODE_RESPONSE;
-	State[4] = gEeprom.DTMF_auto_reset_time;
-#endif
-	State[5] = gEeprom.DTMF_PRELOAD_TIME / 10U;
-	State[6] = gEeprom.DTMF_FIRST_CODE_PERSIST_TIME / 10U;
-	State[7] = gEeprom.DTMF_HASH_CODE_PERSIST_TIME / 10U;
-	EEPROM_WriteBuffer(0x0ED0, State, true);
+	
 
-	memset(State, 0xFF, sizeof(State));
-	State[0] = gEeprom.DTMF_CODE_PERSIST_TIME / 10U;
-	State[1] = gEeprom.DTMF_CODE_INTERVAL_TIME / 10U;
-#ifdef ENABLE_DTMF
-	State[2] = gEeprom.PERMIT_REMOTE_KILL;
-#endif
+
 	EEPROM_WriteBuffer(0x0ED8, State, true);
 
 	State[0] = gEeprom.SCAN_LIST_DEFAULT;
@@ -166,28 +132,17 @@ void SETTINGS_SaveSettings(void)
 	EEPROM_WriteBuffer(0x0F18, State, true);
 
 	memset(State, 0xFF, sizeof(State));
-#ifdef ENABLE_DTMF
-	State[2]  = gSetting_KILLED;
-#endif
-
 	State[0]  = gSetting_F_LOCK;
 	State[6]  = gSetting_ScrambleEnable;
-	//if (!gSetting_TX_EN)             State[7] &= ~(1u << 0);
-#ifdef ENABLE_DTMF
-	if (!gSetting_live_DTMF_decoder) State[7] &= ~(1u << 1);
-#endif
-	
 	State[7] = (State[7] & ~(3u << 2)) | ((gSetting_battery_text & 3u) << 2);
 	State[7] = (State[7] & ~(3u << 6)) | ((gSetting_backlight_on_tx_rx & 3u) << 6);
 
 	EEPROM_WriteBuffer(0x0F40, State, true);
 
-	#ifdef ENABLE_FMRADIO
 		//0x0E88..0x0E8F
 		memset(State, 0xFF, sizeof(State));
 		memcpy(&State[0], &gEeprom.FM_FrequencyPlaying, 2);
 		EEPROM_WriteBuffer(0x0E88, State, true);
-	#endif
 
 	#ifdef ENABLE_ENCRYPTION
 		SETTINGS_SaveEncryptionKey();
@@ -196,9 +151,7 @@ void SETTINGS_SaveSettings(void)
 
 void SETTINGS_SaveChannel(uint8_t Channel, uint8_t VFO, const VFO_Info_t *pVFO, uint8_t Mode)
 {
-	#ifdef ENABLE_NOAA
-		if (!IS_NOAA_CHANNEL(Channel))
-	#endif
+
 	{
 		uint16_t OffsetVFO = Channel * 16;
 
@@ -228,11 +181,7 @@ void SETTINGS_SaveChannel(uint8_t Channel, uint8_t VFO, const VFO_Info_t *pVFO, 
 				| (pVFO->FrequencyReverse  << 0);
 			if(pVFO->CHANNEL_BANDWIDTH != BK4819_FILTER_BW_WIDE)
 				State[4] |= ((pVFO->CHANNEL_BANDWIDTH - 1) << 5);
-			State[5] = ((pVFO->DTMF_PTT_ID_TX_MODE & 7u) << 1)
-#ifdef ENABLE_DTMF
-				| ((pVFO->DTMF_DECODING_ENABLE & 1u) << 0)
-#endif
-			;
+
 			State[6] =  pVFO->STEP_SETTING;
 			State[7] =  pVFO->SCRAMBLING_TYPE;
 			EEPROM_WriteBuffer(OffsetVFO + 8, State, true);
@@ -320,9 +269,6 @@ void SETTINGS_FetchChannelName(char *s, const int channel)
 
 void SETTINGS_UpdateChannel(uint8_t channel, const VFO_Info_t *pVFO, bool keep)
 {
-#ifdef ENABLE_NOAA
-	if (!IS_NOAA_CHANNEL(channel))
-#endif
 	{
 		uint8_t  state[8];
 		ChannelAttributes_t  att = {
@@ -375,10 +321,6 @@ void SETTINGS_SetVfoFrequency(uint32_t frequency) {
 
 	{
 		const FREQUENCY_Band_t band = FREQUENCY_GetBand(frequency);
-
-		#ifdef ENABLE_VOICE
-			gAnotherVoiceID = (VOICE_ID_t)Key;
-		#endif
 
 		if (gTxVfo->Band != band)
 		{

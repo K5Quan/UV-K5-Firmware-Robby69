@@ -21,7 +21,6 @@
 #include <stdlib.h>  // abs()
 
 #include "app/chFrScanner.h"
-#include "app/dtmf.h"
 #include "bitmaps.h"
 #include "board.h"
 #include "driver/bk4819.h"
@@ -106,15 +105,12 @@ void UI_DisplayAudioBar(void)
 
 	if (gCurrentFunction != FUNCTION_TRANSMIT ||
 		gScreenToDisplay != DISPLAY_MAIN
-	#ifdef ENABLE_DTMF
-		|| gDTMF_CallState != DTMF_CALL_STATE_NONE
-	#endif
 		)
 	{
 		return;  // screen is in use
 	}
 			
-	#if defined(ENABLE_ALARM) || defined(ENABLE_TX1750)
+	#if defined(ENABLE_TX1750)
 		if (gAlarmState != ALARM_STATE_OFF)
 			return;
 	#endif
@@ -164,9 +160,6 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT ||
 			gScreenToDisplay != DISPLAY_MAIN
-#ifdef ENABLE_DTMF
-			|| gDTMF_CallState != DTMF_CALL_STATE_NONE
-#endif
 			)
 			return;     // display is in use
 
@@ -263,7 +256,7 @@ void UI_DisplayMain(void)
 	}
 	vfo_num = 0;
 	const unsigned int line       = (vfo_num == 0) ? line0 : line1;
-	uint8_t           *p_line1    = gFrameBuffer[line + 3];
+	uint8_t           *p_line1    = gFrameBuffer[line + 5];
 	unsigned int       mode       = 0;
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT){// transmitting
@@ -333,7 +326,7 @@ void UI_DisplayMain(void)
 				const ChannelAttributes_t att = gMR_ChannelAttributes[gEeprom.ScreenChannel[vfo_num]];
 				if (att.scanlist > 0) {
 					sprintf(String, "%d", att.scanlist);
-					UI_PrintString(String, 113, 0, line ,6);
+					UI_PrintStringSmall(String, 113, 0, line);
 				}
 
 				// compander symbol
@@ -346,10 +339,10 @@ void UI_DisplayMain(void)
 				{	// no channel name, show the channel number instead
 					sprintf(String, "CH-%03u", gEeprom.ScreenChannel[vfo_num] + 1);
 				}
-					UI_PrintString(String, 30, 0,line,8);
+					UI_PrintString(String, 26, 0,line,7);
 					// show the channel frequency below the channel number/name
 					sprintf(String, "%03u.%05u", frequency / 100000, frequency % 100000);
-					UI_DisplayFrequency(String, 10, line+4, true);
+					UI_DisplayFrequency(String, 10, line+4, false);
 			}
 			else
 			{	// frequency mode
@@ -357,10 +350,10 @@ void UI_DisplayMain(void)
 
 
 					// show the remaining 2 small frequency digits
-					UI_PrintString(String + 7, 113, 0, line + 4,8);
+					UI_PrintString(String + 7, 100, 0, line + 4,8);
 					String[7] = 0;
 					// show the main large frequency digits
-					UI_DisplayFrequency(String, 10, line+4, true);
+					UI_DisplayFrequency(String, 10, line+4, false);
 				
 			}
 		}
@@ -438,8 +431,7 @@ void UI_DisplayMain(void)
 		}
 
 		// show the TX/RX reverse symbol
-		if (gEeprom.VfoInfo[vfo_num].FrequencyReverse)
-			UI_PrintStringSmall("R", LCD_WIDTH + 62, 0, line + 5);
+		//if (gEeprom.VfoInfo[vfo_num].FrequencyReverse) UI_PrintStringSmall("R", 0, 0, line + 5);
 
 		{	// show the narrow band symbol
 			UI_PrintStringSmall(bwNames[gEeprom.VfoInfo[vfo_num].CHANNEL_BANDWIDTH], LCD_WIDTH + 70, 0, line + 5);

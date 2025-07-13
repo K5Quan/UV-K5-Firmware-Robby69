@@ -51,12 +51,7 @@ enum
 	MENU_MEM_CH,
 	MENU_DEL_CH,
 	MENU_MEM_NAME,
-	MENU_MDF,
 	MENU_SAVE,
-#ifdef ENABLE_VOX
-	MENU_VOX,
-	MENU_VOX_DELAY,
-#endif
 	MENU_ABR,
 	MENU_ABR_ON_TX_RX,
 	MENU_ABR_MIN,
@@ -69,53 +64,20 @@ enum
 	MENU_ENC_KEY,
 	MENU_MSG_ENC,
 #endif
-#ifdef ENABLE_MESSENGER
-	MENU_MSG_RX,
-	MENU_MSG_ACK,
-	MENU_MSG_MODULATION,
-#endif
 	MENU_BEEP,
-#ifdef ENABLE_VOICE
-	MENU_VOICE,
-#endif
-	MENU_SC_REV,
 	MENU_AUTOLK,
 	MENU_S_LIST,
 	MENU_SQL_TONE,
 	MENU_MIC,
 	MENU_COMPAND,
 	MENU_1_CALL,
-#ifdef ENABLE_ALARM
-	MENU_AL_MOD,
-#endif
-#ifdef ENABLE_DTMF
-	MENU_ANI_ID,
-#endif
 	MENU_UPCODE,
 	MENU_DWCODE,
-	MENU_PTT_ID,
-	MENU_D_ST,
-#ifdef ENABLE_DTMF
-	MENU_D_RSP,
-	MENU_D_HOLD,
-#endif
-	MENU_D_PRE,
-#ifdef ENABLE_DTMF	
-	MENU_D_DCD,
-	MENU_D_LIST,
-#endif
-#ifdef ENABLE_DTMF
-	MENU_D_LIVE_DEC,
-#endif
 	MENU_PONMSG,
 	MENU_ROGER,
-	MENU_TEST_RANGE,
 	MENU_VOL,
 	MENU_BAT_TXT,
 	MENU_AM,
-#ifdef ENABLE_NOAA
-	MENU_NOAA_S,
-#endif
 	MENU_RESET,
 	MENU_F_LOCK,
 	MENU_SCREN,
@@ -143,21 +105,8 @@ extern const char        gSubMenu_SAVE[5][4];
 extern const char        gSubMenu_TOT[11][7];
 extern const char* const gSubMenu_RXMode[4];
 
-#ifdef ENABLE_VOICE
-	extern const char    gSubMenu_VOICE[3][4];
-#endif
-extern const char        gSubMenu_SC_REV[3][8];
-extern const char* const gSubMenu_MDF[4];
-#ifdef ENABLE_ALARM
-	extern const char    gSubMenu_AL_MOD[2][5];
-#endif
-#ifdef ENABLE_DTMF
-extern const char        gSubMenu_D_RSP[4][11];
-#endif
-extern const char* const gSubMenu_PTT_ID[5];
 extern const char        gSubMenu_PONMSG[4][8];
 extern const char        gSubMenu_ROGER[3][6];
-/*extern const char        gSubMenu_MENU_TEST_RANGE[2][6];*/
 extern const char        gSubMenu_RESET[2][4];
 extern const char* const gSubMenu_F_LOCK[F_LOCK_LEN];
 extern const char        gSubMenu_BACKLIGHT[8][7];
@@ -166,9 +115,6 @@ extern const char        gSubMenu_BAT_TXT[3][8];
 extern const char 		 gSubMenu_BATTYP[2][9];
 extern const char        gSubMenu_SCRAMBLER[11][7];
 extern const char        gSubMenu_RX_AGC[2][6];
-#ifdef ENABLE_MESSENGER
-extern const char        gSubMenu_MSG_MODULATION[3][10];
-#endif
 
 typedef struct {char* name; uint8_t id;} t_sidefunction;
 extern const uint8_t 		 gSubMenu_SIDEFUNCTIONS_size;

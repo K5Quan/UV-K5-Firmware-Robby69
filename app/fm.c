@@ -20,9 +20,6 @@
  *     limitations under the License.
  */
 
-#ifdef ENABLE_FMRADIO
-
-// #include <string.h>
 
 #include "app/action.h"
 #include "app/fm.h"
@@ -117,4 +114,3 @@ void FM_Start(void)
 	gUpdateStatus        = true;
 }
 
-#endif

@@ -20,9 +20,7 @@
 #include <string.h>
 
 #include "app/chFrScanner.h"
-#ifdef ENABLE_FMRADIO
-	#include "app/fm.h"
-#endif
+#include "app/fm.h"
 #include "app/scanner.h"
 #include "bitmaps.h"
 #include "driver/keyboard.h"
@@ -36,9 +34,6 @@
 #include "ui/helper.h"
 #include "ui/ui.h"
 #include "ui/status.h"
-#ifdef ENABLE_MESSENGER
-	#include "app/messenger.h"
-#endif
 
 void UI_DisplayStatus()
 {
@@ -73,97 +68,8 @@ void UI_DisplayStatus()
 		x1 = x + sizeof(BITMAP_POWERSAVE);
 	}
 	x += sizeof(BITMAP_POWERSAVE);
-
-	#ifdef ENABLE_NOAA
-		// NOASS SCAN indicator
-		if (gIsNoaaMode)
-		{
-			memmove(line + x, BITMAP_NOAA, sizeof(BITMAP_NOAA));
-			x1 = x + sizeof(BITMAP_NOAA);
-		}
-		x += sizeof(BITMAP_NOAA);
-	#endif
-
-	#ifdef ENABLE_MESSENGER
-		if (hasNewMessage > 0) { // New Message indicator
-			if (hasNewMessage == 1)
-				memcpy(line + x, BITMAP_NEWMSG, sizeof(BITMAP_NEWMSG));
-			x1 = x + sizeof(BITMAP_NEWMSG);
-		}
-		x += sizeof(BITMAP_NEWMSG);
-	#endif
-
-#ifdef ENABLE_DTMF
-	if (gSetting_KILLED)
-	{
-		memset(line + x, 0xFF, 10);
-		x1 = x + 10;
-	}
-	else 
-#endif
-	{
-		// SCAN indicator
-		if (gScanStateDir != SCAN_OFF || SCANNER_IsScanning())
-		{
-			char s[2];
-			if (IS_MR_CHANNEL(gNextMrChannel) && !SCANNER_IsScanning())
-			{	// channel mode
-				switch(gEeprom.SCAN_LIST_DEFAULT) {
-					case 0:
-						sprintf(s, "*"); 
-						break;
-					default:
-						sprintf(s, "%d", gEeprom.SCAN_LIST_DEFAULT);
-						break;
-				}
-			}
-			else
-			{	// frequency mode
-				sprintf(s, "S");
-			}
-			UI_PrintStringSmallBuffer(s, line);
-			x1 = x + 7;
-		}
-	}
 	x += 7;  // font character width
-
-	#ifdef ENABLE_VOICE
-		// VOICE indicator
-		if (gEeprom.VOICE_PROMPT != VOICE_PROMPT_OFF)
-		{
-			memmove(line + x, BITMAP_VoicePrompt, sizeof(BITMAP_VoicePrompt));
-			x1 = x + sizeof(BITMAP_VoicePrompt);
-		}
-		x += sizeof(BITMAP_VoicePrompt) + 1;
-	#else
-		// hmmm, what to put in it's place
-	#endif
-
 	x++;
-	if(!SCANNER_IsScanning()) {
-		uint8_t dw = (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) + (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF) * 2;
-		if(dw == 1 || dw == 3) { // DWR - dual watch + respond
-			if(gDualWatchActive) 
-				memmove(line + x, BITMAP_TDR1, sizeof(BITMAP_TDR1) - (dw==1?0:5));
-			else 
-				memmove(line + x + 3, BITMAP_TDR2, sizeof(BITMAP_TDR2));
-		}
-		else if(dw == 2) { // XB - crossband
-			memmove(line + x, BITMAP_XB, sizeof(BITMAP_XB));
-		}
-	}
-	x += sizeof(BITMAP_TDR1) + 2;
-	
-	#ifdef ENABLE_VOX
-		// VOX indicator
-		if (gEeprom.VOX_SWITCH)
-		{
-			memmove(line + x, BITMAP_VOX, sizeof(BITMAP_VOX));
-			x1 = x + sizeof(BITMAP_VOX);
-		}
-		x += sizeof(BITMAP_VOX) + 2;
-	#endif
-
 	x = MAX(x, 61u);
 	x1 = x;
 

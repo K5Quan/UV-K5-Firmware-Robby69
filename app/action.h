@@ -27,15 +27,9 @@
 void ACTION_Power(void);
 void ACTION_Monitor(void);
 void ACTION_Scan(bool bRestart);
-#ifdef ENABLE_VOX
-	void ACTION_Vox(void);
-#endif
-#ifdef ENABLE_ALARM
-	//static void ACTION_AlarmOr1750(bool b1750)
-#endif
-#ifdef ENABLE_FMRADIO
-	void ACTION_FM(void);
-#endif
+
+void ACTION_FM(void);
+
 void ACTION_SwitchDemodul(void);
 
 #ifdef ENABLE_BLMIN_TMP_OFF

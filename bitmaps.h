@@ -15,22 +15,13 @@ extern const uint8_t BITMAP_KeyLock[6];
 
 extern const uint8_t BITMAP_F_Key[6];
 
-#ifdef ENABLE_VOX
-	extern const uint8_t BITMAP_VOX[18];
-#endif
+
 
 extern const uint8_t BITMAP_XB[12];
 
-extern const uint8_t BITMAP_TDR1[15];
-extern const uint8_t BITMAP_TDR2[9];
 
-#ifdef ENABLE_VOICE
-	extern const uint8_t BITMAP_VoicePrompt[9];
-#endif
 
-#ifdef ENABLE_NOAA
-	extern const uint8_t BITMAP_NOAA[11];
-#endif
+
 
 extern const uint8_t BITMAP_Antenna[5];
 
@@ -46,7 +37,5 @@ extern const uint8_t BITMAP_compand[6];
 
 #endif
 
-#ifdef ENABLE_MESSENGER
-	extern const uint8_t BITMAP_NEWMSG[8];
-#endif
+
 

@@ -13,15 +13,9 @@ ENABLE_LTO                    := 1
 
 # ---- STOCK QUANSHENG FERATURES ----
 ENABLE_UART                   := 1
-ENABLE_AIRCOPY                := 0
 ENABLE_FMRADIO                := 1
-ENABLE_NOAA                   := 0
-ENABLE_VOICE                  := 0
-ENABLE_VOX                    := 0
-ENABLE_ALARM                  := 0
 ENABLE_TX1750                 := 1
 ENABLE_PWRON_PASSWORD         := 0
-ENABLE_DTMF			          := 0
 
 # ---- CUSTOM MODS ----
 ENABLE_BIG_FREQ                         := 1
@@ -34,21 +28,13 @@ ENABLE_SHOW_CHARGE_LEVEL                := 0
 ENABLE_REVERSE_BAT_SYMBOL               := 0
 ENABLE_NO_CODE_SCAN_TIMEOUT             := 1
 ENABLE_SQUELCH_MORE_SENSITIVE           := 0
-ENABLE_FASTER_CHANNEL_SCAN              := 1
 ENABLE_RSSI_BAR                         := 1
 ENABLE_AUDIO_BAR                        := 1
 ENABLE_COPY_CHAN_TO_VFO                 := 1
 ENABLE_SPECTRUM                         := 1
-ENABLE_REDUCE_LOW_POWER                 := 0 //UNUSED
 ENABLE_BYP_RAW_DEMODULATORS             := 0
 ENABLE_BLMIN_TMP_OFF                    := 0
-ENABLE_SCAN_RANGES                      := 1
 ENABLE_SPECTRUM_SHOW_CHANNEL_NAME       := 1
-ENABLE_MESSENGER                        := 0
-ENABLE_MESSENGER_DELIVERY_NOTIFICATION  := 0
-ENABLE_MESSENGER_FSK_MUTE               := 0
-ENABLE_MESSENGER_NOTIFICATION           := 0
-ENABLE_MESSENGER_UART                   := 0
 ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
 ENABLE_FR_BAND							:= 1
@@ -118,7 +104,6 @@ endif
 OBJS += app/app.o
 OBJS += app/chFrScanner.o
 OBJS += app/common.o
-OBJS += app/dtmf.o
 ifeq ($(ENABLE_FMRADIO),1)
 	OBJS += app/fm.o
 endif
@@ -166,10 +151,7 @@ OBJS += ui/ui.o
 OBJS += ui/welcome.o
 OBJS += version.o
 OBJS += main.o
-ifeq ($(ENABLE_MESSENGER),1)
-	OBJS += app/messenger.o
-	OBJS += ui/messenger.o
-endif
+
 ifeq ($(ENABLE_ENCRYPTION),1)
 	OBJS += external/chacha/chacha.o
 	OBJS += helper/crypto.o
@@ -274,18 +256,6 @@ endif
 ifeq ($(ENABLE_SMALL_BOLD),1)
 	CFLAGS  += -DENABLE_SMALL_BOLD
 endif
-ifeq ($(ENABLE_NOAA),1)
-	CFLAGS  += -DENABLE_NOAA
-endif
-ifeq ($(ENABLE_VOICE),1)
-	CFLAGS  += -DENABLE_VOICE
-endif
-ifeq ($(ENABLE_VOX),1)
-	CFLAGS  += -DENABLE_VOX
-endif
-ifeq ($(ENABLE_ALARM),1)
-	CFLAGS  += -DENABLE_ALARM
-endif
 ifeq ($(ENABLE_TX1750),1)
 	CFLAGS  += -DENABLE_TX1750
 endif
@@ -317,9 +287,7 @@ endif
 ifeq ($(ENABLE_SQUELCH_MORE_SENSITIVE),1)
 	CFLAGS  += -DENABLE_SQUELCH_MORE_SENSITIVE
 endif
-ifeq ($(ENABLE_FASTER_CHANNEL_SCAN),1)
-	CFLAGS  += -DENABLE_FASTER_CHANNEL_SCAN
-endif
+
 ifeq ($(ENABLE_BACKLIGHT_ON_RX),1)
 	CFLAGS  += -DENABLE_BACKLIGHT_ON_RX
 endif
@@ -354,24 +322,7 @@ endif
 ifeq ($(ENABLE_SPECTRUM_SHOW_CHANNEL_NAME),1)
 	CFLAGS  += -DENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 endif
-ifeq ($(ENABLE_DTMF),1)
-	CFLAGS  += -DENABLE_DTMF
-endif
-ifeq ($(ENABLE_MESSENGER),1)
-	CFLAGS  += -DENABLE_MESSENGER
-endif
-ifeq ($(ENABLE_MESSENGER_DELIVERY_NOTIFICATION),1)
-	CFLAGS  += -DENABLE_MESSENGER_DELIVERY_NOTIFICATION
-endif
-ifeq ($(ENABLE_MESSENGER_FSK_MUTE),1)
-	CFLAGS  += -DENABLE_MESSENGER_FSK_MUTE
-endif
-ifeq ($(ENABLE_MESSENGER_NOTIFICATION),1)
-	CFLAGS  += -DENABLE_MESSENGER_NOTIFICATION
-endif
-ifeq ($(ENABLE_MESSENGER_UART),1)
-	CFLAGS  += -DENABLE_MESSENGER_UART
-endif
+
 ifeq ($(ENABLE_ENCRYPTION),1)
 	CFLAGS  += -DENABLE_ENCRYPTION
 endif

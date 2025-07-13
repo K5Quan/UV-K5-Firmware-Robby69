@@ -22,9 +22,7 @@
 #if !defined(ENABLE_OVERLAY)
 	#include "ARMCM0.h"
 #endif
-#ifdef ENABLE_FMRADIO
-	#include "app/fm.h"
-#endif
+#include "app/fm.h"
 #include "app/uart.h"
 #include "board.h"
 #include "bsp/dp32g030/dma.h"
@@ -42,11 +40,6 @@
 	#include "sram-overlay.h"
 #endif
 #include "version.h"
-#if defined(ENABLE_MESSENGER) && defined(ENABLE_MESSENGER_UART)
-	#include "app/messenger.h"
-	#include "external/printf/printf.h"
-#endif
-
 
 #define DMA_INDEX(x, y) (((x) + (y)) % sizeof(UART_DMA_Buffer))
 
@@ -214,11 +207,7 @@ static void CMD_0514(const uint8_t *pBuffer)
 	const CMD_0514_t *pCmd = (const CMD_0514_t *)pBuffer;
 
 	Timestamp = pCmd->Timestamp;
-
-	#ifdef ENABLE_FMRADIO
-		gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
-	#endif
-
+	gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
 	gSerialConfigCountDown_500ms = 12; // 6 sec
 
 	// turn the LCD backlight off
@@ -237,11 +226,7 @@ static void CMD_051B(const uint8_t *pBuffer)
 		return;
 
 	gSerialConfigCountDown_500ms = 12; // 6 sec
-
-	#ifdef ENABLE_FMRADIO
-		gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
-	#endif
-
+	gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
 	memset(&Reply, 0, sizeof(Reply));
 	Reply.Header.ID   = 0x051C;
 	Reply.Header.Size = pCmd->Size + 4;
@@ -270,11 +255,7 @@ static void CMD_051D(const uint8_t *pBuffer)
 	gSerialConfigCountDown_500ms = 12; // 6 sec
 
 	bReloadEeprom = false;
-
-	#ifdef ENABLE_FMRADIO
-		gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
-	#endif
-
+	gFmRadioCountdown_500ms = fm_radio_countdown_500ms;
 	Reply.Header.ID   = 0x051E;
 	Reply.Header.Size = sizeof(Reply.Data);
 	Reply.Data.Offset = pCmd->Offset;
@@ -332,23 +313,11 @@ static void CMD_0529(void)
 static void CMD_052F(const uint8_t *pBuffer)
 {
 	const CMD_052F_t *pCmd = (const CMD_052F_t *)pBuffer;
-
-	gEeprom.DUAL_WATCH                               = DUAL_WATCH_OFF;
-	gEeprom.CROSS_BAND_RX_TX                         = CROSS_BAND_OFF;
 	gEeprom.RX_VFO                                   = 0;
-	gEeprom.DTMF_SIDE_TONE                           = false;
 	gEeprom.VfoInfo[0].FrequencyReverse              = false;
 	gEeprom.VfoInfo[0].pRX                           = &gEeprom.VfoInfo[0].freq_config_RX;
 	gEeprom.VfoInfo[0].pTX                           = &gEeprom.VfoInfo[0].freq_config_TX;
 	gEeprom.VfoInfo[0].TX_OFFSET_FREQUENCY_DIRECTION = TX_OFFSET_FREQUENCY_DIRECTION_OFF;
-	gEeprom.VfoInfo[0].DTMF_PTT_ID_TX_MODE           = PTT_ID_OFF;
-#ifdef ENABLE_DTMF
-	gEeprom.VfoInfo[0].DTMF_DECODING_ENABLE          = false;
-#endif
-
-	#ifdef ENABLE_NOAA
-		gIsNoaaMode = false;
-	#endif
 
 	if (gCurrentFunction == FUNCTION_POWER_SAVE)
 		FUNCTION_Select(FUNCTION_FOREGROUND);
@@ -377,28 +346,6 @@ bool UART_IsCommandAvailable(void)
 		if (gUART_WriteIndex == DmaLength)
 			return false;
 
-#if defined(ENABLE_MESSENGER) && defined(ENABLE_MESSENGER_UART)
-    if (strncmp(((char*)UART_DMA_Buffer) + gUART_WriteIndex, "SMS:",4) == 0)
-    {
-
-      char txMessage[PAYLOAD_LENGTH + 4];
-      memset(txMessage, 0, sizeof(txMessage));
-      snprintf(txMessage, (PAYLOAD_LENGTH + 4), "%s", &UART_DMA_Buffer[gUART_WriteIndex + 4]);
-
-			for (int i = 0; txMessage[i] != '\0'; i++)
-			{
-				if (txMessage[i] == '\r' || txMessage[i] == '\n')
-					txMessage[i] = '\0';
-			}
-      if (strlen(txMessage) > 0)
-      {
-        MSG_Send(txMessage);
-        UART_printf("SMS>%s\r\n", txMessage);
-        gUpdateDisplay = true;
-      }
-    }
-
-#endif
 		while (gUART_WriteIndex != DmaLength && UART_DMA_Buffer[gUART_WriteIndex] != 0xABU)
 			gUART_WriteIndex = DMA_INDEX(gUART_WriteIndex, 1);
 

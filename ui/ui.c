@@ -20,26 +20,15 @@
 #include <string.h>
 
 #include "app/chFrScanner.h"
-#include "app/dtmf.h"
-#ifdef ENABLE_FMRADIO
-	#include "app/fm.h"
-#endif
+#include "app/fm.h"
 #include "driver/keyboard.h"
 #include "misc.h"
-#ifdef ENABLE_AIRCOPY
-	#include "ui/aircopy.h"
-#endif
-#ifdef ENABLE_FMRADIO
-	#include "ui/fmradio.h"
-#endif
+#include "ui/fmradio.h"
 #include "ui/inputbox.h"
 #include "ui/main.h"
 #include "ui/menu.h"
 #include "ui/scanner.h"
 #include "ui/ui.h"
-#ifdef ENABLE_MESSENGER
-	#include "ui/messenger.h"
-#endif
 
 GUI_DisplayType_t gScreenToDisplay;
 GUI_DisplayType_t gRequestDisplayScreen = DISPLAY_INVALID;
@@ -56,17 +45,9 @@ void GUI_DisplayScreen(void)
 			UI_DisplayMain();
 			break;
 
-		#ifdef ENABLE_FMRADIO
 			case DISPLAY_FM:
 				UI_DisplayFM();
 				break;
-		#endif
-
-		#ifdef ENABLE_MESSENGER
-			case DISPLAY_MSG:
-				UI_DisplayMSG();
-				break;
-		#endif
 		
 		case DISPLAY_MENU:
 			UI_DisplayMenu();
@@ -76,11 +57,6 @@ void GUI_DisplayScreen(void)
 			UI_DisplayScanner();
 			break;
 
-		#ifdef ENABLE_AIRCOPY
-			case DISPLAY_AIRCOPY:
-				UI_DisplayAircopy();
-				break;
-		#endif
 
 		default:
 			break;
@@ -94,20 +70,14 @@ void GUI_SelectNextDisplay(GUI_DisplayType_t Display)
 
 	if (gScreenToDisplay != Display)
 	{
-		DTMF_clear_input_box();
-
 		gInputBoxIndex       = 0;
 		gIsInSubMenu         = false;
 		gCssBackgroundScan         = false;
-		gScanStateDir        = SCAN_OFF;
-		#ifdef ENABLE_FMRADIO
-			gFM_ScanState    = FM_SCAN_OFF;
-		#endif
+		gFM_ScanState    = FM_SCAN_OFF;
 		gAskForConfirmation  = 0;
 		gAskToSave           = false;
 		gAskToDelete         = false;
 		gWasFKeyPressed      = false;
-
 		gUpdateStatus        = true;
 	}
 

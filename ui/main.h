@@ -25,7 +25,6 @@ enum center_line_t {
 	CENTER_LINE_IN_USE,
 	CENTER_LINE_AUDIO_BAR,
 	CENTER_LINE_RSSI,
-	CENTER_LINE_DTMF_DEC,
 	CENTER_LINE_CHARGE_DATA
 };
 typedef enum center_line_t center_line_t;

@@ -115,7 +115,6 @@ backlight_max:4;
 u8 channel_display_mode;
 u8 crossband;
 u8 battery_save;
-u8 dual_watch;
 u8 backlight_time;
 u8 ste;
 u8 freq_mode_allowed;
@@ -127,8 +126,7 @@ u8 FreqChannel_A;
 u8 ScreenChannel_B;
 u8 MrChannel_B;
 u8 FreqChannel_B;
-u8 NoaaChannel_A;
-u8 NoaaChannel_B;
+
 
 #seekto 0xe90;
 

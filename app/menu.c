@@ -22,7 +22,6 @@
 #if !defined(ENABLE_OVERLAY)
 	#include "ARMCM0.h"
 #endif
-#include "app/dtmf.h"
 #include "app/generic.h"
 #include "app/menu.h"
 #include "app/scanner.h"
@@ -105,10 +104,6 @@ void MENU_CssScanFound(void)
 void MENU_StopCssScan(void)
 {
 	gCssBackgroundScan = false;
-	
-#ifdef ENABLE_VOICE
-	gAnotherVoiceID       = VOICE_ID_SCANNING_STOP;
-#endif
 	gUpdateDisplay = true;
 	gUpdateStatus = true;
 }
@@ -146,47 +141,17 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMax = ARRAY_SIZE(gSubMenu_F_LOCK) - 1;
 			break;
 
-		case MENU_MDF:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_MDF) - 1;
-			break;
-
 		case MENU_TXP:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_TXP) - 1;
 			break;
 
-		case MENU_SFT_D:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_SFT_D) - 1;
-			break;
-
-		case MENU_TDR:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_RXMode) - 1;
-			break;
-
-		#ifdef ENABLE_VOICE
-			case MENU_VOICE:
-				*pMin = 0;
-				*pMax = ARRAY_SIZE(gSubMenu_VOICE) - 1;
-				break;
-		#endif
-
-		case MENU_SC_REV:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_SC_REV) - 1;
-			break;
 
 		case MENU_ROGER:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_ROGER) - 1;
 			break;
 	
-		/*case MENU_TEST_RANGE:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_MENU_TEST_RANGE) - 1;
-			break;*/
 		case MENU_PONMSG:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_PONMSG) - 1;
@@ -215,13 +180,6 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMax = ARRAY_SIZE(bwNames) - 1;
 			break;
 
-		#ifdef ENABLE_ALARM
-			case MENU_AL_MOD:
-				*pMin = 0;
-				*pMax = ARRAY_SIZE(gSubMenu_AL_MOD) - 1;
-				break;
-		#endif
-
 		case MENU_RESET:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_RESET) - 1;
@@ -240,38 +198,13 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMin = 0;
 			*pMax = 15;
 			break;
-
-		case MENU_D_ST:
-#ifdef ENABLE_DTMF
-		case MENU_D_DCD:
-#endif
-
-#ifdef ENABLE_DTMF
-		case MENU_D_LIVE_DEC:
-#endif
-
-#ifdef ENABLE_NOAA
-		case MENU_NOAA_S:
-#endif
-
 		case MENU_SCREN:
 #ifdef ENABLE_ENCRYPTION
 		case MENU_MSG_ENC:
 #endif
-#ifdef ENABLE_MESSENGER
-		case MENU_MSG_RX:
-		case MENU_MSG_ACK:
-#endif
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_OFF_ON) - 1;
 			break;
-
-#ifdef ENABLE_MESSENGER
-		case MENU_MSG_MODULATION:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_MSG_MODULATION) - 1;
-			break;
-#endif
 
 		case MENU_AM:
 			*pMin = 0;
@@ -293,10 +226,6 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			*pMax = ARRAY_SIZE(gSubMenu_TOT) - 1;
 			break;
 
-		#ifdef ENABLE_VOX
-			case MENU_VOX:
-			case MENU_VOX_DELAY:
-		#endif
 		case MENU_MEM_CH:
 		case MENU_1_CALL:
 		case MENU_DEL_CH:
@@ -316,39 +245,12 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 			break;
 
 			
-#ifdef ENABLE_DTMF
-		case MENU_D_RSP:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_D_RSP) - 1;
-			break;
-#endif
-		case MENU_PTT_ID:
-			*pMin = 0;
-			*pMax = ARRAY_SIZE(gSubMenu_PTT_ID) - 1;
-			break;
-
 		case MENU_BAT_TXT:
 			*pMin = 0;
 			*pMax = ARRAY_SIZE(gSubMenu_BAT_TXT) - 1;
 			break;
 
-#ifdef ENABLE_DTMF
-		case MENU_D_HOLD:
-			*pMin = 5;
-			*pMax = 60;
-			break;
-#endif
-		case MENU_D_PRE:
-			*pMin = 3;
-			*pMax = 99;
-			break;
 
-#ifdef ENABLE_DTMF
-		case MENU_D_LIST:
-			*pMin = 1;
-			*pMax = 16;
-			break;
-#endif
 		#ifdef ENABLE_F_CAL_MENU
 			case MENU_F_CALI:
 				*pMin = -50;
@@ -517,20 +419,6 @@ void MENU_AcceptSetting(void)
 				break;
 		#endif
 
-		#ifdef ENABLE_MESSENGER
-			case MENU_MSG_RX:
-				gEeprom.MESSENGER_CONFIG.data.receive = gSubMenuSelection;
-				break;
-
-			case MENU_MSG_ACK:
-				gEeprom.MESSENGER_CONFIG.data.ack = gSubMenuSelection;
-				break;
-
-			case MENU_MSG_MODULATION:
-				gEeprom.MESSENGER_CONFIG.data.modulation = gSubMenuSelection;
-				break;
-		#endif
-
 		case MENU_W_N:
 			gTxVfo->CHANNEL_BANDWIDTH = gSubMenuSelection;
 			gRequestSaveChannel       = 1;
@@ -581,24 +469,6 @@ void MENU_AcceptSetting(void)
 			gEeprom.BATTERY_SAVE = gSubMenuSelection;
 			break;
 
-		#ifdef ENABLE_VOX
-			case MENU_VOX:
-				gEeprom.VOX_SWITCH = gSubMenuSelection != 0;
-				if (gEeprom.VOX_SWITCH)
-					gEeprom.VOX_LEVEL = gSubMenuSelection - 1;
-				BOARD_EEPROM_LoadCalibration();
-				gFlagReconfigureVfos = true;
-				gUpdateStatus        = true;
-				break;
-
-			case MENU_VOX_DELAY:
-				gEeprom.VOX_DELAY = gSubMenuSelection;
-				BOARD_EEPROM_LoadCalibration();
-				gFlagReconfigureVfos = true;
-				gUpdateStatus        = true;
-				break;
-		#endif
-
 		case MENU_ABR:
 			gEeprom.BACKLIGHT_TIME = gSubMenuSelection;
 			break;
@@ -617,35 +487,12 @@ void MENU_AcceptSetting(void)
 			gSetting_backlight_on_tx_rx = gSubMenuSelection;
 			break;
 
-		case MENU_TDR:
-			gEeprom.DUAL_WATCH = (gEeprom.TX_VFO + 1) * (gSubMenuSelection & 1);
-			gEeprom.CROSS_BAND_RX_TX = (gEeprom.TX_VFO + 1) * ((gSubMenuSelection & 2) > 0);
-
-			gFlagReconfigureVfos = true;
-			gUpdateStatus        = true;
-			break;
-
 		case MENU_BEEP:
 			gEeprom.BEEP_CONTROL = gSubMenuSelection;
 			break;
 
 		case MENU_TOT:
 			gEeprom.TX_TIMEOUT_TIMER = gSubMenuSelection;
-			break;
-
-		#ifdef ENABLE_VOICE
-			case MENU_VOICE:
-				gEeprom.VOICE_PROMPT = gSubMenuSelection;
-				gUpdateStatus        = true;
-				break;
-		#endif
-
-		case MENU_SC_REV:
-			gEeprom.SCAN_RESUME_MODE = gSubMenuSelection;
-			break;
-
-		case MENU_MDF:
-			gEeprom.CHANNEL_DISPLAY_MODE = gSubMenuSelection;
 			break;
 
 		case MENU_AUTOLK:
@@ -678,71 +525,10 @@ void MENU_AcceptSetting(void)
 			gEeprom.CHAN_1_CALL = gSubMenuSelection;
 			break;
 
-		#ifdef ENABLE_ALARM
-			case MENU_AL_MOD:
-				gEeprom.ALARM_MODE = gSubMenuSelection;
-				break;
-		#endif
-
-		case MENU_D_ST:
-			gEeprom.DTMF_SIDE_TONE = gSubMenuSelection;
-			break;
-
-#ifdef ENABLE_DTMF
-		case MENU_D_RSP:
-			gEeprom.DTMF_DECODE_RESPONSE = gSubMenuSelection;
-			break;
-
-		case MENU_D_HOLD:
-			gEeprom.DTMF_auto_reset_time = gSubMenuSelection;
-			break;
-#endif
-		case MENU_D_PRE:
-			gEeprom.DTMF_PRELOAD_TIME = gSubMenuSelection * 10;
-			break;
-
-		case MENU_PTT_ID:
-			gTxVfo->DTMF_PTT_ID_TX_MODE = gSubMenuSelection;
-			gRequestSaveChannel         = 1;
-			return;
-
 		case MENU_BAT_TXT:
 			gSetting_battery_text = gSubMenuSelection;
 			break;
 
-#ifdef ENABLE_DTMF
-		case MENU_D_DCD:
-			gTxVfo->DTMF_DECODING_ENABLE = gSubMenuSelection;
-			DTMF_clear_RX();
-			gRequestSaveChannel = 1;
-			return;
-#endif
-
-#ifdef ENABLE_DTMF
-		case MENU_D_LIVE_DEC:
-			gSetting_live_DTMF_decoder = gSubMenuSelection;
-			gDTMF_RX_live_timeout = 0;
-			memset(gDTMF_RX_live, 0, sizeof(gDTMF_RX_live));
-			if (!gSetting_live_DTMF_decoder)
-				BK4819_DisableDTMF();
-			gFlagReconfigureVfos     = true;
-			gUpdateStatus            = true;
-			break;
-#endif
-
-#ifdef ENABLE_DTMF
-		case MENU_D_LIST:
-			gDTMF_chosen_contact = gSubMenuSelection - 1;
-			if (gIsDtmfContactValid)
-			{
-				GUI_SelectNextDisplay(DISPLAY_MAIN);
-				gDTMF_InputMode       = true;
-				gDTMF_InputBox_Index  = 3;
-				memmove(gDTMF_InputBox, gDTMF_ID, 4);
-				gRequestDisplayScreen = DISPLAY_INVALID;
-			}
-			return;
-#endif
 		case MENU_PONMSG:
 			gEeprom.POWER_ON_DISPLAY_MODE = gSubMenuSelection;
 			break;
@@ -767,13 +553,6 @@ void MENU_AcceptSetting(void)
 			gVfoConfigureMode = VFO_CONFIGURE_RELOAD;
 			gFlagResetVfos    = true;
 			break;
-
-		#ifdef ENABLE_NOAA
-			case MENU_NOAA_S:
-				gEeprom.NOAA_AUTO_SCAN = gSubMenuSelection;
-				gFlagReconfigureVfos   = true;
-				break;
-		#endif
 
 		case MENU_DEL_CH:
 			SETTINGS_UpdateChannel(gSubMenuSelection, NULL, false);
@@ -942,20 +721,6 @@ void MENU_ShowCurrentSetting(void)
 				break;
 		#endif
 
-		#ifdef ENABLE_MESSENGER
-			case MENU_MSG_RX:
-				gSubMenuSelection = gEeprom.MESSENGER_CONFIG.data.receive;
-				break;
-
-			case MENU_MSG_ACK:
-				gSubMenuSelection = gEeprom.MESSENGER_CONFIG.data.ack;
-				break;
-
-			case MENU_MSG_MODULATION:
-				gSubMenuSelection = gEeprom.MESSENGER_CONFIG.data.modulation;
-				break;
-		#endif
-
 		#ifdef ENABLE_PWRON_PASSWORD
 			case MENU_PASSWORD:
 				gSubMenuSelection = gEeprom.POWER_ON_PASSWORD;
@@ -987,15 +752,6 @@ void MENU_ShowCurrentSetting(void)
 			gSubMenuSelection = gEeprom.BATTERY_SAVE;
 			break;
 
-		#ifdef ENABLE_VOX
-		case MENU_VOX:
-			gSubMenuSelection = gEeprom.VOX_SWITCH ? gEeprom.VOX_LEVEL + 1 : 0;
-			break;
-		case MENU_VOX_DELAY:
-			gSubMenuSelection = gEeprom.VOX_DELAY;
-			break;
-		#endif
-
 		case MENU_ABR:
 			gSubMenuSelection = gEeprom.BACKLIGHT_TIME;
 			break;
@@ -1012,30 +768,12 @@ void MENU_ShowCurrentSetting(void)
 			gSubMenuSelection = gSetting_backlight_on_tx_rx;
 			break;
 
-		case MENU_TDR:
-			gSubMenuSelection = (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) + (gEeprom.CROSS_BAND_RX_TX != CROSS_BAND_OFF) * 2;
-			break;
-
 		case MENU_BEEP:
 			gSubMenuSelection = gEeprom.BEEP_CONTROL;
 			break;
 
 		case MENU_TOT:
 			gSubMenuSelection = gEeprom.TX_TIMEOUT_TIMER;
-			break;
-
-#ifdef ENABLE_VOICE
-		case MENU_VOICE:
-			gSubMenuSelection = gEeprom.VOICE_PROMPT;
-			break;
-#endif
-
-		case MENU_SC_REV:
-			gSubMenuSelection = gEeprom.SCAN_RESUME_MODE;
-			break;
-
-		case MENU_MDF:
-			gSubMenuSelection = gEeprom.CHANNEL_DISPLAY_MODE;
 			break;
 
 		case MENU_AUTOLK:
@@ -1058,52 +796,10 @@ void MENU_ShowCurrentSetting(void)
 			gSubMenuSelection = gEeprom.CHAN_1_CALL;
 			break;
 
-		#ifdef ENABLE_ALARM
-			case MENU_AL_MOD:
-				gSubMenuSelection = gEeprom.ALARM_MODE;
-				break;
-		#endif
-
-		case MENU_D_ST:
-			gSubMenuSelection = gEeprom.DTMF_SIDE_TONE;
-			break;
-
-#ifdef ENABLE_DTMF
-		case MENU_D_RSP:
-			gSubMenuSelection = gEeprom.DTMF_DECODE_RESPONSE;
-			break;
-
-		case MENU_D_HOLD:
-			gSubMenuSelection = gEeprom.DTMF_auto_reset_time;
-			break;
-#endif
-		case MENU_D_PRE:
-			gSubMenuSelection = gEeprom.DTMF_PRELOAD_TIME / 10;
-			break;
-
-		case MENU_PTT_ID:
-			gSubMenuSelection = gTxVfo->DTMF_PTT_ID_TX_MODE;
-			break;
-
 		case MENU_BAT_TXT:
 			gSubMenuSelection = gSetting_battery_text;
 			return;
 
-#ifdef ENABLE_DTMF
-		case MENU_D_DCD:
-			gSubMenuSelection = gTxVfo->DTMF_DECODING_ENABLE;
-			break;
-
-		case MENU_D_LIST:
-			gSubMenuSelection = gDTMF_chosen_contact + 1;
-			break;
-#endif
-
-#ifdef ENABLE_DTMF
-		case MENU_D_LIVE_DEC:
-			gSubMenuSelection = gSetting_live_DTMF_decoder;
-			break;
-#endif
 		case MENU_PONMSG:
 			gSubMenuSelection = gEeprom.POWER_ON_DISPLAY_MODE;
 			break;
@@ -1124,13 +820,7 @@ void MENU_ShowCurrentSetting(void)
 			gSubMenuSelection = gEeprom.SQL_TONE;
 			break;
 
-		#ifdef ENABLE_NOAA
-			case MENU_NOAA_S:
-				gSubMenuSelection = gEeprom.NOAA_AUTO_SCAN;
-				break;
-		#endif
-
-		case MENU_DEL_CH:
+			case MENU_DEL_CH:
 			#if 0
 				gSubMenuSelection = RADIO_FindNextChannel(gEeprom.MrChannel[0], 1, false, 1);
 			#else
@@ -1279,16 +969,9 @@ static void MENU_Key_0_to_9(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 		if (gInputBoxIndex < 6)
 		{	// invalid frequency
-			#ifdef ENABLE_VOICE
-				gAnotherVoiceID = (VOICE_ID_t)Key;
-			#endif
 			return;
 		}
 
-		#ifdef ENABLE_VOICE
-			gAnotherVoiceID = (VOICE_ID_t)Key;
-		#endif
-		
 		Frequency = StrToUL(INPUTBOX_GetAscii())*100;
 		if(UI_MENU_GetCurrentMenuId() == MENU_OFFSET)
 		{
@@ -1325,9 +1008,6 @@ static void MENU_Key_0_to_9(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 	
 		if (gInputBoxIndex < 3)
 		{
-			#ifdef ENABLE_VOICE
-				gAnotherVoiceID   = (VOICE_ID_t)Key;
-			#endif
 			gRequestDisplayScreen = DISPLAY_MENU;
 			return;
 		}
@@ -1338,9 +1018,6 @@ static void MENU_Key_0_to_9(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 		if (IS_MR_CHANNEL(Value))
 		{
-			#ifdef ENABLE_VOICE
-				gAnotherVoiceID = (VOICE_ID_t)Key;
-			#endif
 			gSubMenuSelection = Value;
 			return;
 		}
@@ -1400,10 +1077,6 @@ static void MENU_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 				gIsInSubMenu        = false;
 				gInputBoxIndex      = 0;
 				gFlagRefreshSetting = true;
-
-				#ifdef ENABLE_VOICE
-					gAnotherVoiceID = VOICE_ID_CANCEL;
-				#endif
 			}
 			else
 				gInputBox[--gInputBoxIndex] = 10;
@@ -1413,11 +1086,6 @@ static void MENU_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 			gRequestDisplayScreen = DISPLAY_MENU;
 			return;
 		}
-
-		#ifdef ENABLE_VOICE
-			gAnotherVoiceID = VOICE_ID_CANCEL;
-		#endif
-
 		gRequestDisplayScreen = DISPLAY_MAIN;
 
 		if (gEeprom.BACKLIGHT_TIME == 0) // backlight set to always off
@@ -1428,11 +1096,6 @@ static void MENU_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 	else
 	{
 		MENU_StopCssScan();
-
-		#ifdef ENABLE_VOICE
-			gAnotherVoiceID   = VOICE_ID_SCANNING_STOP;
-		#endif
-
 		gRequestDisplayScreen = DISPLAY_MENU;
 	}
 
@@ -1456,11 +1119,6 @@ static void MENU_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 
 	if (!gIsInSubMenu)
 	{
-		#ifdef ENABLE_VOICE
-			if (UI_MENU_GetCurrentMenuId() != MENU_SCR)
-				gAnotherVoiceID = MenuList[gMenuCursor].voice_id;
-		#endif
-
 		#if 1
 			if (UI_MENU_GetCurrentMenuId() == MENU_DEL_CH || UI_MENU_GetCurrentMenuId() == MENU_MEM_NAME)
 				if (!RADIO_CheckValidChannel(gSubMenuSelection, false, 0))
@@ -1572,11 +1230,6 @@ static void MENU_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 
 					if (UI_MENU_GetCurrentMenuId() == MENU_RESET)
 					{
-						#ifdef ENABLE_VOICE
-							AUDIO_SetVoiceID(0, VOICE_ID_CONFIRM);
-							AUDIO_PlaySingleVoice(true);
-						#endif
-
 						MENU_AcceptSetting();
 
 						#if defined(ENABLE_OVERLAY)
@@ -1600,12 +1253,6 @@ static void MENU_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 
 	SCANNER_Stop();
 
-	#ifdef ENABLE_VOICE
-		if (UI_MENU_GetCurrentMenuId() == MENU_SCR)
-			gAnotherVoiceID = (gSubMenuSelection == 0) ? VOICE_ID_SCRAMBLER_OFF : VOICE_ID_SCRAMBLER_ON;
-		else
-			gAnotherVoiceID = VOICE_ID_CONFIRM;
-	#endif
 
 	gInputBoxIndex = 0;
 }
@@ -1638,11 +1285,7 @@ static void MENU_Key_STAR(const bool bKeyPressed, const bool bKeyHeld)
 
 	RADIO_SelectVfos();
 
-	#ifdef ENABLE_NOAA
-		if (!IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) && gRxVfo->Modulation == MODULATION_FM)
-	#else
 		if (gRxVfo->Modulation ==  MODULATION_FM)
-	#endif
 	{
 		if ((UI_MENU_GetCurrentMenuId() == MENU_R_CTCS || UI_MENU_GetCurrentMenuId() == MENU_R_DCS) && gIsInSubMenu)
 		{	// scan CTCSS or DCS to find the tone/code of the incoming signal

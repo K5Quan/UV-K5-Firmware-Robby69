@@ -108,18 +108,12 @@ void     BK4819_EnableScramble(uint8_t Type);
 bool     BK4819_CompanderEnabled(void);
 void     BK4819_SetCompander(const unsigned int mode);
 
-void     BK4819_DisableVox(void);
-void     BK4819_DisableDTMF(void);
-void     BK4819_EnableDTMF(void);
 void     BK4819_PlayTone(uint16_t Frequency, bool bTuningGainSwitch);
 void     BK4819_PlaySingleTone(const unsigned int tone_Hz, const unsigned int delay, const unsigned int level, const bool play_speaker);
 void     BK4819_EnterTxMute(void);
 void     BK4819_ExitTxMute(void);
 void     BK4819_Sleep(void);
 void     BK4819_TurnsOffTones_TurnsOnRX(void);
-#ifdef ENABLE_AIRCOPY
-	void     BK4819_SetupAircopy(void);
-#endif
 void     BK4819_ResetFSK(void);
 void     BK4819_FskClearFifo(void);
 void     BK4819_FskEnableRx(void);
@@ -133,12 +127,7 @@ void     BK4819_ExitSubAu(void);
 
 void     BK4819_Conditional_RX_TurnOn_and_GPIO6_Enable(void);
 
-void     BK4819_EnterDTMF_TX(bool bLocalLoopback);
-void     BK4819_ExitDTMF_TX(bool bKeep);
 void     BK4819_EnableTXLink(void);
-
-void     BK4819_PlayDTMF(char Code);
-void     BK4819_PlayDTMFString(const char *pString, bool bDelayFirst, uint16_t FirstCodePersistTime, uint16_t HashCodePersistTime, uint16_t CodePersistTime, uint16_t CodeInternalTime);
 
 void     BK4819_TransmitTone(bool bLocalLoopback, uint32_t Frequency);
 
@@ -162,8 +151,6 @@ void     BK4819_Disable(void);
 
 void     BK4819_StopScan(void);
 
-uint8_t  BK4819_GetDTMF_5TONE_Code(void);
-
 uint8_t  BK4819_GetCDCSSCodeType(void);
 uint8_t  BK4819_GetCTCShift(void);
 uint8_t  BK4819_GetCTCType(void);
@@ -178,7 +165,6 @@ void     BK4819_Enable_AfDac_DiscMode_TxDsp(void);
 	    
 void     BK4819_GetVoxAmp(uint16_t *pResult);
 void     BK4819_SetScrambleFrequencyControlWord(uint32_t Frequency);
-void     BK4819_PlayDTMFEx(bool bLocalLoopback, char Code);
 
 #endif
 

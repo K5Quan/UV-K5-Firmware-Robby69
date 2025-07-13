@@ -18,11 +18,7 @@
  */
 
 #include <string.h>
-
-#include "app/dtmf.h"
-#ifdef ENABLE_FMRADIO
-	#include "app/fm.h"
-#endif
+#include "app/fm.h"
 #include "audio.h"
 #include "bsp/dp32g030/gpio.h"
 #include "dcs.h"
@@ -38,9 +34,6 @@
 #include "settings.h"
 #include "ui/menu.h"
 #include "board.h"
-#ifdef ENABLE_MESSENGER
-	#include "app/messenger.h"
-#endif
 
 VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gRxVfo;
@@ -138,21 +131,6 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 	uint8_t channel = gEeprom.ScreenChannel[VFO];
 
 	if (IS_VALID_CHANNEL(channel)) {
-#ifdef ENABLE_NOAA
-		if (channel >= NOAA_CHANNEL_FIRST)
-		{
-			RADIO_InitInfo(pVfo, gEeprom.ScreenChannel[VFO], NoaaFrequencyTable[channel - NOAA_CHANNEL_FIRST]);
-
-			if (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF)
-				return;
-
-			gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-
-			gUpdateStatus = true;
-			return;
-		}
-#endif
-
 		if (IS_MR_CHANNEL(channel)) {
 			channel = RADIO_FindNextChannel(channel, RADIO_CHANNEL_UP, false, VFO);
 			if (channel == 0xFF) {
@@ -293,21 +271,6 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 				pVfo->CHANNEL_BANDWIDTH = ((d4 >> 5) & 3u) + 1;
 		}	
 
-		if (data[5] == 0xFF)
-		{
-#ifdef ENABLE_DTMF
-			pVfo->DTMF_DECODING_ENABLE = false;
-#endif
-			pVfo->DTMF_PTT_ID_TX_MODE  = PTT_ID_OFF;
-		}
-		else
-		{
-#ifdef ENABLE_DTMF
-			pVfo->DTMF_DECODING_ENABLE = ((data[5] >> 0) & 1u) ? true : false;
-#endif
-			pVfo->DTMF_PTT_ID_TX_MODE  = ((data[5] >> 1) & 7u);
-		}
-
 		// ***************
 
 		struct {
@@ -367,7 +330,6 @@ void RADIO_ConfigureChannel(const unsigned int VFO, const unsigned int configure
 	if (pVfo->Modulation != MODULATION_FM)
 	{	// freq/chan is in AM mode
 		pVfo->SCRAMBLING_TYPE         = 0;
-//		pVfo->DTMF_DECODING_ENABLE    = false;  // no reason to disable DTMF decoding, aircraft use it on SSB
 		pVfo->freq_config_RX.CodeType = CODE_TYPE_OFF;
 		pVfo->freq_config_TX.CodeType = CODE_TYPE_OFF;
 	}
@@ -516,24 +478,13 @@ void RADIO_ApplyTxOffset(VFO_Info_t *pInfo)
 	pInfo->freq_config_TX.Frequency = Frequency;
 }
 
-static void RADIO_SelectCurrentVfo(void)
-{
-	// if crossband is active and DW not the gCurrentVfo is gTxVfo (gTxVfo/TX_VFO is only ever changed by the user) 
-	// otherwise it is set to gRxVfo which is set to gTxVfo in RADIO_SelectVfos
-	// so in the end gCurrentVfo is equal to gTxVfo unless dual watch changes it on incomming transmition (again, this can only happen when XB off)
-	// note: it is called only in certain situations so could be not up-to-date
- 	gCurrentVfo = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF || gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) ? gRxVfo : gTxVfo;
-}
-
 void RADIO_SelectVfos(void)
 {
 	// if crossband without DW is used then RX_VFO is the opposite to the TX_VFO
-	gEeprom.RX_VFO = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF || gEeprom.DUAL_WATCH != DUAL_WATCH_OFF) ? gEeprom.TX_VFO : !gEeprom.TX_VFO;
-
+	
 	gTxVfo = &gEeprom.VfoInfo[gEeprom.TX_VFO];
-	gRxVfo = &gEeprom.VfoInfo[gEeprom.RX_VFO];
 
-	RADIO_SelectCurrentVfo();
+	gCurrentVfo = gTxVfo;
 }
 
 void RADIO_SetupRegisters(bool switchToForeground)
@@ -560,7 +511,6 @@ void RADIO_SetupRegisters(bool switchToForeground)
 		if ((Status & 1u) == 0) // INTERRUPT REQUEST
 			break;
 
-		BK4819_WriteRegister(BK4819_REG_02, 0);
 		SYSTEM_DelayMs(1);
 	}
 	BK4819_WriteRegister(BK4819_REG_3F, 0);
@@ -569,14 +519,7 @@ void RADIO_SetupRegisters(bool switchToForeground)
 	BK4819_WriteRegister(BK4819_REG_7D, 0xE940 | (gEeprom.MIC_SENSITIVITY_TUNING & 0x1f));
 
 	uint32_t Frequency;
-	#ifdef ENABLE_NOAA
-		if (!IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE) || !gIsNoaaMode)
-			Frequency = gRxVfo->pRX->Frequency;
-		else
-			Frequency = NoaaFrequencyTable[gNoaaChannel];
-	#else
-		Frequency = gRxVfo->pRX->Frequency + gEeprom.RX_OFFSET;
-	#endif
+	Frequency = gRxVfo->pRX->Frequency + gEeprom.RX_OFFSET;
 	BK4819_SetFrequency(Frequency);
 
 	BK4819_SetupSquelch(
@@ -600,10 +543,6 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
 	uint16_t InterruptMask = BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST;
 
-	#ifdef ENABLE_NOAA
-		if (!IS_NOAA_CHANNEL(gRxVfo->CHANNEL_SAVE))
-	#endif
-	{
 		if (gRxVfo->Modulation == MODULATION_FM)
 		{	// FM
 			uint8_t CodeType = gRxVfo->pRX->CodeType;
@@ -649,76 +588,13 @@ void RADIO_SetupRegisters(bool switchToForeground)
 			else
 				BK4819_DisableScramble();
 		}
-	}
-	#ifdef ENABLE_NOAA
-		else
-		{
-			BK4819_SetCTCSSFrequency(2625);
-			InterruptMask = 0
-				| BK4819_REG_3F_CTCSS_FOUND
-				| BK4819_REG_3F_CTCSS_LOST
-				| BK4819_REG_3F_SQUELCH_FOUND
-				| BK4819_REG_3F_SQUELCH_LOST;
-		}
-	#endif
 
-	#ifdef ENABLE_VOX
-		#ifdef ENABLE_NOAA
-			#ifdef ENABLE_FMRADIO
-				if (gEeprom.VOX_SWITCH && !gFmRadioMode && !IS_NOAA_CHANNEL(gCurrentVfo->CHANNEL_SAVE) && gCurrentVfo->Modulation == MODULATION_FM)
-			#else
-				if (gEeprom.VOX_SWITCH && !IS_NOAA_CHANNEL(gCurrentVfo->CHANNEL_SAVE) && gCurrentVfo->Modulation == MODULATION_FM)
-			#endif
-		#else
-			#ifdef ENABLE_FMRADIO
-				if (gEeprom.VOX_SWITCH && !gFmRadioMode && gCurrentVfo->Modulation == MODULATION_FM)
-			#else
-				if (gEeprom.VOX_SWITCH && gCurrentVfo->Modulation == MODULATION_FM)
-			#endif
-		#endif
-		{
-			BK4819_EnableVox(gEeprom.VOX1_THRESHOLD, gEeprom.VOX0_THRESHOLD, gEeprom.VOX_DELAY);
-			InterruptMask |= BK4819_REG_3F_VOX_FOUND | BK4819_REG_3F_VOX_LOST;
-		}
-		else
-	#endif
-		BK4819_DisableVox();
+
+
+
 
 	// RX expander
 	BK4819_SetCompander((gRxVfo->Modulation == MODULATION_FM && gRxVfo->Compander >= 2) ? gRxVfo->Compander : 0);
-
-	#if 0
-		if (!gRxVfo->DTMF_DECODING_ENABLE && !gSetting_KILLED)
-		{
-			BK4819_DisableDTMF();
-		}
-		else
-		{
-			BK4819_EnableDTMF();
-			InterruptMask |= BK4819_REG_3F_DTMF_5TONE_FOUND;
-		}
-	#else
-		if (gCurrentFunction != FUNCTION_TRANSMIT)
-		{
-			BK4819_DisableDTMF();
-			BK4819_EnableDTMF();
-			InterruptMask |= BK4819_REG_3F_DTMF_5TONE_FOUND;
-		}
-		else
-		{
-			BK4819_DisableDTMF();
-		}
-	#endif
-
-	// enable/disable BK4819 selected interrupts
-
-	#ifdef ENABLE_MESSENGER
-		if(gEeprom.MESSENGER_CONFIG.data.receive)
-		{
-			MSG_EnableRX(true);
-			InterruptMask |= BK4819_REG_3F_FSK_RX_SYNC | BK4819_REG_3F_FSK_RX_FINISHED | BK4819_REG_3F_FSK_FIFO_ALMOST_FULL | BK4819_REG_3F_FSK_TX_FINISHED;
-		}
-	#endif	
 
 	BK4819_WriteRegister(BK4819_REG_3F, InterruptMask);
 
@@ -728,50 +604,6 @@ void RADIO_SetupRegisters(bool switchToForeground)
 		FUNCTION_Select(FUNCTION_FOREGROUND);
 }
 
-#ifdef ENABLE_NOAA
-	void RADIO_ConfigureNOAA(void)
-	{
-		uint8_t ChanAB;
-
-		gUpdateStatus = true;
-
-		if (gEeprom.NOAA_AUTO_SCAN)
-		{
-			if (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF)
-			{
-				if (!IS_NOAA_CHANNEL(gEeprom.ScreenChannel[0]))
-				{
-					if (!IS_NOAA_CHANNEL(gEeprom.ScreenChannel[1]))
-					{
-						gIsNoaaMode = false;
-						return;
-					}
-					ChanAB = 1;
-				}
-				else
-					ChanAB = 0;
-
-				if (!gIsNoaaMode)
-					gNoaaChannel = gEeprom.VfoInfo[ChanAB].CHANNEL_SAVE - NOAA_CHANNEL_FIRST;
-
-				gIsNoaaMode = true;
-				return;
-			}
-
-			if (gRxVfo->CHANNEL_SAVE >= NOAA_CHANNEL_FIRST)
-			{
-				gIsNoaaMode          = true;
-				gNoaaChannel         = gRxVfo->CHANNEL_SAVE - NOAA_CHANNEL_FIRST;
-				gNOAA_Countdown_10ms = NOAA_countdown_2_10ms;
-				gScheduleNOAA        = false;
-			}
-			else
-				gIsNoaaMode = false;
-		}
-		else
-			gIsNoaaMode = false;
-	}
-#endif
 
 void RADIO_SetTxParameters(void)
 {
@@ -889,33 +721,11 @@ void RADIO_PrepareTX(void)
 {
 	VfoState_t State = VFO_STATE_NORMAL;  // default to OK to TX
 
-	if (gEeprom.DUAL_WATCH != DUAL_WATCH_OFF)
-	{	// dual-RX is enabled
-
-		gDualWatchCountdown_10ms = dual_watch_count_after_tx_10ms;
-		gScheduleDualWatch       = false;
-
-		if (!gRxVfoIsActive)
-		{	// use the current RX vfo
-			gEeprom.RX_VFO = gEeprom.TX_VFO;
-			gRxVfo         = gTxVfo;
-			gRxVfoIsActive = true;
-		}
-
-		// let the user see that DW is not active
-		gDualWatchActive = false;
-		gUpdateStatus    = true;
-	}
-
 	RADIO_SelectCurrentVfo();
 
-	#if defined(ENABLE_ALARM) && defined(ENABLE_TX1750)
-		if (gAlarmState == ALARM_STATE_OFF    ||
-		    gAlarmState == ALARM_STATE_TX1750 ||
-		   (gAlarmState == ALARM_STATE_ALARM && gEeprom.ALARM_MODE == ALARM_MODE_TONE))
-	#elif defined(ENABLE_ALARM)
-		if (gAlarmState == ALARM_STATE_OFF    ||
-		   (gAlarmState == ALARM_STATE_ALARM && gEeprom.ALARM_MODE == ALARM_MODE_TONE))
+	#if defined(ENABLE_TX1750)
+		if (gAlarmState == ALARM_STATE_TX1750)
+
 	#elif defined(ENABLE_TX1750)
 		if (gAlarmState == ALARM_STATE_OFF    ||
 		    gAlarmState == ALARM_STATE_TX1750)
@@ -958,43 +768,15 @@ void RADIO_PrepareTX(void)
 	{	// TX not allowed
 		RADIO_SetVfoState(State);
 
-		#if defined(ENABLE_ALARM) || defined(ENABLE_TX1750)
-			gAlarmState = ALARM_STATE_OFF;
-		#endif
-
-#ifdef ENABLE_DTMF
-		gDTMF_ReplyState = DTMF_REPLY_NONE;
-#endif
 		AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 		return;
 	}
 
 	// TX is allowed
 
-#ifdef ENABLE_DTMF
-	if (gDTMF_ReplyState == DTMF_REPLY_ANI)
-	{
-		if (gDTMF_CallMode == DTMF_CALL_MODE_DTMF)
-		{
-			gDTMF_IsTx                  = true;
-			gDTMF_CallState             = DTMF_CALL_STATE_NONE;
-			gDTMF_TxStopCountdown_500ms = DTMF_txstop_countdown_500ms;
-		}
-		else
-		{
-			gDTMF_CallState = DTMF_CALL_STATE_CALL_OUT;
-			gDTMF_IsTx      = false;
-		}
-	}
-#endif
-
 	FUNCTION_Select(FUNCTION_TRANSMIT);
 
 	gTxTimerCountdown_500ms = 0;            // no timeout
-
-	#if defined(ENABLE_ALARM) || defined(ENABLE_TX1750)
-		if (gAlarmState == ALARM_STATE_OFF)
-	#endif
 	{
 		if (gEeprom.TX_TIMEOUT_TIMER == 0)
 			gTxTimerCountdown_500ms = 60;   // 30 sec
@@ -1008,9 +790,7 @@ void RADIO_PrepareTX(void)
 
 	gFlagEndTransmission = false;
 
-#ifdef ENABLE_DTMF
-	gDTMF_ReplyState     = DTMF_REPLY_NONE;
-#endif
+
 }
 
 void RADIO_EnableCxCSS(void)
@@ -1047,39 +827,6 @@ void RADIO_SendEndOfTransmission(bool playRoger)
 		if (gEeprom.ROGER == ROGER_MODE_Mario)
 			BK4819_PlayRogerMario();
 	}
-
-	if (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_APOLLO)
-		BK4819_PlaySingleTone(2475, 250, 28, gEeprom.DTMF_SIDE_TONE);
-
-	if (
-#ifdef ENABLE_DTMF
-		gDTMF_CallState == DTMF_CALL_STATE_NONE &&
-#endif
-	   (gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_TX_DOWN ||
-	    gCurrentVfo->DTMF_PTT_ID_TX_MODE == PTT_ID_BOTH))
-	{	// end-of-tx
-		if (gEeprom.DTMF_SIDE_TONE)
-		{
-			AUDIO_AudioPathOn();
-			gEnableSpeaker = true;
-			SYSTEM_DelayMs(60);
-		}
-
-		BK4819_EnterDTMF_TX(gEeprom.DTMF_SIDE_TONE);
-
-		BK4819_PlayDTMFString(
-				gEeprom.DTMF_DOWN_CODE,
-				0,
-				gEeprom.DTMF_FIRST_CODE_PERSIST_TIME,
-				gEeprom.DTMF_HASH_CODE_PERSIST_TIME,
-				gEeprom.DTMF_CODE_PERSIST_TIME,
-				gEeprom.DTMF_CODE_INTERVAL_TIME);
-		
-		AUDIO_AudioPathOff();
-		gEnableSpeaker = false;
-	}
-
-	BK4819_ExitDTMF_TX(true);
 }
 
 uint8_t RADIO_ValidMemoryChannelsCount(bool bCheckScanList, uint8_t VFO)

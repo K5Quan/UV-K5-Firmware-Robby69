@@ -39,15 +39,6 @@ enum {
   BANDWIDTH_NARROWEST = 4U
 };
 
-enum PTT_ID_t {
-	PTT_ID_OFF = 0,    // OFF
-	PTT_ID_TX_UP,      // BEGIN OF TX
-	PTT_ID_TX_DOWN,    // END OF TX
-	PTT_ID_BOTH,       // BOTH
-	PTT_ID_APOLLO      // Apolo quindar tones
-};
-typedef enum PTT_ID_t PTT_ID_t;
-
 enum VfoState_t
 {
 	VFO_STATE_NORMAL = 0,
@@ -124,11 +115,6 @@ typedef struct VFO_Info_t
 	uint8_t        SCANLIST;
 
 	uint8_t        Band;
-#ifdef ENABLE_DTMF
-	uint8_t        DTMF_DECODING_ENABLE;
-#endif
-	PTT_ID_t       DTMF_PTT_ID_TX_MODE;
-
 	uint8_t        BUSY_CHANNEL_LOCK;
 
 	ModulationMode_t    Modulation;
@@ -165,9 +151,6 @@ void       RADIO_ConfigureSquelchAndOutputPower(VFO_Info_t *pInfo);
 void       RADIO_ApplyTxOffset(VFO_Info_t *pInfo);
 void       RADIO_SelectVfos(void);
 void       RADIO_SetupRegisters(bool bSwitchToFunction0);
-#ifdef ENABLE_NOAA
-	void   RADIO_ConfigureNOAA(void);
-#endif
 void       RADIO_SetTxParameters(void);
 void       RADIO_SetModulation(ModulationMode_t modulation);
 void       RADIO_SetVfoState(VfoState_t State);

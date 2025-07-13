@@ -170,16 +170,9 @@ void BATTERY_TimeSlice500ms(void)
 
 				if(!gLowBatteryConfirmed) {
 					AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP);
-#ifdef ENABLE_VOICE
-					AUDIO_SetVoiceID(0, VOICE_ID_LOW_VOLTAGE);
-#endif
 				}
 				if (gBatteryDisplayLevel == 0)
 				{
-#ifdef ENABLE_VOICE
-					AUDIO_PlaySingleVoice(true);
-#endif
-
 					gReducedService = true;
 
 					//if (gCurrentFunction != FUNCTION_POWER_SAVE)
@@ -190,11 +183,6 @@ void BATTERY_TimeSlice500ms(void)
 					if (gEeprom.BACKLIGHT_TIME < (ARRAY_SIZE(gSubMenu_BACKLIGHT) - 1))
 						BACKLIGHT_TurnOff();  // turn the backlight off
 				}
-#ifdef ENABLE_VOICE
-				else
-					AUDIO_PlaySingleVoice(false);
-#endif
-				
 			}
 		}
 	}
