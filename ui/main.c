@@ -230,7 +230,6 @@ void UI_UpdateRSSI(const int16_t rssi, const int vfo)
 void UI_DisplayMain(void)
 {
 	const unsigned int line0 = 0;  // text screen line
-	const unsigned int line1 = 4;
 	char               String[22];
 	unsigned int       vfo_num;
 
@@ -253,13 +252,13 @@ void UI_DisplayMain(void)
 		return;
 	}
 	vfo_num = 0;
-	const unsigned int line       = (vfo_num == 0) ? line0 : line1;
-	uint8_t           *p_line1    = gFrameBuffer[line + 5];
+	const unsigned int line       = line0 ;
+	uint8_t           *p_line    = gFrameBuffer[line + 5];
 	unsigned int       mode       = 0;
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT){// transmitting
 			mode = 1;
-			UI_PrintStringSmallBold("TX", 7, 0, line+1);
+			UI_PrintStringSmallBold("TX", 0, 0, line+1);
 		}
 		else
 		{	// receiving .. show the RX symbol
@@ -268,27 +267,21 @@ void UI_DisplayMain(void)
 			     gCurrentFunction == FUNCTION_MONITOR ||
 			     gCurrentFunction == FUNCTION_INCOMING) &&
 			     gEeprom.RX_VFO == vfo_num)
-			{UI_PrintStringSmallBold("RX", 7, 0, line+1);}
+			{UI_PrintStringSmallBold("RX", 0, 0, line+1);}
 		}
 
 		if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
 		{	// channel mode
-			const unsigned int x = 2;
 			const bool inputting = (gInputBoxIndex == 0 || gEeprom.TX_VFO != vfo_num) ? false : true;
 			if (!inputting)
 				sprintf(String, "M%u", gEeprom.ScreenChannel[vfo_num] + 1);
 			else
 				sprintf(String, "M%.3s", INPUTBOX_GetAscii());  // show the input text
-			UI_PrintStringSmall(String, x, 0, line);
+			//UI_PrintStringSmall(String, x, 0, line);
+			UI_PrintString(String , 0, 0, line ,7);
 		}
 		
-
-
-		// ************
-
 		unsigned int state = VfoState[vfo_num];
-
-
 		uint32_t frequency = gEeprom.VfoInfo[vfo_num].pRX->Frequency;
 
 		if (state != VFO_STATE_NORMAL)
@@ -297,83 +290,65 @@ void UI_DisplayMain(void)
 			if (state < ARRAY_SIZE(state_list))
 				UI_PrintString(state_list[state], 31, 0, line, 8);
 		}
-		else if (gInputBoxIndex > 0 && IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfo_num]) && gEeprom.TX_VFO == vfo_num)
-		{	// user entering a frequency
-			const char * ascii = INPUTBOX_GetAscii();
-			bool isGigaF = frequency>=100000000;
-			sprintf(String, "%.*s.%.3s", 3 + isGigaF, ascii, ascii + 3 + isGigaF);
 
+		if (gInputBoxIndex > 0 && IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfo_num])){	// user entering a frequency
+				const char * ascii = INPUTBOX_GetAscii();
+				bool isGigaF = frequency>=100000000;
+				sprintf(String, "%.*s.%.3s", 3 + isGigaF, ascii, ascii + 3 + isGigaF);
 				// show the remaining 2 small frequency digits
-				UI_PrintStringSmall(String + 7, 113, 0, line + 1);
+				UI_PrintStringSmall(String + 7, 109, 0, line + 1); //temp
 				String[7] = 0;
 				// show the main large frequency digits
 				UI_DisplayFrequency(String, 10, line, false);
-
-		}
-		else
-		{
-			if (gCurrentFunction == FUNCTION_TRANSMIT)
-			{	// transmitting
-			frequency = gEeprom.VfoInfo[vfo_num].pTX->Frequency;
-			}
-
-			if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
-			{	// it's a channel
-
-				// show the scan list assigment symbols
-				const ChannelAttributes_t att = gMR_ChannelAttributes[gEeprom.ScreenChannel[vfo_num]];
-				if (att.scanlist > 0) {
-					sprintf(String, "%d", att.scanlist);
-					UI_PrintStringSmall(String, 113, 0, line);
-				}
-
-				// compander symbol
-
-				//if (att.compander)
-				//	memmove(p_line0 + 120 + LCD_WIDTH, BITMAP_compand, sizeof(BITMAP_compand));
-
-				SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfo_num]);
-				if (String[0] == 0)
-				{	// no channel name, show the channel number instead
-					sprintf(String, "CH-%03u", gEeprom.ScreenChannel[vfo_num] + 1);
-				}
-					UI_PrintString(String, 26, 0,line,7);
-					// show the channel frequency below the channel number/name
-					sprintf(String, "%03u.%05u", frequency / 100000, frequency % 100000);
-					UI_DisplayFrequency(String, 10, line+4, false);
 			}
 			else
-			{	// frequency mode
-				sprintf(String, "%3u.%05u", frequency / 100000, frequency % 100000);
+			{
+				if (gCurrentFunction == FUNCTION_TRANSMIT)
+				{	// transmitting
+				frequency = gEeprom.VfoInfo[vfo_num].pTX->Frequency;
+				}
+				// Always show frequency
+				sprintf(String, "%3u.%05u", frequency / 100000, frequency % 100000);   //temp
+				// show the remaining 2 small frequency digits
+				UI_PrintString(String + 7, 100, 0, line + 4,8);
+				String[7] = 0;
+				// show the main large frequency digits
+				UI_DisplayFrequency(String, 15, line+4, false);
 
-
-					// show the remaining 2 small frequency digits
-					UI_PrintString(String + 7, 100, 0, line + 4,8);
-					String[7] = 0;
-					// show the main large frequency digits
-					UI_DisplayFrequency(String, 10, line+4, false);
+				if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
+				{	// it's a channel
 				
+					// show the scan list assigment symbols
+					/*const ChannelAttributes_t att = gMR_ChannelAttributes[gEeprom.ScreenChannel[vfo_num]];
+					if (att.scanlist > 0) {
+						sprintf(String, "%d", att.scanlist);
+						UI_PrintString(String , 0, 0, line+2 ,7);
+					}*/
+				
+					SETTINGS_FetchChannelName(String, gEeprom.ScreenChannel[vfo_num]);
+					if (String[0] == 0)
+					{	// no channel name, show the channel number instead
+						sprintf(String, "CH-%03u", gEeprom.ScreenChannel[vfo_num] + 1);
+					}
+						UI_PrintString(String, 30, 0,line,8);
+				}
 			}
-		}
+
 
 		// ************
 
-		{	// show the TX/RX level
-			uint8_t Level = 0;
-
-			if (mode == 1)
-			{	// TX power level
-	
-				switch (gRxVfo->OUTPUT_POWER)
-				{
-					case OUTPUT_POWER_LOW:  Level = 2; break;
-					case OUTPUT_POWER_MID:  Level = 4; break;
-					case OUTPUT_POWER_HIGH: Level = 6; break;
-	  
-				}
+		// show the TX/RX level
+		uint8_t Level = 0;
+		if (mode == 1)
+		{	// TX power level
+			switch (gRxVfo->OUTPUT_POWER)
+			{
+				case OUTPUT_POWER_LOW:  Level = 2; break;
+				case OUTPUT_POWER_MID:  Level = 4; break;
+				case OUTPUT_POWER_HIGH: Level = 6; break;
 			}
-			else 
-			if (mode == 2)
+		}
+		else if (mode == 2)
 			{	// RX signal level
 				#ifndef ENABLE_RSSI_BAR
 					// bar graph
@@ -381,10 +356,9 @@ void UI_DisplayMain(void)
 						Level = gVFO_RSSI_bar_level[vfo_num];
 				#endif
 			}
-			if(Level)
-				DrawSmallAntennaAndBars(p_line1 + LCD_WIDTH, Level);
-		}
-		// ************
+		if(Level) DrawSmallAntennaAndBars(p_line + LCD_WIDTH, Level);
+		
+
 
 		String[0] = '\0';
 
@@ -428,9 +402,6 @@ void UI_DisplayMain(void)
 			UI_PrintStringSmall(String, LCD_WIDTH + 60, 0, line + 5);
 		}
 
-		// show the TX/RX reverse symbol
-		//if (gEeprom.VfoInfo[vfo_num].FrequencyReverse) UI_PrintStringSmall("R", 0, 0, line + 5);
-
 		{	// show the narrow band symbol
 			UI_PrintStringSmall(bwNames[gEeprom.VfoInfo[vfo_num].CHANNEL_BANDWIDTH], LCD_WIDTH + 70, 0, line + 5);
 		}
@@ -459,6 +430,6 @@ void UI_DisplayMain(void)
 	}
 
 	ST7565_BlitFullScreen();
+		
 }
 
-// ***************************************************************************
