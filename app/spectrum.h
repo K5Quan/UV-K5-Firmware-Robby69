@@ -39,9 +39,8 @@
 #include <stdint.h>
 #include <string.h>
 
-
-
-
+extern uint32_t          	 gScanRangeStart;
+extern uint32_t         	 gScanRangeStop;
 static const uint8_t DrawingEndY = 50; //Robby69 48  55
 
 static const uint8_t U8RssiMap[] = {

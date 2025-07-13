@@ -1,5 +1,4 @@
 #include "app/spectrum.h"
-#include "chFrScanner.h"
 #include "scanner.h"
 #include "driver/backlight.h"
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
@@ -24,6 +23,8 @@ uint8_t RandomEmission = 0;
 uint16_t SpectrumDelay = 0;
 #define PARAMETER_COUNT 5
 /////////////////////////////
+uint32_t gScanRangeStart;
+uint32_t gScanRangeStop;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 #define SQUELCH_OFF_DELAY 10;

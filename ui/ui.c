@@ -18,8 +18,6 @@
  */
 
 #include <string.h>
-
-#include "app/chFrScanner.h"
 #include "app/fm.h"
 #include "driver/keyboard.h"
 #include "misc.h"

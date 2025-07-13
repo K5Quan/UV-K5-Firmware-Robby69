@@ -19,7 +19,6 @@
 
 #include <string.h>
 
-#include "app/chFrScanner.h"
 #include "app/fm.h"
 #include "app/scanner.h"
 #include "bitmaps.h"

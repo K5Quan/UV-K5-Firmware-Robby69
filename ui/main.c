@@ -19,8 +19,6 @@
 
 #include <string.h>
 #include <stdlib.h>  // abs()
-
-#include "app/chFrScanner.h"
 #include "bitmaps.h"
 #include "board.h"
 #include "driver/bk4819.h"

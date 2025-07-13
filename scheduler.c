@@ -17,7 +17,6 @@
  *     limitations under the License.
  */
 
-#include "app/chFrScanner.h"
 #include "app/fm.h"
 
 #include "app/scanner.h"

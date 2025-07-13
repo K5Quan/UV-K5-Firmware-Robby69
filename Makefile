@@ -102,7 +102,6 @@ ifeq ($(ENABLE_AIRCOPY),1)
 	OBJS += app/aircopy.o
 endif
 OBJS += app/app.o
-OBJS += app/chFrScanner.o
 OBJS += app/common.o
 ifeq ($(ENABLE_FMRADIO),1)
 	OBJS += app/fm.o

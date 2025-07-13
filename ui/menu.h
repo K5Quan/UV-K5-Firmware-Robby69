@@ -56,7 +56,6 @@ enum
 	MENU_ABR_ON_TX_RX,
 	MENU_ABR_MIN,
 	MENU_ABR_MAX,
-	MENU_TDR,
 #ifdef ENABLE_PWRON_PASSWORD
 	MENU_PASSWORD,
 #endif
@@ -103,8 +102,6 @@ extern const char        gSubMenu_W_N[2][7];
 extern const char        gSubMenu_OFF_ON[2][4];
 extern const char        gSubMenu_SAVE[5][4];
 extern const char        gSubMenu_TOT[11][7];
-extern const char* const gSubMenu_RXMode[4];
-
 extern const char        gSubMenu_PONMSG[4][8];
 extern const char        gSubMenu_ROGER[3][6];
 extern const char        gSubMenu_RESET[2][4];

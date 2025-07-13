@@ -21,7 +21,6 @@
 
 #include "app/action.h"
 #include "app/app.h"
-#include "app/chFrScanner.h"
 #include "app/fm.h"
 #include "app/generic.h"
 #include "app/main.h"
@@ -88,7 +87,7 @@ static void CheckForIncoming(void)
 
 	// squelch is open
 
-			if (gCurrentFunction != FUNCTION_INCOMING)
+	if (gCurrentFunction != FUNCTION_INCOMING)
 			{
 				FUNCTION_Select(FUNCTION_INCOMING);
 				//gUpdateDisplay = true;
@@ -97,30 +96,8 @@ static void CheckForIncoming(void)
 				gUpdateRSSI = true;
 			}
 			return;
-
-
-	}
-	else
-	{	// RF scanning
-		if (gRxReceptionMode != RX_MODE_NONE)
-		{
-			if (gCurrentFunction != FUNCTION_INCOMING)
-			{
-				FUNCTION_Select(FUNCTION_INCOMING);
-				//gUpdateDisplay = true;
-
-				UpdateRSSI(gEeprom.RX_VFO);
-				gUpdateRSSI = true;
-			}
-			return;
-		}
-
-		gScanPauseDelayIn_10ms = scan_pause_delay_in_3_10ms;
-		gScheduleScanListen    = false;
-	}
 
 	gRxReceptionMode = RX_MODE_DETECTED;
-
 	if (gCurrentFunction != FUNCTION_INCOMING)
 	{
 		FUNCTION_Select(FUNCTION_INCOMING);
@@ -379,9 +356,6 @@ uint32_t APP_SetFrequencyByStep(VFO_Info_t *pInfo, int8_t direction)
 
 static void CheckRadioInterrupts(void)
 {
-	if (SCANNER_IsScanning())
-		return;
-
 	while (BK4819_ReadRegister(BK4819_REG_0C) & 1u)
 	{	// BK chip interrupt request
 
@@ -726,8 +700,6 @@ void APP_TimeSlice10ms(void)
 			GUI_SelectNextDisplay(DISPLAY_FM);
 		}
 	}
-
-	SCANNER_TimeSlice10ms();
 	CheckKeys();
 }
 
@@ -778,8 +750,7 @@ void APP_TimeSlice500ms(void)
 
 
 	if (gMenuCountdown > 0)
-		if (--gMenuCountdown == 0)
-			exit_menu = (gScreenToDisplay == DISPLAY_MENU);	// exit menu mode
+		{if (--gMenuCountdown == 0) exit_menu = (gScreenToDisplay == DISPLAY_MENU);}// exit menu mode
 
 		if (gFmRadioCountdown_500ms > 0)
 		{
@@ -884,9 +855,6 @@ void APP_TimeSlice500ms(void)
 
 					if (disp == DISPLAY_INVALID)
 					{
-#ifndef ENABLE_NO_CODE_SCAN_TIMEOUT
-						if (!SCANNER_IsScanning())
-#endif
 							disp = DISPLAY_MAIN;
 					}
 
@@ -917,7 +885,6 @@ void APP_TimeSlice500ms(void)
 	}
 
 	BATTERY_TimeSlice500ms();
-	SCANNER_TimeSlice500ms();
 
 }
 
@@ -982,7 +949,7 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, gEeprom.TX_VFO, gTxVfo, gFlagSaveChannel);
 			gFlagSaveChannel = false;
 
-			if (!SCANNER_IsScanning() && gVfoConfigureMode == VFO_CONFIGURE_NONE)
+			if (gVfoConfigureMode == VFO_CONFIGURE_NONE)
 				// gVfoConfigureMode is so as we don't wipe out previously setting this variable elsewhere
 				gVfoConfigureMode = VFO_CONFIGURE;
 		}
@@ -1065,7 +1032,7 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 	if (Key <= KEY_9 || Key == KEY_F)
 	{
-		if (ggCssBackgroundScan)
+		if (gCssBackgroundScan)
 		{	// FREQ/CTCSS/DCS scanning
 			if (bKeyPressed && !bKeyHeld)
 				AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
@@ -1112,17 +1079,10 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			if (gAlarmState == ALARM_STATE_OFF)
 #endif
 			{
-				char Code;
-
 				if (Key == KEY_PTT)
 				{
 					GENERIC_Key_PTT(bKeyPressed);
 					goto Skip;
-				}
-
-				if (Key == KEY_SIDE2)
-				{	// transmit 1750Hz tone
-					Code = 0xFE;
 				}
 
 				if (!bKeyPressed || bKeyHeld)
@@ -1164,7 +1124,7 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			switch (gScreenToDisplay)
 			{
 				case DISPLAY_MAIN:
-					if ((Key == KEY_SIDE1 || Key == KEY_SIDE2) && !SCANNER_IsScanning())
+					if ((Key == KEY_SIDE1 || Key == KEY_SIDE2) )
 						{
 							ACTION_Handle(Key, bKeyPressed, bKeyHeld);
 						}
@@ -1232,7 +1192,6 @@ Skip:
 		{
 			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, gEeprom.TX_VFO, gTxVfo, gRequestSaveChannel);
 
-			if (!SCANNER_IsScanning())
 				if (gVfoConfigureMode == VFO_CONFIGURE_NONE)  // 'if' is so as we don't wipe out previously setting this variable elsewhere
 					gVfoConfigureMode = VFO_CONFIGURE;
 		}

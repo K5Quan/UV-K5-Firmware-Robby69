@@ -21,7 +21,6 @@
 
 #include "app/action.h"
 #include "app/app.h"
-#include "app/chFrScanner.h"
 #include "app/common.h"
 #include "app/fm.h"
 #include "app/scanner.h"

@@ -71,7 +71,6 @@ const t_menu_item MenuList[] =
 
 
 	{"BatVol", VOICE_ID_INVALID,                       MENU_VOL           }, // was "VOL"
-	{"RxMode", VOICE_ID_DUAL_STANDBY,                  MENU_TDR           },
 #ifdef ENABLE_PWRON_PASSWORD
 	{"Passwd", VOICE_ID_INVALID,                       MENU_PASSWORD      }, // power on password
 #endif
@@ -617,10 +616,6 @@ void UI_DisplayMenu(void)
 
 			case MENU_SAVE:
 				strcpy(String, gSubMenu_SAVE[gSubMenuSelection]);
-				break;
-
-			case MENU_TDR:
-				strcpy(String, gSubMenu_RXMode[gSubMenuSelection]);
 				break;
 
 			case MENU_TOT:

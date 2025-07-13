@@ -147,11 +147,9 @@ void AUDIO_PlayBeep(BEEP_Type_t Beep)
 	SYSTEM_DelayMs(5);
 	BK4819_WriteRegister(BK4819_REG_71, ToneConfig);
 
-	if (gEnableSpeaker)
-		AUDIO_AudioPathOn();
+	if (gEnableSpeaker) AUDIO_AudioPathOn();
 
-		if (gFmRadioMode)
-			BK1080_Mute(false);
+	if (gFmRadioMode) BK1080_Mute(false);
 	
 	if (gCurrentFunction == FUNCTION_POWER_SAVE && gRxIdleMode)
 		BK4819_Sleep();

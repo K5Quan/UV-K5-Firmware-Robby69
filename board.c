@@ -46,15 +46,6 @@
 #include "ui/menu.h"
 #include "ARMCM0.h"
 
-static const uint32_t gDefaultFrequencyTable[] =
-{
-	14500000,    //
-	14550000,    //
-	43300000,    //
-	43320000,    //
-	43350000     //
-};
-
 #if defined(ENABLE_OVERLAY)
 	void BOARD_FLASH_Init(void)
 	{
@@ -753,25 +744,4 @@ void BOARD_FactoryReset(bool bIsAll)
 		}
 	}
 
-	if (bIsAll)
-	{
-		RADIO_InitInfo(gRxVfo, FREQ_CHANNEL_FIRST + BAND6_400MHz, 43350000);
-		gEeprom.RX_OFFSET = 0;
-		#ifdef ENABLE_PWRON_PASSWORD
-			gEeprom.POWER_ON_PASSWORD = PASSWORD_OFF;
-			gEeprom.PASSWORD_WRONG_ATTEMPTS = 0;
-		#endif
-		SETTINGS_SaveSettings();
-		// set the first few memory channels
-		for (i = 0; i < ARRAY_SIZE(gDefaultFrequencyTable); i++)
-		{
-			const uint32_t Frequency   = gDefaultFrequencyTable[i];
-			gRxVfo->freq_config_RX.Frequency = Frequency;
-			gRxVfo->freq_config_TX.Frequency = Frequency;
-			gRxVfo->Band               = FREQUENCY_GetBand(Frequency);
-			SETTINGS_SaveChannel(MR_CHANNEL_FIRST + i, 0, gRxVfo, 2);
-		}
-		// reboot device
-		NVIC_SystemReset();
-	}
 }

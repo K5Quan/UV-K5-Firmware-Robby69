@@ -77,36 +77,6 @@
 	}
 #endif
 
-void MENU_StartCssScan(void)
-{
-	SCANNER_Start(true);
-	gUpdateStatus = true;
-	gCssBackgroundScan = true;
-
-	gRequestDisplayScreen = DISPLAY_MENU;
-}
-
-void MENU_CssScanFound(void)
-{
-	if(gScanCssResultType == CODE_TYPE_DIGITAL || gScanCssResultType == CODE_TYPE_REVERSE_DIGITAL) {
-		gMenuCursor = UI_MENU_GetMenuIdx(MENU_R_DCS);
-	}
-	else if(gScanCssResultType == CODE_TYPE_CONTINUOUS_TONE) {
-		gMenuCursor = UI_MENU_GetMenuIdx(MENU_R_CTCS);
-	}
-
-	MENU_ShowCurrentSetting();
-
-	gUpdateStatus = true;
-	gUpdateDisplay = true;
-}
-
-void MENU_StopCssScan(void)
-{
-	gCssBackgroundScan = false;
-	gUpdateDisplay = true;
-	gUpdateStatus = true;
-}
 
 int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax)
 {
@@ -1095,7 +1065,6 @@ static void MENU_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 	}
 	else
 	{
-		MENU_StopCssScan();
 		gRequestDisplayScreen = DISPLAY_MENU;
 	}
 
@@ -1250,10 +1219,6 @@ static void MENU_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 			gIsInSubMenu       = false;
 		}
 	}
-
-	SCANNER_Stop();
-
-
 	gInputBoxIndex = 0;
 }
 
@@ -1287,14 +1252,6 @@ static void MENU_Key_STAR(const bool bKeyPressed, const bool bKeyHeld)
 
 		if (gRxVfo->Modulation ==  MODULATION_FM)
 	{
-		if ((UI_MENU_GetCurrentMenuId() == MENU_R_CTCS || UI_MENU_GetCurrentMenuId() == MENU_R_DCS) && gIsInSubMenu)
-		{	// scan CTCSS or DCS to find the tone/code of the incoming signal
-			if (!SCANNER_IsScanning())
-				MENU_StartCssScan();
-			else
-				MENU_StopCssScan();
-		}
-
 		gPttWasReleased = true;
 		return;
 	}
@@ -1351,10 +1308,6 @@ static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 	else
 	if (!bKeyPressed)
 		return;
-
-	if (SCANNER_IsScanning()) {
-		return;
-	}
 
 	if (!gIsInSubMenu)
 	{

@@ -21,17 +21,12 @@
 
 #include "app/action.h"
 #include "app/app.h"
-#include "app/chFrScanner.h"
 #include "app/common.h"
 #include "app/fm.h"
 #include "app/generic.h"
 #include "app/main.h"
 #include "app/scanner.h"
-
-#ifdef ENABLE_SPECTRUM
 #include "app/spectrum.h"
-#endif
-
 #include "audio.h"
 #include "board.h"
 #include "driver/bk4819.h"
@@ -70,20 +65,6 @@ void toggle_scan_range(void)
 	}
 #endif
 	//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
-}
-
-static void MAIN_Key_STAR(bool closecall)
-{
-	if (gCurrentFunction == FUNCTION_TRANSMIT)
-		return;
-	
-	
-	gWasFKeyPressed          = false;
-	gBackup_CROSS_BAND_RX_TX  = gEeprom.CROSS_BAND_RX_TX;
-	gEeprom.CROSS_BAND_RX_TX = CROSS_BAND_OFF;
-	gUpdateStatus            = true;		
-	SCANNER_Start(closecall);
-	gRequestDisplayScreen = DISPLAY_SCANNER;
 }
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
@@ -504,10 +485,6 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			break;
 		case KEY_EXIT:
 			MAIN_Key_EXIT(bKeyPressed, bKeyHeld);
-			break;
-		case KEY_STAR:
-			if (gWasFKeyPressed) MAIN_Key_STAR(1);
-			else MAIN_Key_STAR(0);
 			break;
 		case KEY_F:
 			GENERIC_Key_F(bKeyPressed, bKeyHeld);

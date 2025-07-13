@@ -82,3 +82,4 @@ void UI_DisplayScanner(void) //Close Call, CTCSS/DCS scanner, etc.
 	
 	ST7565_BlitFullScreen();
 }
+

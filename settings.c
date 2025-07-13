@@ -70,7 +70,6 @@ void SETTINGS_SaveSettings(void)
 
 	State[0] = (gEeprom.BACKLIGHT_MIN << 4) + gEeprom.BACKLIGHT_MAX;
 	State[1] = gEeprom.CHANNEL_DISPLAY_MODE;
-	State[2] = gEeprom.CROSS_BAND_RX_TX;
 	State[3] = gEeprom.BATTERY_SAVE;
 	State[5] = gEeprom.BACKLIGHT_TIME;
 	State[7] = gEeprom.VFO_OPEN;

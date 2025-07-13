@@ -701,27 +701,15 @@ void RADIO_SetVfoState(VfoState_t State)
 			VfoState[0] = VFO_STATE_VOLTAGE_HIGH;
 			VfoState[1] = VFO_STATE_TX_DISABLE;
 		}
-		else
-		{	// 1of11
-			const unsigned int vfo = (gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF) ? gEeprom.RX_VFO : gEeprom.TX_VFO;
-			VfoState[vfo] = State;
-		}
-
 		gVFOStateResumeCountdown_500ms = vfo_state_resume_countdown_500ms;
 	}
 
 	gUpdateDisplay = true;
 }
 
-VfoState_t RADIO_GetVfoState() {
-	return VfoState[(gEeprom.CROSS_BAND_RX_TX == CROSS_BAND_OFF) ? gEeprom.RX_VFO : gEeprom.TX_VFO];
-}
-
 void RADIO_PrepareTX(void)
 {
 	VfoState_t State = VFO_STATE_NORMAL;  // default to OK to TX
-
-	RADIO_SelectCurrentVfo();
 
 	#if defined(ENABLE_TX1750)
 		if (gAlarmState == ALARM_STATE_TX1750)
