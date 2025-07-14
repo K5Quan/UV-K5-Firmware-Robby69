@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.2beta
+VERSION_STRING := V5.2b1
 
 # compile options (see README.md for descriptions)
 # 0 = disable

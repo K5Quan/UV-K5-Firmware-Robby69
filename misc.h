@@ -256,7 +256,7 @@ extern uint8_t               gNextMrChannel;
 extern ReceptionMode_t       gRxReceptionMode;
 
  //TRUE when dual watch is momentarly suspended and RX_VFO is locked to either last TX or RX
-extern bool                  gRxVfoIsActive;
+extern bool                  gTxVfoIsActive;
 extern uint8_t               gAlarmToneCounter;
 extern uint16_t              gAlarmRunningCounter;
 extern bool                  gKeyBeingHeld;

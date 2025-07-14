@@ -92,7 +92,7 @@ static void CheckForIncoming(void)
 				FUNCTION_Select(FUNCTION_INCOMING);
 				//gUpdateDisplay = true;
 
-				UpdateRSSI(gEeprom.RX_VFO);
+				UpdateRSSI(gEeprom.TX_VFO);
 				gUpdateRSSI = true;
 			}
 			return;
@@ -103,7 +103,7 @@ static void CheckForIncoming(void)
 		FUNCTION_Select(FUNCTION_INCOMING);
 		//gUpdateDisplay = true;
 
-		UpdateRSSI(gEeprom.RX_VFO);
+		UpdateRSSI(gEeprom.TX_VFO);
 		gUpdateRSSI = true;
 	}
 }
@@ -289,7 +289,7 @@ static void HandleFunction(void)
 
 void APP_StartListening(FUNCTION_Type_t Function)
 {
-	const unsigned int chan = gEeprom.RX_VFO;
+	const unsigned int chan = gEeprom.TX_VFO;
 	if (gFmRadioMode)
 		BK1080_Init(0, false);
 
@@ -302,9 +302,10 @@ void APP_StartListening(FUNCTION_Type_t Function)
 
 	if (gSetting_backlight_on_tx_rx >= BACKLIGHT_ON_TR_RX)
 		BACKLIGHT_TurnOn();
-
+	gTxVfoIsActive = true; //Temp
+	gUpdateStatus    = true;
 	// AF gain - original QS values
-	// if (gRxVfo->Modulation != MODULATION_FM){
+	// if (gTxVfo->Modulation != MODULATION_FM){
 	// 	BK4819_WriteRegister(BK4819_REG_48, 0xB3A8);
 	// }
 	// else 
@@ -316,7 +317,7 @@ void APP_StartListening(FUNCTION_Type_t Function)
 		(gEeprom.DAC_GAIN    << 0));     // AF DAC Gain (after Gain-1 and Gain-2)
 	}
 
-		RADIO_SetModulation(gRxVfo->Modulation);  // no need, set it now
+		RADIO_SetModulation(gTxVfo->Modulation);  // no need, set it now
 
 	FUNCTION_Select(Function);
 
@@ -452,6 +453,17 @@ void APP_Update(void)
 	if (Spectrum_state >0 && Spectrum_state <10)
 		APP_RunSpectrum(Spectrum_state);
 
+
+	if (!gPttIsPressed && gCurrentFunction != FUNCTION_POWER_SAVE)
+				{
+					if (gTxVfoIsActive && gScreenToDisplay == DISPLAY_MAIN)
+						GUI_SelectNextDisplay(DISPLAY_MAIN);
+
+					gTxVfoIsActive     = false;
+					gRxReceptionMode   = RX_MODE_NONE;
+				}
+
+		
 	if (gSchedulePowerSave)
 	{
 		if (
@@ -495,7 +507,7 @@ void APP_Update(void)
 		if ( gCssBackgroundScan || gUpdateRSSI)
 		{	// dual watch mode off or scanning or rssi update request
 
-			UpdateRSSI(gEeprom.RX_VFO);
+			UpdateRSSI(gEeprom.TX_VFO);
 
 			// go back to sleep
 
@@ -866,7 +878,7 @@ void APP_TimeSlice500ms(void)
 	}
 
 	if (gCurrentFunction != FUNCTION_POWER_SAVE && gCurrentFunction != FUNCTION_TRANSMIT)
-		UpdateRSSI(gEeprom.RX_VFO);
+		UpdateRSSI(gEeprom.TX_VFO);
 
 	if (!gPttIsPressed && gVFOStateResumeCountdown_500ms > 0)
 	{

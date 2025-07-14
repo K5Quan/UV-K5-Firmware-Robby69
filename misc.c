@@ -150,7 +150,7 @@ bool              gFlagEndTransmission;
 uint8_t           gNextMrChannel;
 ReceptionMode_t   gRxReceptionMode;
 
-bool              gRxVfoIsActive;
+bool              gTxVfoIsActive;
 bool              gKeyBeingHeld;
 bool              gPttIsPressed;
 uint8_t           gPttDebounceCounter;

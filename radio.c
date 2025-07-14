@@ -36,7 +36,7 @@
 #include "board.h"
 
 VFO_Info_t    *gTxVfo;
-VFO_Info_t    *gRxVfo;
+VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gCurrentVfo;
 DCS_CodeType_t gCurrentCodeType;
 VfoState_t     VfoState[2];
@@ -495,9 +495,9 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
 	BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, false);
 
-	BK4819_FilterBandwidth_t Bandwidth = gRxVfo->CHANNEL_BANDWIDTH;
+	BK4819_FilterBandwidth_t Bandwidth = gTxVfo->CHANNEL_BANDWIDTH;
 
-	BK4819_SetFilterBandwidth(Bandwidth, gRxVfo->Modulation != MODULATION_AM);
+	BK4819_SetFilterBandwidth(Bandwidth, gTxVfo->Modulation != MODULATION_AM);
 	
 	BK4819_ToggleGpioOut(BK4819_GPIO5_PIN1_RED, false);
 
@@ -519,13 +519,13 @@ void RADIO_SetupRegisters(bool switchToForeground)
 	BK4819_WriteRegister(BK4819_REG_7D, 0xE940 | (gEeprom.MIC_SENSITIVITY_TUNING & 0x1f));
 
 	uint32_t Frequency;
-	Frequency = gRxVfo->pRX->Frequency + gEeprom.RX_OFFSET;
+	Frequency = gTxVfo->pRX->Frequency + gEeprom.RX_OFFSET;
 	BK4819_SetFrequency(Frequency);
 
 	BK4819_SetupSquelch(
-		gRxVfo->SquelchOpenRSSIThresh,    gRxVfo->SquelchCloseRSSIThresh,
-		gRxVfo->SquelchOpenNoiseThresh,   gRxVfo->SquelchCloseNoiseThresh,
-		gRxVfo->SquelchCloseGlitchThresh, gRxVfo->SquelchOpenGlitchThresh);
+		gTxVfo->SquelchOpenRSSIThresh,    gTxVfo->SquelchCloseRSSIThresh,
+		gTxVfo->SquelchOpenNoiseThresh,   gTxVfo->SquelchCloseNoiseThresh,
+		gTxVfo->SquelchCloseGlitchThresh, gTxVfo->SquelchOpenGlitchThresh);
 
 	BK4819_PickRXFilterPathBasedOnFrequency(Frequency);
 
@@ -543,10 +543,10 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
 	uint16_t InterruptMask = BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST;
 
-		if (gRxVfo->Modulation == MODULATION_FM)
+		if (gTxVfo->Modulation == MODULATION_FM)
 		{	// FM
-			uint8_t CodeType = gRxVfo->pRX->CodeType;
-			uint8_t Code     = gRxVfo->pRX->Code;
+			uint8_t CodeType = gTxVfo->pRX->CodeType;
+			uint8_t Code     = gTxVfo->pRX->Code;
 			switch (CodeType)
 			{
 				default:
@@ -583,8 +583,8 @@ void RADIO_SetupRegisters(bool switchToForeground)
 					break;
 			}
 
-			if (gRxVfo->SCRAMBLING_TYPE > 0 && gSetting_ScrambleEnable)
-				BK4819_EnableScramble(gRxVfo->SCRAMBLING_TYPE - 1);
+			if (gTxVfo->SCRAMBLING_TYPE > 0 && gSetting_ScrambleEnable)
+				BK4819_EnableScramble(gTxVfo->SCRAMBLING_TYPE - 1);
 			else
 				BK4819_DisableScramble();
 		}
@@ -594,7 +594,7 @@ void RADIO_SetupRegisters(bool switchToForeground)
 
 
 	// RX expander
-	BK4819_SetCompander((gRxVfo->Modulation == MODULATION_FM && gRxVfo->Compander >= 2) ? gRxVfo->Compander : 0);
+	BK4819_SetCompander((gTxVfo->Modulation == MODULATION_FM && gTxVfo->Compander >= 2) ? gTxVfo->Compander : 0);
 
 	BK4819_WriteRegister(BK4819_REG_3F, InterruptMask);
 
@@ -621,7 +621,7 @@ void RADIO_SetTxParameters(void)
 	BK4819_SetFrequency(gCurrentVfo->pTX->Frequency);
 
 	// TX compressor
-	BK4819_SetCompander((gRxVfo->Modulation == MODULATION_FM && (gRxVfo->Compander == 1 || gRxVfo->Compander >= 3)) ? gRxVfo->Compander : 0);
+	BK4819_SetCompander((gTxVfo->Modulation == MODULATION_FM && (gTxVfo->Compander == 1 || gTxVfo->Compander >= 3)) ? gTxVfo->Compander : 0);
 
 	BK4819_PrepareTransmit(gMuteMic);
 

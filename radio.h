@@ -130,8 +130,8 @@ extern VFO_Info_t    *gTxVfo;
 
 // Settings of the actual VFO that is now used for RX,
 // It is being alternated by dual watch, and flipped by crossband
-// The pointer follows gEeprom.RX_VFO
-extern VFO_Info_t    *gRxVfo;
+// The pointer follows gEeprom.TX_VFO
+extern VFO_Info_t    *gTxVfo;
 
 // Equal to gTxVfo unless dual watch changes it on incomming transmition (this can only happen when XB off and DW on)
 extern VFO_Info_t    *gCurrentVfo;

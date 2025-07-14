@@ -1250,7 +1250,7 @@ static void MENU_Key_STAR(const bool bKeyPressed, const bool bKeyHeld)
 
 	RADIO_SelectVfos();
 
-		if (gRxVfo->Modulation ==  MODULATION_FM)
+		if (gTxVfo->Modulation ==  MODULATION_FM)
 	{
 		gPttWasReleased = true;
 		return;

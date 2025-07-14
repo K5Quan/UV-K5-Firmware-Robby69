@@ -166,7 +166,7 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 
 		sLevelAttributes sLevelAtt;
 		
-		sLevelAtt = GetSLevelAttributes(rssi, gRxVfo->freq_config_RX.Frequency);
+		sLevelAtt = GetSLevelAttributes(rssi, gTxVfo->freq_config_RX.Frequency);
 		
 		uint8_t overS9Bars = MIN(sLevelAtt.over/10, 4);
 		
@@ -186,19 +186,19 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 
 	uint8_t Level;
 
-	if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][3]) {
+	if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][3]) {
 		Level = 6;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][2]) {
+	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][2]) {
 		Level = 4;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][1]) {
+	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][1]) {
 		Level = 2;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gRxVfo->Band][0]) {
+	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][0]) {
 		Level = 1;
 	} else {
 		Level = 0;
 	}
 
-	uint8_t *pLine = (gEeprom.RX_VFO == 0)? gFrameBuffer[2] : gFrameBuffer[6];
+	uint8_t *pLine = (gEeprom.TX_VFO == 0)? gFrameBuffer[2] : gFrameBuffer[6];
 	if (now)
 		memset(pLine, 0, 23);
 	DrawSmallAntennaAndBars(pLine, Level);
@@ -266,7 +266,7 @@ void UI_DisplayMain(void)
 			if ((gCurrentFunction == FUNCTION_RECEIVE ||
 			     gCurrentFunction == FUNCTION_MONITOR ||
 			     gCurrentFunction == FUNCTION_INCOMING) &&
-			     gEeprom.RX_VFO == vfo_num)
+			     gEeprom.TX_VFO == vfo_num)
 			{UI_PrintStringSmallBold("RX", 0, 0, line+1);}
 		}
 
@@ -341,7 +341,7 @@ void UI_DisplayMain(void)
 		uint8_t Level = 0;
 		if (mode == 1)
 		{	// TX power level
-			switch (gRxVfo->OUTPUT_POWER)
+			switch (gTxVfo->OUTPUT_POWER)
 			{
 				case OUTPUT_POWER_LOW:  Level = 2; break;
 				case OUTPUT_POWER_MID:  Level = 4; break;
@@ -425,7 +425,7 @@ void UI_DisplayMain(void)
 
 		if (rx) {
 			center_line = CENTER_LINE_RSSI;
-			DisplayRSSIBar(gCurrentRSSI[gEeprom.RX_VFO], false);
+			DisplayRSSIBar(gCurrentRSSI[gEeprom.TX_VFO], false);
 		}
 	}
 

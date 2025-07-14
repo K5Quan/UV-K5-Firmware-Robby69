@@ -109,8 +109,8 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 						gEeprom.VfoInfo[vfo].CHANNEL_SAVE = channel;
 
 						RADIO_SelectVfos();
-						RADIO_ApplyTxOffset(gRxVfo);
-						RADIO_ConfigureSquelchAndOutputPower(gRxVfo);
+						RADIO_ApplyTxOffset(gTxVfo);
+						RADIO_ConfigureSquelchAndOutputPower(gTxVfo);
 						RADIO_SetupRegisters(true);
 						
 						gRequestSaveChannel = 1;

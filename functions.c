@@ -48,7 +48,7 @@ void FUNCTION_Init(void)
 {
 
 	{
-		gCurrentCodeType = (gRxVfo->Modulation != MODULATION_FM) ? CODE_TYPE_OFF : gRxVfo->pRX->CodeType;
+		gCurrentCodeType = (gTxVfo->Modulation != MODULATION_FM) ? CODE_TYPE_OFF : gTxVfo->pRX->CodeType;
 	}
 
 
