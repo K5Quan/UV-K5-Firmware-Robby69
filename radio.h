@@ -138,7 +138,7 @@ extern VFO_Info_t    *gCurrentVfo;
 
 extern DCS_CodeType_t gCurrentCodeType;
 
-extern VfoState_t     VfoState[2];
+extern VfoState_t     VfoState;
 
 // determines whether mic should be muted during TX (i.e during FSK modem TX)
 extern bool           gMuteMic;
@@ -154,7 +154,6 @@ void       RADIO_SetupRegisters(bool bSwitchToFunction0);
 void       RADIO_SetTxParameters(void);
 void       RADIO_SetModulation(ModulationMode_t modulation);
 void       RADIO_SetVfoState(VfoState_t State);
-VfoState_t RADIO_GetVfoState();
 void       RADIO_PrepareTX(void);
 void       RADIO_EnableCxCSS(void);
 void       RADIO_PrepareCssTX(void);

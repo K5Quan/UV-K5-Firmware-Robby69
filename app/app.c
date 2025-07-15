@@ -302,7 +302,7 @@ void APP_StartListening(FUNCTION_Type_t Function)
 
 	if (gSetting_backlight_on_tx_rx >= BACKLIGHT_ON_TR_RX)
 		BACKLIGHT_TurnOn();
-	gTxVfoIsActive = true; //Temp
+	gTxVfoIsActive = true; 
 	gUpdateStatus    = true;
 	// AF gain - original QS values
 	// if (gTxVfo->Modulation != MODULATION_FM){

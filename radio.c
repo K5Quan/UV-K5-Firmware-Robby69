@@ -34,12 +34,13 @@
 #include "settings.h"
 #include "ui/menu.h"
 #include "board.h"
+//#include "debugging.h"
 
 VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gTxVfo;
 VFO_Info_t    *gCurrentVfo;
 DCS_CodeType_t gCurrentCodeType;
-VfoState_t     VfoState[2];
+VfoState_t     VfoState;
 bool           gMuteMic;
 
 const char gModulationStr[][4] =
@@ -690,17 +691,12 @@ void RADIO_SetVfoState(VfoState_t State)
 {
 	if (State == VFO_STATE_NORMAL)
 	{
-		VfoState[0] = VFO_STATE_NORMAL;
-		VfoState[1] = VFO_STATE_NORMAL;
+		VfoState = VFO_STATE_NORMAL;
 		gVFOStateResumeCountdown_500ms = 0;
 	}
 	else
 	{
-		if (State == VFO_STATE_VOLTAGE_HIGH)
-		{
-			VfoState[0] = VFO_STATE_VOLTAGE_HIGH;
-			VfoState[1] = VFO_STATE_TX_DISABLE;
-		}
+		VfoState = VFO_STATE_TX_DISABLE;
 		gVFOStateResumeCountdown_500ms = vfo_state_resume_countdown_500ms;
 	}
 
@@ -711,51 +707,38 @@ void RADIO_PrepareTX(void)
 {
 	VfoState_t State = VFO_STATE_NORMAL;  // default to OK to TX
 
-	#if defined(ENABLE_TX1750)
-		if (gAlarmState == ALARM_STATE_TX1750)
-
-	#elif defined(ENABLE_TX1750)
-		if (gAlarmState == ALARM_STATE_OFF    ||
-		    gAlarmState == ALARM_STATE_TX1750)
-	#endif
-	{
-		#ifndef ENABLE_TX_WHEN_AM
-			if (gCurrentVfo->Modulation != MODULATION_FM)
-			{	// not allowed to TX if in AM mode
-				State = VFO_STATE_TX_DISABLE;
-			}
-			else
-		#endif
-		if (gSerialConfigCountDown_500ms > 0)
+	if (gCurrentVfo->Modulation != MODULATION_FM)
+	{	// not allowed to TX if in AM mode
+		State = VFO_STATE_TX_DISABLE;
+	}
+	else if (gSerialConfigCountDown_500ms > 0)
 		{	// TX is disabled or config upload/download in progress
 			State = VFO_STATE_TX_DISABLE;
 		}
-		else
-		if(gEeprom.RX_OFFSET!=0)
-		{
-			// disable TX when using RX_OFFSET to protect the upconverter
-			State = VFO_STATE_TX_DISABLE;
-		}
-		else
-		if (TX_freq_check(gCurrentVfo->pTX->Frequency) == 0)
-		{	// TX frequency is allowed
-			if (gCurrentVfo->BUSY_CHANNEL_LOCK && gCurrentFunction == FUNCTION_RECEIVE)
-				State = VFO_STATE_BUSY;          // busy RX'ing a station
-			else
-			if (gBatteryDisplayLevel == 0)
-				State = VFO_STATE_BAT_LOW;       // charge your battery !
-			else
-			if (gBatteryDisplayLevel > 6)
-				State = VFO_STATE_VOLTAGE_HIGH;  // over voltage .. this is being a pain
-		}
-		else
-			State = VFO_STATE_TX_DISABLE;        // TX frequency not allowed
+
+	if(gEeprom.RX_OFFSET!=0)
+	{
+		// disable TX when using RX_OFFSET to protect the upconverter
+		State = VFO_STATE_TX_DISABLE;
 	}
+
+	if (TX_freq_check(gCurrentVfo->pTX->Frequency) == 0)
+	{	// TX frequency is allowed
+		if (gCurrentVfo->BUSY_CHANNEL_LOCK && gCurrentFunction == FUNCTION_RECEIVE)
+			State = VFO_STATE_BUSY;          // busy RX'ing a station
+		else
+		if (gBatteryDisplayLevel == 0)
+			State = VFO_STATE_BAT_LOW;       // charge your battery !
+		else
+		if (gBatteryDisplayLevel > 6)
+			State = VFO_STATE_VOLTAGE_HIGH;  // over voltage .. this is being a pain
+	}
+	else
+		State = VFO_STATE_TX_DISABLE;        // TX frequency not allowed
 
 	if (State != VFO_STATE_NORMAL)
 	{	// TX not allowed
 		RADIO_SetVfoState(State);
-
 		AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 		return;
 	}

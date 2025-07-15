@@ -122,7 +122,7 @@ void UI_DisplayAudioBar(void)
 	uint8_t *p_line = gFrameBuffer[line];
 	memset(p_line, 0, LCD_WIDTH);
 
-	DrawLevelBar(62, line, bars);
+	DrawLevelBar(6, line, bars);
 
 	if (gCurrentFunction == FUNCTION_TRANSMIT)
 		ST7565_BlitFullScreen();
@@ -136,14 +136,14 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 #if defined(ENABLE_RSSI_BAR)
 
 	if (center_line == CENTER_LINE_RSSI) {
-		const unsigned int txt_width    = 7 * 8;                 // 8 text chars
-		const unsigned int bar_x        = 2 + txt_width + 4;     // X coord of bar graph
-
+		//const unsigned int txt_width    = 7 * 8;                 // 8 text chars
+		//const unsigned int bar_x        = 2 + txt_width + 4;     // X coord of bar graph
+		const unsigned int bar_x        = 20; 
 		const unsigned int line         = 3;
 		uint8_t           *p_line        = gFrameBuffer[line];
-		char               str[16];
+		//char               str[16];
 
-		const char plus[] = {
+/*		const char plus[] = {
 			0b00011000,
 			0b00011000,
 			0b01111110,
@@ -151,7 +151,7 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 			0b01111110,
 			0b00011000,
 			0b00011000,
-		};
+		};*/
 
 		if (gEeprom.KEY_LOCK && gKeypadLocked > 0)
 			return;     // display is in use
@@ -170,7 +170,7 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 		
 		uint8_t overS9Bars = MIN(sLevelAtt.over/10, 4);
 		
-		if(overS9Bars == 0) {
+		/*if(overS9Bars == 0) {
 			sprintf(str, "% 4d S%d", sLevelAtt.dBmRssi, sLevelAtt.sLevel); 
 		}
 		else {
@@ -178,7 +178,8 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 			memcpy(p_line + 2 + 7*5, &plus, ARRAY_SIZE(plus));
 		}
 
-		UI_PrintStringSmall(str, 2, 0, line);
+		UI_PrintStringSmall(str, 2, 0, line);*/ 
+		//Don't show values on s-meter
 
 		DrawLevelBar(bar_x, line, sLevelAtt.sLevel + overS9Bars);
 	}
@@ -278,17 +279,17 @@ void UI_DisplayMain(void)
 			else
 				sprintf(String, "M%.3s", INPUTBOX_GetAscii());  // show the input text
 			//UI_PrintStringSmall(String, x, 0, line);
-			UI_PrintString(String , 0, 0, line ,7);
+			UI_PrintString(String , 0, 0, line ,8);
 		}
 		
-		unsigned int state = VfoState[vfo_num];
+		unsigned int state = VfoState;
 		uint32_t frequency = gEeprom.VfoInfo[vfo_num].pRX->Frequency;
 
 		if (state != VFO_STATE_NORMAL)
 		{
 			const char *state_list[] = {"", "BUSY", "BAT LOW", "TX DISABLE", "TIMEOUT", "ALARM", "VOLT HIGH"};
 			if (state < ARRAY_SIZE(state_list))
-				UI_PrintString(state_list[state], 31, 0, line, 8);
+				UI_PrintString(state_list[state], 31, 0, line+2, 8);
 		}
 
 		if (gInputBoxIndex > 0 && IS_FREQ_CHANNEL(gEeprom.ScreenChannel[vfo_num])){	// user entering a frequency
@@ -299,7 +300,7 @@ void UI_DisplayMain(void)
 				UI_PrintStringSmall(String + 7, 109, 0, line + 1); //temp
 				String[7] = 0;
 				// show the main large frequency digits
-				UI_DisplayFrequency(String, 10, line, false);
+				UI_DisplayFrequency(String, 16, line, false);
 			}
 			else
 			{
@@ -310,10 +311,10 @@ void UI_DisplayMain(void)
 				// Always show frequency
 				sprintf(String, "%3u.%05u", frequency / 100000, frequency % 100000);   //temp
 				// show the remaining 2 small frequency digits
-				UI_PrintString(String + 7, 100, 0, line + 4,8);
+				UI_PrintString(String + 7, 100, 0, line + 4,9);
 				String[7] = 0;
 				// show the main large frequency digits
-				UI_DisplayFrequency(String, 15, line+4, false);
+				UI_DisplayFrequency(String, 16, line+4, false);
 
 				if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
 				{	// it's a channel
@@ -330,7 +331,7 @@ void UI_DisplayMain(void)
 					{	// no channel name, show the channel number instead
 						sprintf(String, "CH-%03u", gEeprom.ScreenChannel[vfo_num] + 1);
 					}
-						UI_PrintString(String, 30, 0,line,8);
+						UI_PrintString(String, 46, 0,line,8);
 				}
 			}
 
