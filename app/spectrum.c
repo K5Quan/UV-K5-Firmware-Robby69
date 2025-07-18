@@ -1384,8 +1384,9 @@ static void OnKeyDown(uint8_t key) {
                     if (bandListSelectedIndex < bandListScrollOffset) {
                         bandListScrollOffset = bandListSelectedIndex;
                     }
-                    redrawScreen = true;
                 }
+                else bandListSelectedIndex =  ARRAY_SIZE(BParams) - 1;
+                redrawScreen = true;
                 break;
             case KEY_DOWN:
                 // ARRAY_SIZE(BParams) gives the number of defined bands
@@ -1394,8 +1395,9 @@ static void OnKeyDown(uint8_t key) {
                     if (bandListSelectedIndex >= bandListScrollOffset + MAX_VISIBLE_LINES) {
                         bandListScrollOffset = bandListSelectedIndex - MAX_VISIBLE_LINES + 1;
                     }
-                    redrawScreen = true;
-                }
+              }
+                else bandListSelectedIndex = 0;
+                redrawScreen = true;
                 break;
             case KEY_4: // Band selection
                 if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
@@ -1458,8 +1460,9 @@ static void OnKeyDown(uint8_t key) {
                     if (scanListSelectedIndex < scanListScrollOffset) {
                         scanListScrollOffset = scanListSelectedIndex;
                     }
-                    redrawScreen = true;
                 }
+                else scanListSelectedIndex = validScanListCount-1;
+                redrawScreen = true;
                 break;
             case KEY_DOWN:
                 // ARRAY_SIZE(BParams) gives the number of defined bands
@@ -1467,9 +1470,10 @@ static void OnKeyDown(uint8_t key) {
                     scanListSelectedIndex++;
                     if (scanListSelectedIndex >= scanListScrollOffset + MAX_VISIBLE_LINES) {
                         scanListScrollOffset = scanListSelectedIndex - MAX_VISIBLE_LINES + 1;
-                    }
-                    redrawScreen = true;
+                    }    
                 }
+                else scanListSelectedIndex = 0;
+                redrawScreen = true;
                 break;
 #ifdef ENABLE_SCANLIST_SHOW_DETAIL
             case KEY_STAR: // NOWA OBSŁUGA - Show channels in selected scanlist
@@ -1566,6 +1570,7 @@ static void OnKeyDown(uint8_t key) {
                         parametersScrollOffset = parametersSelectedIndex;
                     }
                 }
+                else parametersSelectedIndex = PARAMETER_COUNT-1;
                 break;
           case KEY_DOWN:
                 if (parametersSelectedIndex < PARAMETER_COUNT-1) { 
@@ -1574,6 +1579,7 @@ static void OnKeyDown(uint8_t key) {
                         parametersScrollOffset = parametersSelectedIndex - MAX_VISIBLE_LINES + 1;
                     }
                 }
+                else parametersSelectedIndex = 0;
                 break;
           case KEY_3: // Scan list selection
                 if (parametersSelectedIndex == 0){
