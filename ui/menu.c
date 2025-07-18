@@ -57,7 +57,6 @@ const t_menu_item MenuList[] =
 	{"BusyCL", VOICE_ID_BUSY_LOCKOUT,                  MENU_BCL           }, // was "BCL"
 
 	{"Demodu", VOICE_ID_INVALID,                       MENU_AM            }, // was "AM"
-	{"RxAGC",  VOICE_ID_INVALID,                       MENU_RX_AGC        }, // RX Auto Gain Control
 	#ifdef ENABLE_SCANNER
 	{"ScList", VOICE_ID_INVALID,					   MENU_S_LIST        },
 	#endif
@@ -156,12 +155,6 @@ const char gSubMenu_SAVE[][4] =
 	"67%",
 	"75%",
 	"80%"
-};
-
-const char gSubMenu_RX_AGC[][6] =
-{
-	"SLOW",
-	"FAST"
 };
 
 const char gSubMenu_TOT[][7] =
@@ -497,9 +490,6 @@ void UI_DisplayMenu(void)
 				strcpy(String, gModulationStr[gSubMenuSelection]);
 				break;
 			
-			case MENU_RX_AGC:
-				strcpy(String, gSubMenu_RX_AGC[gSubMenuSelection]);
-				break;
 
 			case MENU_AUTOLK:
 				strcpy(String, (gSubMenuSelection == 0) ? "OFF" : "AUTO");

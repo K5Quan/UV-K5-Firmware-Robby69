@@ -557,8 +557,6 @@ void BOARD_EEPROM_Init(void)
 
 	// 0EA0..0EA7
 	EEPROM_ReadBuffer(0x0EA0, Data, 8);
-
-	gEeprom.RX_AGC = (Data[1] < RX_AGC_LEN) ? Data[1] : RX_AGC_SLOW;
 	#ifdef ENABLE_PWRON_PASSWORD
 		gEeprom.PASSWORD_WRONG_ATTEMPTS = (Data[2] > PASSWORD_MAX_RETRIES) ? PASSWORD_MAX_RETRIES : Data[2];
 	#endif

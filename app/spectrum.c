@@ -65,7 +65,7 @@ uint8_t SquelchBarKeyMode = 0; //Robby69 change keys between audio and history s
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 #define Bottom_print 51 //Robby69
 Mode appMode;
-#define UHF_NOISE_FLOOR 40
+#define UHF_NOISE_FLOOR 20
 #define MAX_ATTENUATION 160
 #define ATTENUATE_STEP  10
 bool    isNormalizationApplied;
@@ -429,6 +429,11 @@ uint16_t GetRssi() {
   BK4819_ReadRegister(0x63);
   SYSTICK_DelayUs(DelayRssi* 1000); // Delay in microseconds
   rssi = BK4819_GetRSSI();
+  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+    {
+      // Increase perceived RSSI for UHF bands to imitate radio squelch
+      rssi+=UHF_NOISE_FLOOR;
+    }
   rssi+=gainOffset[CurrentScanIndex()];
   return rssi;
 }
@@ -504,7 +509,7 @@ static void ToggleRX(bool on) {
         settings.modulationType = channelModulation;
         memmove(rxChannelName, channelName, sizeof(rxChannelName));
         RADIO_SetModulation(settings.modulationType);
-        BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+        BK4819_InitAGC(settings.modulationType);
         redrawScreen = true;
     }
 
@@ -573,7 +578,7 @@ static bool InitScan() {
                 scanInfo.measurementsCount = GetStepsCount();
                 
                 RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
-                BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+                BK4819_InitAGC(settings.modulationType);
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przygotuj indeks na następne wywołanie
                 scanInitializedSuccessfully = true;
                 redrawStatus = true; // Te flagi mogą być potrzebne tutaj
@@ -778,7 +783,7 @@ static void ToggleModulation() {
     settings.modulationType = MODULATION_FM;
   }
   RADIO_SetModulation(settings.modulationType);
-  BK4819_InitAGC(gEeprom.RX_AGC, settings.modulationType);
+  BK4819_InitAGC(settings.modulationType);
   redrawScreen = true;
   
 
@@ -975,7 +980,7 @@ static void DrawSpectrum()
 static void DrawStatus() {
   int len=0;
   int pos=0;
-  len = sprintf(&String[pos],"%s %d %d %s ", gModulationStr[settings.modulationType],settings.dbMin,settings.dbMax,bwNames[settings.listenBw] );
+  len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
   pos += len;  // Move position forward
   uint16_t steps=GetStepsCount();
     if(isNormalizationApplied){

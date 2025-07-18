@@ -90,11 +90,8 @@ void Main(void)
 
 	RADIO_SetupRegisters(true);
 
-	BK4819_InitAGC(gEeprom.RX_AGC, gTxVfo->Modulation);
+	BK4819_InitAGC(gTxVfo->Modulation);
 	BK4819_SetAGC(1);
-	//Robby69
-	//BK4819_SetAGC(gEeprom.RX_AGC!=RX_AGC_OFF);
-
 
 	for (i = 0; i < ARRAY_SIZE(gBatteryVoltages); i++)
 		BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[i]);

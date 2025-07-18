@@ -96,7 +96,6 @@ void SETTINGS_SaveSettings(void)
 	EEPROM_WriteBuffer(0x0E98, State, true);
 
 	memset(State, 0xFF, sizeof(State));
-	State[1] = gEeprom.RX_AGC;
 	#ifdef ENABLE_PWRON_PASSWORD
 		State[2] = gEeprom.PASSWORD_WRONG_ATTEMPTS;
 	#endif
