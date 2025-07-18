@@ -285,10 +285,10 @@ void BK4819_InitAGC(const uint8_t agcType, ModulationMode_t modulation)
 		switch(agcType)
 		{	
 			case RX_AGC_SLOW:
-				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (10 << 0));
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (20 << 0));
 				break;
 			case RX_AGC_FAST:
-				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (20 << 0));
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (30 << 0));
 				break;
 			default:
 				return;
@@ -300,10 +300,10 @@ void BK4819_InitAGC(const uint8_t agcType, ModulationMode_t modulation)
 		switch(agcType)
 		{	
 			case RX_AGC_SLOW:
-				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (56 << 0));
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (66 << 0));
 				break;
 			case RX_AGC_FAST:
-				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (66 << 0));
+				BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (84 << 7) | (76 << 0));
 				break;
 			default:
 				return;

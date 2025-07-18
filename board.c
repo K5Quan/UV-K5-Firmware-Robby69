@@ -500,7 +500,6 @@ void BOARD_Init(void)
 
 void BOARD_EEPROM_Init(void)
 {
-	unsigned int i;
 	uint8_t      Data[16];
 
 	memset(Data, 0, sizeof(Data));
@@ -547,7 +546,6 @@ void BOARD_EEPROM_Init(void)
 	gEeprom.KEY_1_LONG_PRESS_ACTION      = (Data[2] < ACTION_OPT_LEN) ? Data[2] : ACTION_OPT_FLASHLIGHT;
 	gEeprom.KEY_2_SHORT_PRESS_ACTION     = (Data[3] < ACTION_OPT_LEN) ? Data[3] : ACTION_OPT_TOGGLE_PTT;
 	gEeprom.KEY_2_LONG_PRESS_ACTION      = (Data[4] < ACTION_OPT_LEN) ? Data[4] : ACTION_OPT_NONE;
-	gEeprom.SCAN_RESUME_MODE             = (Data[5] < 3)              ? Data[5] : SCAN_RESUME_CO;
 	gEeprom.AUTO_KEYPAD_LOCK             = (Data[6] < 2)              ? Data[6] : false;
 	gEeprom.POWER_ON_DISPLAY_MODE        = (Data[7] < 4)              ? Data[7] : POWER_ON_DISPLAY_MODE_VOLTAGE;
 
@@ -569,22 +567,10 @@ void BOARD_EEPROM_Init(void)
 	EEPROM_ReadBuffer(0x0EA8, Data, 8);
 	gEeprom.ROGER                          = (Data[1] <  3) ? Data[1] : ROGER_MODE_OFF;
 	// Data[2] empty slot
-	gEeprom.TX_VFO                         = (Data[3] <  2) ? Data[3] : 0;
+	gEeprom.TX_VFO                         = 0;
 	gEeprom.BATTERY_TYPE                   = (Data[4] < BATTERY_TYPE_UNKNOWN) ? Data[4] : BATTERY_TYPE_1600_MAH;
 	gEeprom.SQL_TONE                       = (Data[5] <  ARRAY_SIZE(CTCSS_Options)) ? Data[5] : 50;
 	// 0ED0..0ED7
-
-	// 0F18..0F1F
-	EEPROM_ReadBuffer(0x0F18, Data, 8);
-//	gEeprom.SCAN_LIST_DEFAULT = (Data[0] < 2) ? Data[0] : false;
-	gEeprom.SCAN_LIST_DEFAULT = (Data[0] < 3) ? Data[0] : false;  // we now have 'all' channel scan option
-	for (i = 0; i < 2; i++)
-	{
-		const unsigned int j = 1 + (i * 3);
-		gEeprom.SCAN_LIST_ENABLED[i]     = (Data[j + 0] < 2) ? Data[j] : false;
-		gEeprom.SCANLIST_PRIORITY_CH1[i] =  Data[j + 1];
-		gEeprom.SCANLIST_PRIORITY_CH2[i] =  Data[j + 2];
-	}
 
 	// 0F40..0F47
 	EEPROM_ReadBuffer(0x0F40, Data, 8);

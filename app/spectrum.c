@@ -21,10 +21,12 @@
 uint8_t DelayRssi=11;
 uint8_t RandomEmission = 0;
 uint16_t SpectrumDelay = 0;
-#define PARAMETER_COUNT 5
-/////////////////////////////
+bool autoZoomEnabled = 0;
 uint32_t gScanRangeStart;
 uint32_t gScanRangeStop;
+#define PARAMETER_COUNT 6
+/////////////////////////////
+
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 #define SQUELCH_OFF_DELAY 10;
@@ -601,7 +603,7 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max+15, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(max+8, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
@@ -654,7 +656,7 @@ static void UpdateScanInfo() {
   }
   // add attenuation offset to prevent noise floor lowering when attenuated rx is over
   // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin) {
+  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin && !autoZoomEnabled) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawStatus = true;
@@ -973,7 +975,7 @@ static void DrawSpectrum()
 static void DrawStatus() {
   int len=0;
   int pos=0;
-  len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
+  len = sprintf(&String[pos],"%s %d %d %s ", gModulationStr[settings.modulationType],settings.dbMin,settings.dbMax,bwNames[settings.listenBw] );
   pos += len;  // Move position forward
   uint16_t steps=GetStepsCount();
     if(isNormalizationApplied){
@@ -1299,6 +1301,50 @@ static void DrawRssiTriggerLevel() {
   }
 }
 
+static void CalculateAutoZoomRange() {
+    // Find min and max RSSI values in the current display
+    uint16_t minRssi = RSSI_MAX_VALUE;
+    uint16_t maxRssi = 0;
+    
+    for (uint8_t i = 0; i < 128; i++) {
+        uint16_t rssi = rssiHistory[i];
+        if (rssi != RSSI_MAX_VALUE && rssi != 0) { // Skip invalid/blacklisted values
+            if (rssi < minRssi) minRssi = rssi;
+            if (rssi > maxRssi) maxRssi = rssi;
+        }
+    }
+
+    // If we have valid signals
+    if (maxRssi > 0) {
+        if (settings.rssiTriggerLevel > maxRssi) maxRssi = settings.rssiTriggerLevel+10;
+        // Add some padding (about 10% of range)
+        uint16_t range = maxRssi - minRssi;
+        uint16_t padding = range / 20;
+        
+        // Convert to dBm values
+        settings.dbMin = Rssi2DBm(minRssi);
+        settings.dbMax = Rssi2DBm(maxRssi + padding);
+        
+        // Ensure we have at least 40dB range for visibility
+        if ((settings.dbMax - settings.dbMin) < 40) {
+             settings.dbMax = settings.dbMin+40;
+        }
+        
+        // Clamp to reasonable limits
+        //settings.dbMin = MAX(settings.dbMin, -80);
+        //settings.dbMax = MIN(settings.dbMax, 60);
+        if(settings.dbMin  > settings.dbMax)
+			    SWAP(settings.dbMin, settings.dbMax);
+    } else {
+        // Default range if no signals
+        settings.dbMin = -60;
+        settings.dbMax = -20;
+    }
+    
+    redrawScreen = true;
+    redrawStatus = true;
+} 
+
 static void OnKeyDown(uint8_t key) {
         BACKLIGHT_TurnOn();
   
@@ -1540,6 +1586,7 @@ static void OnKeyDown(uint8_t key) {
                        }
 
                   else if (parametersSelectedIndex == 2) RandomEmission = 1;
+                  else if (parametersSelectedIndex == 5) autoZoomEnabled = 1;
 
                 break;
           case KEY_1:   
@@ -1562,6 +1609,7 @@ static void OnKeyDown(uint8_t key) {
                             {FreqInput();
                             Key_1_pressed =1;
                             }
+                    else if (parametersSelectedIndex == 5) autoZoomEnabled = 0;
                 break;
         case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(SPECTRUM);
@@ -2124,6 +2172,11 @@ static void UpdateScan() {
     NextScanStep();
     return;
   }
+
+  if (autoZoomEnabled) {
+        CalculateAutoZoomRange();
+  }
+
  if(scanInfo.measurementsCount < 128)
     memset(&rssiHistory[scanInfo.measurementsCount], 0, sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
   redrawScreen = true;
@@ -2394,6 +2447,7 @@ typedef struct {
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
+    bool autoZoomEn;
 } SettingsEEPROM;
 
 
@@ -2406,6 +2460,7 @@ void LoadSettings()
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+  autoZoomEnabled = eepromData.autoZoomEn;
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
@@ -2439,6 +2494,7 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.RandomEmission = RandomEmission;
+  eepromData.autoZoomEn = autoZoomEnabled;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
@@ -2526,6 +2582,7 @@ static void GetParametersText(uint8_t index, char *buffer) {
 if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
 if (index == 3) sprintf(buffer, "FStart: %u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
 if (index == 4) sprintf(buffer, "FStop: %u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
+if (index == 5) sprintf(buffer, "AutoZoom: %s", autoZoomEnabled ? "ON" : "OFF");
  }
 
  static void GetBandItemText(uint8_t index, char* buffer) {
@@ -2704,4 +2761,8 @@ static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItem
     ST7565_BlitFullScreen();
 }
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
+
+
+
+
 
