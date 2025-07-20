@@ -17,15 +17,21 @@
 #endif
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 250
-//////////////////Parameters:
-uint8_t DelayRssi=11;
-uint8_t RandomEmission = 0;
-uint16_t SpectrumDelay = 0;
-bool autoZoomEnabled = 0;
-uint32_t gScanRangeStart;
-uint32_t gScanRangeStop;
-#define PARAMETER_COUNT 6
-/////////////////////////////
+
+/////////////////////////////Parameters://///////////////////////////
+// see parametersSelectedIndex
+// see GetParametersText
+uint8_t DelayRssi=11;         // 1
+uint8_t RandomEmission = 0;   // 2
+uint16_t SpectrumDelay = 0;   // 3
+bool autoZoomEnabled = 0;     // 4
+uint32_t gScanRangeStart;     // 5
+uint32_t gScanRangeStop;      // 6
+//Step                           7
+//ListenBW                       8
+//Modulation                     9
+#define PARAMETER_COUNT 9
+////////////////////////////////////////////////////////////////////
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 #define SQUELCH_OFF_DELAY 10;
@@ -710,22 +716,23 @@ static void ClampRssiTriggerLevel()
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-	if (inc){	
-		if (SquelchBarKeyMode == 2) {settings.rssiTriggerLevelH +=5;}
-		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel +=5;}
-		if (SquelchBarKeyMode == 0) {
-			settings.rssiTriggerLevelH +=5;
-			settings.rssiTriggerLevel +=5;}}
-	else {
-		if (SquelchBarKeyMode == 2) {settings.rssiTriggerLevelH -=5;}
-		if (SquelchBarKeyMode == 1) {settings.rssiTriggerLevel -=5;}
-		if (SquelchBarKeyMode == 0) {
-			settings.rssiTriggerLevelH -=5;
-		  settings.rssiTriggerLevel  -=5;}}
-  ClampRssiTriggerLevel();
-  BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
-
-  
+    const int8_t delta = inc ? 5 : -5;
+    
+    switch (SquelchBarKeyMode) {
+        case 2:
+            settings.rssiTriggerLevelH += delta;
+            break;
+        case 1:
+            settings.rssiTriggerLevel += delta;
+            break;
+        case 0:
+            settings.rssiTriggerLevelH += delta;
+            settings.rssiTriggerLevel += delta;
+            break;
+    }
+    
+    ClampRssiTriggerLevel();
+    BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
 }
 
 static void UpdateDBMax(bool inc) {
@@ -740,10 +747,17 @@ static void UpdateDBMax(bool inc) {
 }
 
 static void UpdateScanStep(bool inc) {
-  if (inc) settings.scanStepIndex++;
-  if (settings.scanStepIndex > S_STEP_500kHz) settings.scanStepIndex = S_STEP_0_01kHz;
+if (inc) {
+    settings.scanStepIndex = (settings.scanStepIndex >= S_STEP_500kHz) 
+                          ? S_STEP_0_01kHz 
+                          : settings.scanStepIndex + 1;
+} else {
+    settings.scanStepIndex = (settings.scanStepIndex <= S_STEP_0_01kHz) 
+                          ? S_STEP_500kHz 
+                          : settings.scanStepIndex - 1;
+}
   settings.frequencyChangeStep = GetBW() >> 1;
-  ResetModifiers();
+  redrawStatus = true;
   redrawScreen = true;
 }
 
@@ -979,33 +993,11 @@ static void DrawSpectrum()
 static void DrawStatus() {
   int len=0;
   int pos=0;
-  len = sprintf(&String[pos],"%s %d/%ddb %s ", gModulationStr[settings.modulationType],settings.dbMin,settings.dbMax,bwNames[settings.listenBw] );
+  len = sprintf(&String[pos],"%d/%ddb ",settings.dbMin,settings.dbMax);
   pos += len;  // Move position forward
-  /*uint16_t steps=GetStepsCount();
-    if(isNormalizationApplied){
-      if (steps > 1000) {len = sprintf(&String[pos], "N%ukx ", steps/1000);}
-      else {len = sprintf(&String[pos], "N%ux ", steps);}
-    }
-    else {
-      if (steps > 1000) {len = sprintf(&String[pos], "%ukx ", steps/1000);}
-      else {len = sprintf(&String[pos], "%ux ", steps);}
-    }*/
-    if(isNormalizationApplied){
-      len = sprintf(&String[pos], "N ");
-      pos += len;}
-    len = sprintf(&String[pos],"%dms ", DelayRssi);
-    pos += len;
-    
-  /*if (appMode==CHANNEL_MODE)
-    {
-      len = sprintf(&String[pos], "M%i ", channel+1);
-      pos += len;      
-    }
-    else
-    {len = sprintf(&String[pos], scanInfo.scanStep % 100 ? "%uk%02u" : "%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-    pos += len;}*/
-   
-  if(WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
+  if(isNormalizationApplied){len = sprintf(&String[pos], "N ");pos += len;}
+
+  if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
 
   GUI_DisplaySmallest(String, 0, 1, true,true);
@@ -1578,43 +1570,68 @@ static void OnKeyDown(uint8_t key) {
                 else parametersSelectedIndex = 0;
                 break;
           case KEY_3: // Scan list selection
-                if (parametersSelectedIndex == 0){
-                      DelayRssi ++; 
-                      if (DelayRssi > 12) DelayRssi = 2;
-                      redrawStatus = true;}
-
-                  else if (parametersSelectedIndex == 1) {
-                     if (SpectrumDelay < 61000) SpectrumDelay += (SpectrumDelay < 10000) ? 1000 : 5000;
-                       }
-
-                  else if (parametersSelectedIndex == 2) RandomEmission = 1;
-                  else if (parametersSelectedIndex == 5) autoZoomEnabled = 1;
-
-                break;
-          case KEY_1:   
-                if (parametersSelectedIndex == 0){
-                      DelayRssi --; 
-                      if (DelayRssi < 2) DelayRssi = 12;
-                      redrawStatus = true;}
-
-                    else if (parametersSelectedIndex == 1) {
-                      if (SpectrumDelay >= 1000) SpectrumDelay -= (SpectrumDelay < 10000) ? 1000 : 5000;
+          case KEY_1:
+          {
+              bool isKey3 = (key == KEY_3);
+              bool redrawNeeded = false;
+          
+              switch(parametersSelectedIndex) {
+                  case 0: // DelayRssi
+                      DelayRssi = isKey3 ? 
+                                 (DelayRssi >= 12 ? 2 : DelayRssi + 1) :
+                                 (DelayRssi <= 2 ? 12 : DelayRssi - 1);
+                      redrawNeeded = true;
+                      break;
+              
+                  case 1: // SpectrumDelay
+                      if (isKey3) {
+                          if (SpectrumDelay < 61000) {
+                              SpectrumDelay += (SpectrumDelay < 10000) ? 1000 : 5000;
+                          }
+                      } else if (SpectrumDelay >= 1000) {
+                          SpectrumDelay -= (SpectrumDelay < 10000) ? 1000 : 5000;
                       }
-
-                    else if (parametersSelectedIndex == 2) RandomEmission = 0;
-
-                    else if (parametersSelectedIndex == 3)
-                            {FreqInput();
-                              Key_1_pressed =1;
-                            }
-                    else if (parametersSelectedIndex == 4)
-                            {FreqInput();
-                            Key_1_pressed =1;
-                            }
-                    else if (parametersSelectedIndex == 5) autoZoomEnabled = 0;
-                break;
+                      break;
+                    
+                  case 2: // RandomEmission
+                      RandomEmission = isKey3 ? 1 : 0;
+                      break;
+                    
+                  case 3: // FreqInput
+                  case 4:
+                      if (!isKey3) {
+                          FreqInput();
+                          Key_1_pressed = 1;
+                      }
+                      break;
+                    
+                  case 5: // autoZoomEnabled
+                      autoZoomEnabled = isKey3 ? 1 : 0;
+                      break;
+                    
+                  case 6: // UpdateScanStep
+                      if (appMode != CHANNEL_MODE) {
+                          UpdateScanStep(isKey3);
+                      }
+                      break;
+                    
+                  case 7: // ToggleListeningBW
+                  case 8: // ToggleModulation
+                      if (isKey3 || key == KEY_1) {
+                          if (parametersSelectedIndex == 7) ToggleListeningBW();
+                          else ToggleModulation();
+                      }
+                      break;
+              }
+            
+              if (isKey3 || redrawNeeded) {
+                  redrawStatus = true;
+              }
+              break;
+          }
         case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(SPECTRUM);
+          ResetModifiers();
           if(Key_1_pressed) {
             APP_RunSpectrum(3);
           }
@@ -1655,8 +1672,8 @@ static void OnKeyDown(uint8_t key) {
     break;
      
      case KEY_7:
-       if(appMode!=CHANNEL_MODE) {UpdateScanStep(true);}
-       break;
+        SaveSettings(); 
+        break;
      
      case KEY_2:
       if (appMode != SCAN_BAND_MODE || SingleBandCheck())
@@ -1761,12 +1778,10 @@ break;
     break;
 
   case KEY_0:
-    ToggleModulation();
-    redrawStatus = true;
+    //Free
     break;
   case KEY_6:
-    ToggleListeningBW();
-    redrawStatus = true;
+    //Free
     break;
   
   case KEY_SIDE2:
@@ -1900,7 +1915,7 @@ void OnKeyDownStill(KEY_Code_t key) {
     FreqInput();
     break;
   case KEY_0:
-    ToggleModulation();
+    //Free
     break;
   case KEY_6:
     ToggleListeningBW();
@@ -2569,19 +2584,58 @@ static void GetFilteredScanListText(uint8_t displayIndex, char* buffer) {
     uint8_t realIndex = validScanListIndices[displayIndex];
     GetScanListLabel(realIndex, buffer);
 }
-
 static void GetParametersText(uint8_t index, char *buffer) {
-  if (index == 0) sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
-  if (index == 1) {
-    if (SpectrumDelay <65000) sprintf(buffer, "SpectrumDelay:%2us", SpectrumDelay / 1000);
-      else sprintf(buffer, "SpectrumDelay: oo");
-  }
-
-if (index == 2) sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
-if (index == 3) sprintf(buffer, "FStart: %u.%05u", gScanRangeStart / 100000, gScanRangeStart % 100000);
-if (index == 4) sprintf(buffer, "FStop: %u.%05u", gScanRangeStop / 100000, gScanRangeStop % 100000);
-if (index == 5) sprintf(buffer, "AutoZoom: %s", autoZoomEnabled ? "ON" : "OFF");
- }
+    switch(index) {
+        case 0:
+            sprintf(buffer, "Rssi Delay: %2d ms", DelayRssi);
+            break;
+            
+        case 1:
+            sprintf(buffer, "SpectrumDelay: %s", 
+                   SpectrumDelay < 65000 ? "%2us" : "oo");
+            break;
+            
+        case 2:
+            sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
+            break;
+            
+        case 3: {
+            uint32_t start = gScanRangeStart;
+            sprintf(buffer, "FStart: %u.%05u", start / 100000, start % 100000);
+            break;
+        }
+            
+        case 4: {
+            uint32_t stop = gScanRangeStop;
+            sprintf(buffer, "FStop: %u.%05u", stop / 100000, stop % 100000);
+            break;
+        }
+            
+        case 5:
+            sprintf(buffer, "AutoZoom: %s", autoZoomEnabled ? "ON" : "OFF");
+            break;
+            
+        case 6: {
+            uint32_t step = GetScanStep();
+            sprintf(buffer, step % 100 ? "STEP: %uk%02u" : "STEP: %uk", 
+                   step / 100, step % 100);
+            break;
+        }
+            
+        case 7:
+            sprintf(buffer, "ListenBw: %s", bwNames[settings.listenBw]);
+            break;
+            
+        case 8:
+            sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
+            break;
+            
+        default:
+            // Gestion d'un index inattendu (optionnel)
+            buffer[0] = '\0';
+            break;
+    }
+}
 
  static void GetBandItemText(uint8_t index, char* buffer) {
     
