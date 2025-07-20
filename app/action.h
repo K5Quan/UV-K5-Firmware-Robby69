@@ -40,4 +40,4 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
 
 #endif
 
-BK4819_FilterBandwidth_t ACTION_NextBandwidth(BK4819_FilterBandwidth_t currentBandwidth, const bool dynamic);
+BK4819_FilterBandwidth_t ACTION_NextBandwidth(BK4819_FilterBandwidth_t currentBandwidth, const bool dynamic, const bool increase);

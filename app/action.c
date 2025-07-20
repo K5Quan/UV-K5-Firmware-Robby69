@@ -144,22 +144,18 @@ void ACTION_SwitchDemodul(void)
 	gRequestSaveChannel = 1;
 }
 
-BK4819_FilterBandwidth_t ACTION_NextBandwidth(BK4819_FilterBandwidth_t currentBandwidth, const bool dynamic)
+BK4819_FilterBandwidth_t ACTION_NextBandwidth(BK4819_FilterBandwidth_t currentBandwidth, const bool dynamic, bool increase)
 {
-  BK4819_FilterBandwidth_t nextBandwidth;
-  if (currentBandwidth == BK4819_FILTER_BW_NARROWEST)
-  {
-	nextBandwidth = BK4819_FILTER_BW_WIDE;
-  }
-  else 
-  {
-	nextBandwidth = currentBandwidth + 1;
-  }
+    BK4819_FilterBandwidth_t nextBandwidth =
+        (increase && currentBandwidth == BK4819_FILTER_BW_NARROWEST) ? BK4819_FILTER_BW_WIDE :
+        (!increase && currentBandwidth == BK4819_FILTER_BW_WIDE)     ? BK4819_FILTER_BW_NARROWEST :
+        (increase ? currentBandwidth + 1 : currentBandwidth - 1);
 
-  BK4819_SetFilterBandwidth(nextBandwidth, dynamic);
-  gRequestSaveChannel = 1;
-  return nextBandwidth;
+    BK4819_SetFilterBandwidth(nextBandwidth, dynamic);
+    gRequestSaveChannel = 1;
+    return nextBandwidth;
 }
+
 
 #ifdef ENABLE_BLMIN_TMP_OFF
 void ACTION_BlminTmpOff(void)
@@ -251,7 +247,7 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			break;
 		case ACTION_OPT_BANDWIDTH:
 			gTxVfo->CHANNEL_BANDWIDTH =
-				ACTION_NextBandwidth(gTxVfo->CHANNEL_BANDWIDTH, gTxVfo->Modulation != MODULATION_AM);
+				ACTION_NextBandwidth(gTxVfo->CHANNEL_BANDWIDTH, gTxVfo->Modulation != MODULATION_AM, 1);
 			break;
 #ifdef ENABLE_BLMIN_TMP_OFF
 		case ACTION_OPT_BLMIN_TMP_OFF:

@@ -757,6 +757,7 @@ if (inc) {
                           : settings.scanStepIndex - 1;
 }
   settings.frequencyChangeStep = GetBW() >> 1;
+  scanInfo.scanStep = settings.scanStepIndex;
   redrawStatus = true;
   redrawScreen = true;
 }
@@ -802,8 +803,8 @@ static void ToggleModulation() {
 
 }
 
-static void ToggleListeningBW() {
-  settings.listenBw = ACTION_NextBandwidth(settings.listenBw, false);
+static void ToggleListeningBW(bool inc) {
+  settings.listenBw = ACTION_NextBandwidth(settings.listenBw, false, inc);
   redrawScreen = true;
 }
 
@@ -993,6 +994,28 @@ static void DrawSpectrum()
 static void DrawStatus() {
   int len=0;
   int pos=0;
+
+  switch(appMode) {
+    case FREQUENCY_MODE:
+      len = sprintf(&String[pos],"Freq ");
+      pos += len;
+    break;
+
+    case CHANNEL_MODE:
+      len = sprintf(&String[pos],"List ");
+      pos += len;
+    break;
+
+    case SCAN_RANGE_MODE:
+      len = sprintf(&String[pos],"Range ");
+      pos += len;
+    break;
+    
+    case SCAN_BAND_MODE:
+      len = sprintf(&String[pos],"Band ");
+      pos += len;
+    break;
+  }
   len = sprintf(&String[pos],"%d/%ddb ",settings.dbMin,settings.dbMax);
   pos += len;  // Move position forward
   if(isNormalizationApplied){len = sprintf(&String[pos], "N ");pos += len;}
@@ -1610,7 +1633,7 @@ static void OnKeyDown(uint8_t key) {
                       break;
                     
                   case 6: // UpdateScanStep
-                      if (appMode != CHANNEL_MODE) {
+                      if (appMode != CHANNEL_MODE && appMode != SCAN_BAND_MODE) {
                           UpdateScanStep(isKey3);
                       }
                       break;
@@ -1618,8 +1641,11 @@ static void OnKeyDown(uint8_t key) {
                   case 7: // ToggleListeningBW
                   case 8: // ToggleModulation
                       if (isKey3 || key == KEY_1) {
-                          if (parametersSelectedIndex == 7) ToggleListeningBW();
-                          else ToggleModulation();
+                          if (parametersSelectedIndex == 7) {
+                              ToggleListeningBW(isKey3 ? 0 : 1);
+                          } else {
+                              ToggleModulation();
+                          }
                       }
                       break;
               }
@@ -1631,6 +1657,7 @@ static void OnKeyDown(uint8_t key) {
           }
         case KEY_EXIT: // Exit parameters menu to previous menu/state
           SetState(SPECTRUM);
+          RelaunchScan();
           ResetModifiers();
           if(Key_1_pressed) {
             APP_RunSpectrum(3);
@@ -1918,7 +1945,7 @@ void OnKeyDownStill(KEY_Code_t key) {
     //Free
     break;
   case KEY_6:
-    ToggleListeningBW();
+    //Free
     break;
   case KEY_SIDE1:
     monitorMode = !monitorMode;
@@ -2591,8 +2618,8 @@ static void GetParametersText(uint8_t index, char *buffer) {
             break;
             
         case 1:
-            sprintf(buffer, "SpectrumDelay: %s", 
-                   SpectrumDelay < 65000 ? "%2us" : "oo");
+            if (SpectrumDelay < 65000) sprintf(buffer, "SpectrumDelay:%2us", SpectrumDelay / 1000);
+              else sprintf(buffer, "SpectrumDelay:oo");
             break;
             
         case 2:
