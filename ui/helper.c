@@ -284,8 +284,8 @@ void PutPixelStatus(uint8_t x, uint8_t y, bool fill) {
 }
 
 void DrawVLine(int sy, int ey, int nx, bool fill) {
-  for (int i = sy; i <= ey; i++) {
-    if (i < 56 && nx < 128) {
+  for (int i = sy; i <= ey; i++) { //Test
+    if (i>7 && i < 56 && nx < 128) {
       PutPixel(nx, i, fill);
     }
   }

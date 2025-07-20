@@ -26,7 +26,6 @@ uint32_t gScanRangeStart;
 uint32_t gScanRangeStop;
 #define PARAMETER_COUNT 6
 /////////////////////////////
-
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 #define SQUELCH_OFF_DELAY 10;
@@ -945,7 +944,7 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 
 static void DrawSpectrum()
-    {//Robby69 V4.16
+    {
       uint16_t steps = GetStepsCount();
       // max bars at 128 to correctly draw larger numbers of samples
       uint8_t bars = (steps > 128) ? 128 : steps;
@@ -980,9 +979,9 @@ static void DrawSpectrum()
 static void DrawStatus() {
   int len=0;
   int pos=0;
-  len = sprintf(&String[pos],"%s %ddb %s ", gModulationStr[settings.modulationType],settings.dbMax,bwNames[settings.listenBw] );
+  len = sprintf(&String[pos],"%s %d/%ddb %s ", gModulationStr[settings.modulationType],settings.dbMin,settings.dbMax,bwNames[settings.listenBw] );
   pos += len;  // Move position forward
-  uint16_t steps=GetStepsCount();
+  /*uint16_t steps=GetStepsCount();
     if(isNormalizationApplied){
       if (steps > 1000) {len = sprintf(&String[pos], "N%ukx ", steps/1000);}
       else {len = sprintf(&String[pos], "N%ux ", steps);}
@@ -990,19 +989,21 @@ static void DrawStatus() {
     else {
       if (steps > 1000) {len = sprintf(&String[pos], "%ukx ", steps/1000);}
       else {len = sprintf(&String[pos], "%ux ", steps);}
-    }
-    pos += len;
+    }*/
+    if(isNormalizationApplied){
+      len = sprintf(&String[pos], "N ");
+      pos += len;}
     len = sprintf(&String[pos],"%dms ", DelayRssi);
     pos += len;
     
-  if (appMode==CHANNEL_MODE)
+  /*if (appMode==CHANNEL_MODE)
     {
       len = sprintf(&String[pos], "M%i ", channel+1);
       pos += len;      
     }
     else
     {len = sprintf(&String[pos], scanInfo.scanStep % 100 ? "%uk%02u" : "%uk", scanInfo.scanStep / 100, scanInfo.scanStep % 100);
-    pos += len;}
+    pos += len;}*/
    
   if(WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
@@ -1324,28 +1325,18 @@ static void CalculateAutoZoomRange() {
         if (settings.rssiTriggerLevel > maxRssi) maxRssi = settings.rssiTriggerLevel+10;
         // Add some padding (about 10% of range)
         uint16_t range = maxRssi - minRssi;
-        uint16_t padding = range / 20;
+        uint16_t padding = range / 5;
         
         // Convert to dBm values
         settings.dbMin = Rssi2DBm(minRssi);
         settings.dbMax = Rssi2DBm(maxRssi + padding);
         
-        // Ensure we have at least 40dB range for visibility
-        if ((settings.dbMax - settings.dbMin) < 40) {
-             settings.dbMax = settings.dbMin+40;
-        }
+        // Ensure we have at least 20dB range for visibility
+        if ((settings.dbMax - settings.dbMin) < 20) {settings.dbMax = settings.dbMin+20;}
         
-        // Clamp to reasonable limits
-        //settings.dbMin = MAX(settings.dbMin, -80);
-        //settings.dbMax = MIN(settings.dbMax, 60);
         if(settings.dbMin  > settings.dbMax)
 			    SWAP(settings.dbMin, settings.dbMax);
-    } else {
-        // Default range if no signals
-        settings.dbMin = -60;
-        settings.dbMax = -20;
-    }
-    
+    } 
     redrawScreen = true;
     redrawStatus = true;
 } 
@@ -1779,11 +1770,10 @@ break;
     break;
   
   case KEY_SIDE2:
-      if (kbd.counter == 3) { // short press        
-        SquelchBarKeyMode += 1;
-        if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
-        ShowHistory = 1;
-        } 
+        
+      SquelchBarKeyMode += 1;
+      if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
+      ShowHistory = 1;
       break;
 
   case KEY_PTT:
@@ -1791,34 +1781,31 @@ break;
       break;
   
   case KEY_MENU:
-  if (kbd.counter == 3) SaveSettings(); // short press
-  else {
-        int validCount = 0;
-        
-        for (int k = 1; k <= FMaxNumb; ++k) {
-            if (freqHistory[k] != 0) {
-                validCount++;
-            }
-        }
-        if (currentState == HISTORY_LIST) {
-          uint32_t selectedFreq = freqHistory[historyListIndex+1];
+      int validCount = 0;
+      for (int k = 1; k <= FMaxNumb; ++k) {
+          if (freqHistory[k] != 0) {
+              validCount++;
+          }
+      }
+      if (currentState == HISTORY_LIST) {
+        uint32_t selectedFreq = freqHistory[historyListIndex+1];
+        currentFreq = selectedFreq;
+        fMeasure = selectedFreq;
+        SetF(fMeasure);
+      }
+      else if (historyListIndex < validCount && ShowHistory) {
+          uint32_t selectedFreq = freqHistory[indexFd];
           currentFreq = selectedFreq;
           fMeasure = selectedFreq;
           SetF(fMeasure);
-        }
-        else if (historyListIndex < validCount && ShowHistory) {
-            uint32_t selectedFreq = freqHistory[indexFd];
-            currentFreq = selectedFreq;
-            fMeasure = selectedFreq;
-            SetF(fMeasure);
-        } else {SetF(peak.f);}
-        
-        SetState(STILL);
-        monitorMode = false;
-        menuState = 0;
-        redrawScreen = true;
-        redrawStatus = true;
-        }
+      } else {SetF(peak.f);}
+
+      SetState(STILL);
+      monitorMode = false;
+      menuState = 0;
+      redrawScreen = true;
+      redrawStatus = true;
+
     break;
 
   case KEY_EXIT:
