@@ -21,15 +21,16 @@
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
 // see GetParametersText
-uint8_t DelayRssi=11;         // 1
-uint8_t RandomEmission = 0;   // 2
-uint16_t SpectrumDelay = 0;   // 3
-bool autoZoomEnabled = 0;     // 4
-uint32_t gScanRangeStart;     // 5
-uint32_t gScanRangeStop;      // 6
-//Step                           7
-//ListenBW                       8
-//Modulation                     9
+uint8_t DelayRssi=11;                           // 1
+uint8_t RandomEmission = 0;                     // 2
+uint16_t SpectrumDelay = 0;                     // 3
+bool autoZoomEnabled = 0;                       // 4
+uint32_t gScanRangeStart;                       // 5
+uint32_t gScanRangeStop;                        // 6
+//Step                                          // 7
+//ListenBW                                      // 8
+//Modulation                                    // 9
+//uint8_t AutoTriggerLevelActive = 20;            //10 
 #define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
 bool Key_1_pressed = 0;
@@ -281,9 +282,6 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
-
-// Spectrum related
-
 bool IsPeakOverLevel() {return peak.rssi > settings.rssiTriggerLevel; }
 
 bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
@@ -609,11 +607,7 @@ static bool InitScan() {
 }
 
 static void AutoTriggerLevel() {
-  uint8_t max = 0;
-  uint8_t i;
-  for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-    {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max+8, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(peak.rssi + 8, 0, RSSI_MAX_VALUE);
 	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
@@ -1320,6 +1314,21 @@ static void DrawRssiTriggerLevel() {
   y = Rssi2Y(settings.rssiTriggerLevelH);
   for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
   }
+  if (isListening) 
+  {
+    uint8_t y = Rssi2Y(peak.rssi);
+    if (y < 64) 
+    {
+        for (uint8_t x = 0; x < 12; x ++)
+        {
+            PutPixel(x, y, true);
+        }
+        for (uint8_t x = 116; x < 128; x ++)
+        {
+            PutPixel(x, y, true);
+        }
+    }
+  }
 }
 
 static void CalculateAutoZoomRange() {
@@ -1648,9 +1657,14 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
+                 /* case 9: // AutoTriggerLevelActive
+                    if (isKey3)
+                      AutoTriggerLevelActive = (AutoTriggerLevelActive == 100) ? 0 : AutoTriggerLevelActive + 5;
+                      else AutoTriggerLevelActive = (AutoTriggerLevelActive == 0) ? 100 : AutoTriggerLevelActive - 5;
+                      break;*/
               }
             
-              if (isKey3 || redrawNeeded) {
+              if (isKey3 || redrawNeeded) { //TO REMOVE MAYBE
                   redrawStatus = true;
               }
               break;
@@ -2656,7 +2670,9 @@ static void GetParametersText(uint8_t index, char *buffer) {
         case 8:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
             break;
-            
+       /* case 9:
+            sprintf(buffer, "Trigglevel:%d", AutoTriggerLevelActive);
+            break;*/
         default:
             // Gestion d'un index inattendu (optionnel)
             buffer[0] = '\0';

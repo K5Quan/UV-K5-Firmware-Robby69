@@ -1,12 +1,11 @@
-FROM --platform=amd64 archlinux:latest
-RUN pacman -Syyu base-devel --noconfirm
-RUN pacman -Syyu arm-none-eabi-gcc --noconfirm
-RUN pacman -Syyu arm-none-eabi-newlib --noconfirm
-RUN pacman -Syyu git --noconfirm
-RUN pacman -Syyu python-pip --noconfirm
-RUN pacman -Syyu python-crcmod --noconfirm
+FROM archlinux:latest
+
+RUN pacman -Syyu --noconfirm && \
+    pacman -S --noconfirm base-devel arm-none-eabi-gcc arm-none-eabi-newlib git python-pip python-crcmod && \
+    pacman -Scc --noconfirm
+
 WORKDIR /app
 COPY . .
 
 RUN git submodule update --init --recursive
-#RUN make && cp firmware* compiled-firmware/
+# RUN make && cp firmware* compiled-firmware/
