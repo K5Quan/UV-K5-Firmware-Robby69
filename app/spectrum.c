@@ -1317,7 +1317,6 @@ static void DrawRssiTriggerLevel() {
   if (isListening) 
   {
     uint8_t y = Rssi2Y(peak.rssi);
-    if (y < 64) 
     {
         for (uint8_t x = 0; x < 12; x ++)
         {
@@ -1331,7 +1330,6 @@ static void DrawRssiTriggerLevel() {
   }
 }
 
-static void CalculateAutoZoomRange() {
     // Find min and max RSSI values in the current display
     uint16_t minRssi = RSSI_MAX_VALUE;
     uint16_t maxRssi = 0;
@@ -1344,7 +1342,6 @@ static void CalculateAutoZoomRange() {
         }
     }
 
-    // If we have valid signals
     if (maxRssi > 0) {
         if (settings.rssiTriggerLevel > maxRssi) maxRssi = settings.rssiTriggerLevel+10;
         // Add some padding (about 10% of range)
@@ -1636,7 +1633,6 @@ static void OnKeyDown(uint8_t key) {
                           Key_1_pressed = 1;
                       }
                       break;
-                    
                   case 5: // autoZoomEnabled
                       autoZoomEnabled = isKey3 ? 1 : 0;
                       break;
@@ -1647,7 +1643,6 @@ static void OnKeyDown(uint8_t key) {
                       }
                       break;
                     
-                  case 7: // ToggleListeningBW
                   case 8: // ToggleModulation
                       if (isKey3 || key == KEY_1) {
                           if (parametersSelectedIndex == 7) {
@@ -1657,7 +1652,6 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
-                 /* case 9: // AutoTriggerLevelActive
                     if (isKey3)
                       AutoTriggerLevelActive = (AutoTriggerLevelActive == 100) ? 0 : AutoTriggerLevelActive + 5;
                       else AutoTriggerLevelActive = (AutoTriggerLevelActive == 0) ? 100 : AutoTriggerLevelActive - 5;
@@ -1707,7 +1701,6 @@ static void OnKeyDown(uint8_t key) {
         UpdateDBMax(false);
     break;
 
-     case KEY_1:
         AutoTriggerLevel();
         SquelchBarKeyMode=0;
     break;
@@ -1826,7 +1819,6 @@ break;
     break;
   
   case KEY_SIDE2:
-        
       SquelchBarKeyMode += 1;
       if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
       ShowHistory = 1;
@@ -1857,7 +1849,6 @@ break;
       } else {SetF(peak.f);}
 
       SetState(STILL);
-      monitorMode = false;
       menuState = 0;
       redrawScreen = true;
       redrawStatus = true;
@@ -1956,13 +1947,10 @@ void OnKeyDownStill(KEY_Code_t key) {
     FreqInput();
     break;
   case KEY_0:
-    //Free
     break;
   case KEY_6:
-    //Free
     break;
   case KEY_SIDE1:
-    monitorMode = !monitorMode;
     break;
   case KEY_SIDE2:
     ToggleBacklight();
@@ -1982,7 +1970,6 @@ void OnKeyDownStill(KEY_Code_t key) {
     if (!menuState) {
       SetState(SPECTRUM);
       SpectrumDelay = 0; //Prevent coming back to still directly
-      monitorMode = false;
       RelaunchScan();
       break;
     }
@@ -2006,6 +1993,7 @@ static void RenderStatus() {
 
 static void RenderSpectrum() {
   DrawNums();
+  DrawArrow(128u * (peak.i-1) / GetStepsCount());
   DrawSpectrum();
   DrawRssiTriggerLevel();
   DrawF(peak.f); 
@@ -2058,7 +2046,6 @@ static void RenderStill() {
   sprintf(String, "%d dBm", sLevelAtt.dBmRssi);
   GUI_DisplaySmallest(String, 40, 25, false, true);
 
-  if (!monitorMode) {
     uint8_t x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
     gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
   }
@@ -2194,7 +2181,6 @@ static void Scan() {
 
   ) {
     if (scanInfo.f/260000*260000 != scanInfo.f) //Robby69 remove all 26Mhz multiples
-      SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
   }
@@ -2227,7 +2213,6 @@ static void UpdateScan() {
     return;
   }
 
-  if (autoZoomEnabled) {
         CalculateAutoZoomRange();
   }
 
@@ -2253,12 +2238,10 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
-  ToggleRX(IsPeakOverLevel() || monitorMode);
 }
 
 static void UpdateListening() {
   preventKeypress = false;
-  if (currentState == STILL) {
     listenT = 0;
     //SpectrumDelay = 0;
   }
@@ -2280,7 +2263,6 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-  if ((IsPeakOverLevel() || monitorMode) ) {
     listenT = SQUELCH_OFF_DELAY;
     return;
   }
@@ -2501,7 +2483,6 @@ typedef struct {
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
-    bool autoZoomEn;
 } SettingsEEPROM;
 
 
@@ -2514,7 +2495,6 @@ void LoadSettings()
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
-  autoZoomEnabled = eepromData.autoZoomEn;
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
@@ -2548,7 +2528,6 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.RandomEmission = RandomEmission;
-  eepromData.autoZoomEn = autoZoomEnabled;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
@@ -2651,7 +2630,6 @@ static void GetParametersText(uint8_t index, char *buffer) {
             sprintf(buffer, "FStop: %u.%05u", stop / 100000, stop % 100000);
             break;
         }
-            
         case 5:
             sprintf(buffer, "AutoZoom: %s", autoZoomEnabled ? "ON" : "OFF");
             break;
@@ -2663,14 +2641,11 @@ static void GetParametersText(uint8_t index, char *buffer) {
             break;
         }
             
-        case 7:
             sprintf(buffer, "ListenBw: %s", bwNames[settings.listenBw]);
             break;
             
-        case 8:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
             break;
-       /* case 9:
             sprintf(buffer, "Trigglevel:%d", AutoTriggerLevelActive);
             break;*/
         default:
