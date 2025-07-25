@@ -21,17 +21,16 @@
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
 // see GetParametersText
-uint8_t DelayRssi=11;                           // 1
+uint8_t DelayRssi = 12;                         // 1
 uint8_t RandomEmission = 0;                     // 2
 uint16_t SpectrumDelay = 0;                     // 3
-bool autoZoomEnabled = 0;                       // 4
-uint32_t gScanRangeStart;                       // 5
-uint32_t gScanRangeStop;                        // 6
-//Step                                          // 7
-//ListenBW                                      // 8
-//Modulation                                    // 9
-//uint8_t AutoTriggerLevelActive = 20;            //10 
-#define PARAMETER_COUNT 9
+uint32_t gScanRangeStart;                       // 4
+uint32_t gScanRangeStop;                        // 5
+//Step                                          // 6
+//ListenBW                                      // 7
+//Modulation                                    // 8
+
+#define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -101,7 +100,6 @@ BK4819_FilterBandwidth_t channelBandwidth;
 void LoadValidMemoryChannels(void);
 bool isInitialized = false;
 bool isListening = true;
-bool monitorMode = false;
 bool redrawStatus = true;
 bool redrawScreen = false;
 bool newScanStart = true;
@@ -159,9 +157,6 @@ static const bandparameters BParams[32];
 static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
 
 uint8_t menuState = 0;
-uint16_t listenT = 0;
-uint8_t rxChannelDisplayCountdown = 0;
-//
 static bool wasReceiving = false;
 static uint32_t lastReceivingFreq = 0;
 
@@ -282,6 +277,7 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
+
 bool IsPeakOverLevel() {return peak.rssi > settings.rssiTriggerLevel; }
 
 bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
@@ -425,20 +421,24 @@ uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
   
-uint16_t GetRssi() {
-  uint16_t rssi;
-  // testing resolution to sticky squelch issue
-  // was 100 , some k5 bug when starting spectrum
-  BK4819_ReadRegister(0x63);
-  SYSTICK_DelayUs(DelayRssi* 1000); // Delay in microseconds
-  rssi = BK4819_GetRSSI();
-  if ((appMode==CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-    {
-      // Increase perceived RSSI for UHF bands to imitate radio squelch
-      rssi+=UHF_NOISE_FLOOR;
+uint16_t GetRssi(void)
+{
+    uint16_t rssi;
+    if (isListening) {
+      while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255)
+        SYSTICK_DelayUs(500);
     }
-  rssi+=gainOffset[CurrentScanIndex()];
-  return rssi;
+    else {
+      BK4819_ReadRegister(0x63);
+      SYSTICK_DelayUs(DelayRssi * 1000);
+    }
+    rssi = BK4819_GetRSSI();
+    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+    {
+        rssi += UHF_NOISE_FLOOR;
+    }
+    rssi += gainOffset[CurrentScanIndex()];
+    return rssi;
 }
 
 static void ToggleAudio(bool on) {
@@ -501,7 +501,16 @@ static void ResetReceivingState() {
     lastReceivingFreq = 0;
 }
 
+static uint16_t dbm2rssi(int dBm)
+{
+  return (dBm + 160)*2;
+}
 
+static void ClampRssiTriggerLevel()
+{
+  settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
+  settings.rssiTriggerLevelH = clamp(settings.rssiTriggerLevelH, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
+}
 
 static void ToggleRX(bool on) {
     isListening = on;
@@ -515,6 +524,11 @@ static void ToggleRX(bool on) {
         BK4819_InitAGC(settings.modulationType);
         redrawScreen = true;
     }
+    else if(on && appMode == SCAN_BAND_MODE) {
+            RADIO_SetModulation(BParams[bl].modulationType);
+            BK4819_InitAGC(settings.modulationType);
+            redrawScreen = true;
+          }
 
     // turn on green led only if screen brightness is over 7
     if(gEeprom.BACKLIGHT_MAX > 7)
@@ -524,19 +538,11 @@ static void ToggleRX(bool on) {
     ToggleAFBit(on);
     
     if (on) { 
-        listenT = SQUELCH_OFF_DELAY;
         BK4819_SetFilterBandwidth(settings.listenBw, false);
-        // turn on CSS tail found interrupt
         BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
-        // keep backlight and bold channel name display on as long as we are receiving
         gBacklightCountdown = 0;
-        rxChannelDisplayCountdown = 0;
     } else { 
         if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
-        // keep displaying the received channel for a second or so
-        rxChannelDisplayCountdown = 0; //4 Robby69
-        
-        // DODAJ TO: Reset receiving state when RX is turned off
         ResetReceivingState();
     }
 }
@@ -569,46 +575,45 @@ static bool InitScan() {
     bool scanInitializedSuccessfully = false;
 
     if (appMode == SCAN_BAND_MODE) {
-        uint8_t checkedBandCount = 0; // Licznik sprawdzonych pasm, aby uniknąć nieskończonej pętli
-        while (checkedBandCount < 32) { // Sprawdź wszystkie 15 pasm co najwyżej raz
+        uint8_t checkedBandCount = 0;
+        while (checkedBandCount < 32) { 
             if (settings.bandEnabled[nextBandToScanIndex]) {
-                bl = nextBandToScanIndex; // Użyj bieżącego jako aktywnego
+                bl = nextBandToScanIndex; 
                 scanInfo.f = BParams[bl].Startfrequency;
                 scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
-                settings.scanStepIndex = BParams[bl].scanStep; // Aktualizuj globalny, jeśli potrzebne
+                settings.scanStepIndex = BParams[bl].scanStep; 
                 gScanRangeStart = BParams[bl].Startfrequency;
                 gScanRangeStop = BParams[bl].Stopfrequency;
                 scanInfo.measurementsCount = GetStepsCount();
-                
-                RADIO_SetModulation(BParams[bl].modulationType);      // Ustaw modulację dla pasma
-                BK4819_InitAGC(settings.modulationType);
-                nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przygotuj indeks na następne wywołanie
+                settings.modulationType = BParams[bl].modulationType;
+                nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
                 scanInitializedSuccessfully = true;
-                redrawStatus = true; // Te flagi mogą być potrzebne tutaj
-                //redrawScreen = true;
+                redrawStatus = true;
                 if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
                   else {if (!FreeTriggerLevel)settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
-                settings.modulationType = BParams[bl].modulationType;
-                break; // Znaleziono aktywne pasmo, przerwij pętlę while
+                break;
             }
-            nextBandToScanIndex = (nextBandToScanIndex + 1) % 32; // Przejdź do następnego pasma
+            nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
             checkedBandCount++;
         }
     } else {
-        // Logika dla innych trybów
         scanInfo.f = GetFStart();
         scanInfo.scanStep = GetScanStep();
         scanInfo.measurementsCount = GetStepsCount();
         scanInitializedSuccessfully = true;
-    }
+      }
 	if(appMode==CHANNEL_MODE)
     scanInfo.measurementsCount++;
     return scanInitializedSuccessfully;
 }
 
 static void AutoTriggerLevel() {
-  settings.rssiTriggerLevel = clamp(peak.rssi + 8, 0, RSSI_MAX_VALUE);
-	settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  uint8_t max = 0;
+  uint8_t i;
+  for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
+    {if (max < rssiHistory[i]) max = rssiHistory[i];}
+  settings.rssiTriggerLevel = clamp(max + 3, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -660,7 +665,7 @@ static void UpdateScanInfo() {
   }
   // add attenuation offset to prevent noise floor lowering when attenuated rx is over
   // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin && !autoZoomEnabled) {
+  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawStatus = true;
@@ -694,19 +699,6 @@ static void Measure()
       return;
     }
   rssiHistory[scanInfo.i] = rssi;
-}
-
-// Update things by keypress
-
-static uint16_t dbm2rssi(int dBm)
-{
-  return (dBm + 160)*2;
-}
-
-static void ClampRssiTriggerLevel()
-{
-  settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
-  settings.rssiTriggerLevelH = clamp(settings.rssiTriggerLevelH, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
@@ -910,7 +902,6 @@ static void Blacklist() {
 
   blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.i;
   rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-
   rssiHistory[peak.i] = RSSI_MAX_VALUE;
   isBlacklistApplied = true;
   ResetPeak();
@@ -991,22 +982,22 @@ static void DrawStatus() {
 
   switch(appMode) {
     case FREQUENCY_MODE:
-      len = sprintf(&String[pos],"Freq ");
+      len = sprintf(&String[pos],"FR ");
       pos += len;
     break;
 
     case CHANNEL_MODE:
-      len = sprintf(&String[pos],"List ");
+      len = sprintf(&String[pos],"SL ");
       pos += len;
     break;
 
     case SCAN_RANGE_MODE:
-      len = sprintf(&String[pos],"Range ");
+      len = sprintf(&String[pos],"RG ");
       pos += len;
     break;
     
     case SCAN_BAND_MODE:
-      len = sprintf(&String[pos],"Band ");
+      len = sprintf(&String[pos],"BD ");
       pos += len;
     break;
   }
@@ -1304,63 +1295,26 @@ static void DrawNums() {
 }
 
 static void DrawRssiTriggerLevel() {
-  //if (settings.rssiTriggerLevel == RSSI_MAX_VALUE || monitorMode)
-  //  return;
-  uint8_t y = Rssi2Y(settings.rssiTriggerLevel);
-  for (uint8_t x = 0; x < 128; x += 2) {
-    PutPixel(x, y, true);
-  }
-  if (ShowHistory) {
-  y = Rssi2Y(settings.rssiTriggerLevelH);
-  for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
-  }
-  if (isListening) 
-  {
-    uint8_t y = Rssi2Y(peak.rssi);
-    {
-        for (uint8_t x = 0; x < 12; x ++)
-        {
-            PutPixel(x, y, true);
-        }
-        for (uint8_t x = 116; x < 128; x ++)
-        {
-            PutPixel(x, y, true);
-        }
-    }
+  uint8_t y;
+  y = Rssi2Y(settings.rssiTriggerLevel);
+  for (uint8_t x = 0; x < 128; x += 2) {PutPixel(x, y, true);}
+  
+  if (ShowHistory) { 
+    y = Rssi2Y(settings.rssiTriggerLevelH);
+    for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
   }
 }
 
-    // Find min and max RSSI values in the current display
-    uint16_t minRssi = RSSI_MAX_VALUE;
-    uint16_t maxRssi = 0;
-    
-    for (uint8_t i = 0; i < 128; i++) {
-        uint16_t rssi = rssiHistory[i];
-        if (rssi != RSSI_MAX_VALUE && rssi != 0) { // Skip invalid/blacklisted values
-            if (rssi < minRssi) minRssi = rssi;
-            if (rssi > maxRssi) maxRssi = rssi;
-        }
-    }
+static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
-    if (maxRssi > 0) {
-        if (settings.rssiTriggerLevel > maxRssi) maxRssi = settings.rssiTriggerLevel+10;
-        // Add some padding (about 10% of range)
-        uint16_t range = maxRssi - minRssi;
-        uint16_t padding = range / 5;
-        
-        // Convert to dBm values
-        settings.dbMin = Rssi2DBm(minRssi);
-        settings.dbMax = Rssi2DBm(maxRssi + padding);
-        
-        // Ensure we have at least 20dB range for visibility
-        if ((settings.dbMax - settings.dbMin) < 20) {settings.dbMax = settings.dbMin+20;}
-        
-        if(settings.dbMin  > settings.dbMax)
-			    SWAP(settings.dbMin, settings.dbMax);
-    } 
-    redrawScreen = true;
-    redrawStatus = true;
-} 
+static void DrawArrow(uint8_t x) {
+  for (signed i = -2; i <= 2; ++i) {
+    signed v = x + i;
+    if (!(v & 128)) {
+      gFrameBuffer[1][v] |= (0b111 >> my_abs(i)) & 0b111;
+    }
+  }
+}
 
 static void OnKeyDown(uint8_t key) {
         BACKLIGHT_TurnOn();
@@ -1633,17 +1587,15 @@ static void OnKeyDown(uint8_t key) {
                           Key_1_pressed = 1;
                       }
                       break;
-                  case 5: // autoZoomEnabled
-                      autoZoomEnabled = isKey3 ? 1 : 0;
-                      break;
-                    
-                  case 6: // UpdateScanStep
+
+                  case 5: // UpdateScanStep
                       if (appMode != CHANNEL_MODE && appMode != SCAN_BAND_MODE) {
                           UpdateScanStep(isKey3);
                       }
                       break;
                     
-                  case 8: // ToggleModulation
+                  case 6: // ToggleListeningBW
+                  case 7: // ToggleModulation
                       if (isKey3 || key == KEY_1) {
                           if (parametersSelectedIndex == 7) {
                               ToggleListeningBW(isKey3 ? 0 : 1);
@@ -1652,10 +1604,7 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
-                    if (isKey3)
-                      AutoTriggerLevelActive = (AutoTriggerLevelActive == 100) ? 0 : AutoTriggerLevelActive + 5;
-                      else AutoTriggerLevelActive = (AutoTriggerLevelActive == 0) ? 100 : AutoTriggerLevelActive - 5;
-                      break;*/
+
               }
             
               if (isKey3 || redrawNeeded) { //TO REMOVE MAYBE
@@ -1701,6 +1650,8 @@ static void OnKeyDown(uint8_t key) {
         UpdateDBMax(false);
     break;
 
+     case KEY_1: //AUTO SET
+        ToggleRX(false);
         AutoTriggerLevel();
         SquelchBarKeyMode=0;
     break;
@@ -2046,9 +1997,8 @@ static void RenderStill() {
   sprintf(String, "%d dBm", sLevelAtt.dBmRssi);
   GUI_DisplaySmallest(String, 40, 25, false, true);
 
-    uint8_t x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
-    gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
-  }
+  x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
+  gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
 
   const uint8_t PAD_LEFT = 4;
   const uint8_t CELL_WIDTH = 30;
@@ -2181,6 +2131,7 @@ static void Scan() {
 
   ) {
     if (scanInfo.f/260000*260000 != scanInfo.f) //Robby69 remove all 26Mhz multiples
+    SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
   }
@@ -2213,9 +2164,6 @@ static void UpdateScan() {
     return;
   }
 
-        CalculateAutoZoomRange();
-  }
-
  if(scanInfo.measurementsCount < 128)
     memset(&rssiHistory[scanInfo.measurementsCount], 0, sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0]));
   redrawScreen = true;
@@ -2238,18 +2186,11 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
+  ToggleRX(IsPeakOverLevel());
 }
 
 static void UpdateListening() {
   preventKeypress = false;
-    listenT = 0;
-    //SpectrumDelay = 0;
-  }
-  if (listenT) {
-    listenT--;
-    SYSTEM_DelayMs(1);
-    return;
-  }
 
   if (currentState == SPECTRUM) {
     if(appMode!=CHANNEL_MODE)
@@ -2263,7 +2204,7 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-    listenT = SQUELCH_OFF_DELAY;
+  if (IsPeakOverLevel()) {
     return;
   }
 
@@ -2630,24 +2571,22 @@ static void GetParametersText(uint8_t index, char *buffer) {
             sprintf(buffer, "FStop: %u.%05u", stop / 100000, stop % 100000);
             break;
         }
-        case 5:
-            sprintf(buffer, "AutoZoom: %s", autoZoomEnabled ? "ON" : "OFF");
-            break;
-            
-        case 6: {
+      
+        case 5: {
             uint32_t step = GetScanStep();
             sprintf(buffer, step % 100 ? "STEP: %uk%02u" : "STEP: %uk", 
                    step / 100, step % 100);
             break;
         }
             
+        case 6:
             sprintf(buffer, "ListenBw: %s", bwNames[settings.listenBw]);
             break;
             
+        case 7:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
             break;
-            sprintf(buffer, "Trigglevel:%d", AutoTriggerLevelActive);
-            break;*/
+
         default:
             // Gestion d'un index inattendu (optionnel)
             buffer[0] = '\0';
