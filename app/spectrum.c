@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
@@ -79,7 +79,7 @@ uint8_t  attenuationOffset[129];
 uint8_t scanChannel[MR_CHANNEL_LAST+3];
 uint8_t scanChannelsCount;
 void ToggleScanList();
-void ToggleNormalizeRssi(bool on);
+void ToggleNormalizeRssi();
 static void LoadSettings();
 static void SaveSettings();
 static void AutoTriggerLevel(void);
@@ -125,7 +125,7 @@ const uint8_t modTypeReg47Values[] = {1, 7, 5};
 uint16_t BPRssiTriggerLevel[32]={0};
 
 SpectrumSettings settings = {stepsCount: STEPS_128,
-                             scanStepIndex: S_STEP_25_0kHz,
+                             scanStepIndex: S_STEP_500kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 100,
 							               rssiTriggerLevelH: 100,
@@ -420,7 +420,30 @@ uint8_t GetScanStepFromStepFrequency(uint16_t stepFrequency)
 uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
-  
+
+static inline int8_t GetRSSICompensation(uint32_t freq_Hz) {
+    uint16_t freq_MHz = freq_Hz / 100000;
+    if (freq_MHz < 105 || freq_MHz > 500) return 0;
+
+    if (freq_MHz < 130) return  (freq_MHz * 10 / 100) - 83;
+    if (freq_MHz < 156) return  (freq_MHz * 12 / 100) - 94;
+    if (freq_MHz < 182) return  (freq_MHz * 8  / 100) - 90;
+    if (freq_MHz < 208) return  (freq_MHz * 5  / 100) - 80;
+    if (freq_MHz < 234) return  (freq_MHz * 7  / 100) - 82;
+    if (freq_MHz < 260) return  (freq_MHz * 4  / 100) - 75;
+    if (freq_MHz < 286) return  (freq_MHz * 9  / 100) - 92;
+    if (freq_MHz < 312) return  (freq_MHz * 6  / 100) - 85;
+    if (freq_MHz < 338) return  (freq_MHz * 3  / 100) - 78;
+    if (freq_MHz < 364) return  (freq_MHz * 11 / 100) - 98;
+    if (freq_MHz < 390) return  (freq_MHz * 15 / 100) - 112;
+    if (freq_MHz < 416) return  (freq_MHz * 7  / 100) - 95;
+    if (freq_MHz < 442) return  (freq_MHz * 5  / 100) - 80;
+    if (freq_MHz < 468) return  (freq_MHz * 4  / 100) - 75;
+    return                  (freq_MHz * 6  / 100) - 82;
+}
+
+
+
 uint16_t GetRssi(void)
 {
     uint16_t rssi;
@@ -433,11 +456,12 @@ uint16_t GetRssi(void)
       SYSTICK_DelayUs(DelayRssi * 1000);
     }
     rssi = BK4819_GetRSSI();
-    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
+    /*if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
     {
         rssi += UHF_NOISE_FLOOR;
     }
-    rssi += gainOffset[CurrentScanIndex()];
+    rssi += gainOffset[CurrentScanIndex()];*/
+    if (isNormalizationApplied) rssi = rssi + GetRSSICompensation(scanInfo.f);
     return rssi;
 }
 
@@ -1589,9 +1613,7 @@ static void OnKeyDown(uint8_t key) {
                       break;
 
                   case 5: // UpdateScanStep
-                      if (appMode != CHANNEL_MODE && appMode != SCAN_BAND_MODE) {
-                          UpdateScanStep(isKey3);
-                      }
+                      UpdateScanStep(isKey3);
                       break;
                     
                   case 6: // ToggleListeningBW
@@ -1662,10 +1684,12 @@ static void OnKeyDown(uint8_t key) {
      
      case KEY_2:
       if (appMode != SCAN_BAND_MODE || SingleBandCheck())
-            ToggleNormalizeRssi(!isNormalizationApplied);
+            //ToggleNormalizeRssi(!isNormalizationApplied);
+            ToggleNormalizeRssi();
         else {
           AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
-          ToggleNormalizeRssi(false);}
+          //ToggleNormalizeRssi(false);
+          }
       redrawStatus = true;
       break;
 
@@ -1765,8 +1789,34 @@ break;
   case KEY_0:
     //Free
     break;
-  case KEY_6:
+  case KEY_6:    //Free
     //Free
+
+    const uint32_t startFreq = 10500000;    // exemple : 400 MHz (à adapter)
+    const uint32_t stopFreq  = 50000000;    // exemple : 470 MHz
+    const uint32_t step      =    50000;       // espacement en kHz
+    
+    uint32_t freq;
+    
+    isListening = 1;
+    LogUart("NOISE_LOG_BEGIN\n");
+
+    for (freq = startFreq; freq <= stopFreq; freq += step)
+    {       SetF(freq);  
+            // Moyenne sur 10 échantillons
+            uint32_t sum = 0;
+            for (uint8_t i = 0; i < 10; ++i)
+              {while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255)
+                   SYSTICK_DelayUs(500);
+              sum += BK4819_GetRSSI();}
+            uint16_t avg = sum / 10;
+            char buffer[64];
+            sprintf(buffer, "%u,%05u;%u \n", freq/100000, freq%100000, avg);
+            LogUart(buffer);
+    }
+
+    LogUart("NOISE_LOG_END\n");
+    isListening = 0;
     break;
   
   case KEY_SIDE2:
@@ -2130,7 +2180,6 @@ static void Scan() {
   && !IsBlacklisted(scanInfo.i)
 
   ) {
-    if (scanInfo.f/260000*260000 != scanInfo.f) //Robby69 remove all 26Mhz multiples
     SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
@@ -2151,10 +2200,10 @@ static void NextScanStep() {
     }
     else
     // frequency mode
-    {
-      ++scanInfo.i; 
-      scanInfo.f += scanInfo.scanStep;
-    }
+        do {
+            ++scanInfo.i;
+            scanInfo.f += scanInfo.scanStep;
+        } while (scanInfo.f % 26000000 == 0);  // sauter les multiples de 26 MHz
 }
 
 static void UpdateScan() {
@@ -2285,12 +2334,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
 
   if(appMode==SCAN_RANGE_MODE) {
     currentFreq = initialFreq = gScanRangeStart;
-    for(uint8_t i = 0; i < ARRAY_SIZE(scanStepValues); i++) {
-      if(scanStepValues[i] >= gTxVfo->StepFrequency) {
-        settings.scanStepIndex = i;
-        break;
-      }
-    }
   }
    if(appMode==FREQUENCY_MODE) {currentFreq = initialFreq = gTxVfo->pRX->Frequency;}
   BackupRegisters();
@@ -2309,7 +2352,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (appMode != SCAN_BAND_MODE){
       RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
       BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
-      settings.scanStepIndex = GetScanStepFromStepFrequency(gTxVfo->StepFrequency);
       RADIO_SetModulation(settings.modulationType = MODULATION_FM);
       BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
       AutoAdjustFreqChangeStep();
@@ -2384,9 +2426,12 @@ void LoadValidMemoryChannels(void)
   }
 
   // flattens spectrum by bringing all the rssi readings to the peak value
-  void ToggleNormalizeRssi(bool on)
+  //void ToggleNormalizeRssi(bool on)
+  void ToggleNormalizeRssi()
   {
-    // we don't want to normalize when there is already active signal RX
+    isNormalizationApplied = !isNormalizationApplied;
+
+    /*// we don't want to normalize when there is already active signal RX
     if(IsPeakOverLevel()){
         memset(gainOffset, 0, sizeof(gainOffset));
         isNormalizationApplied = false;
@@ -2407,7 +2452,7 @@ void LoadValidMemoryChannels(void)
       isNormalizationApplied = false;
     }
     AutoTriggerLevel(); //Robby69
-    RelaunchScan();
+    RelaunchScan();*/
   }
 
 
