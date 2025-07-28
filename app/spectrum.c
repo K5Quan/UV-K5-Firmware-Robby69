@@ -481,9 +481,15 @@ uint16_t get_background_rssi_optimized(uint32_t freq_10hz) {
 
     for (int i = 0; i < LUT_SIZE_OPTIMIZED - 1; ++i) {
         uint32_t f1 = noise_lut_optimized[i].freq_10hz;
-        uint32_t f2 = noise_lut_optimized[i+1].freq_10hz;
+        uint32_t f2 = noise_lut_optimized[i + 1].freq_10hz;
+        int16_t r1 = noise_lut_optimized[i].rssi;
+        int16_t r2 = noise_lut_optimized[i + 1].rssi;
+
         if (freq_10hz >= f1 && freq_10hz <= f2) {
-            return noise_lut_optimized[i].rssi;
+            int32_t delta_f = f2 - f1;
+            int32_t delta_r = r2 - r1;
+            int32_t offset = freq_10hz - f1;
+            return r1 + (delta_r * offset) / delta_f;
         }
     }
     return 0;
