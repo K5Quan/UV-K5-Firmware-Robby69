@@ -29,8 +29,8 @@ uint32_t gScanRangeStop;                        // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
-
-#define PARAMETER_COUNT 8
+bool AutoTriggerLevelbandsMode = 0;             // 9
+#define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -55,7 +55,6 @@ uint8_t parametersScrollOffset = 0;
 static uint8_t validScanListCount = 0;
 bool inScanListMenu = false;
 KeyboardState kbd = {KEY_INVALID, KEY_INVALID, 0,0};
-bool AutoTriggerLevelbandsMode = 0;
 struct FrequencyBandInfo {
     uint32_t lower;
     uint32_t upper;
@@ -601,6 +600,7 @@ static void ToggleRX(bool on) {
         redrawScreen = true;
     }
     else if(on && appMode == SCAN_BAND_MODE) {
+            settings.modulationType = BParams[bl].modulationType;
             RADIO_SetModulation(BParams[bl].modulationType);
             BK4819_InitAGC(settings.modulationType);
             redrawScreen = true;
@@ -1678,6 +1678,9 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
+                  case 8: // AutoTriggerLevelbandsMode
+                      AutoTriggerLevelbandsMode = isKey3 ? 1 : 0;
+                      break;
 
               }
             
@@ -1735,14 +1738,8 @@ static void OnKeyDown(uint8_t key) {
         break;
      
      case KEY_2:
-      if (appMode != SCAN_BAND_MODE || SingleBandCheck())
-            //ToggleNormalizeRssi(!isNormalizationApplied);
-            ToggleNormalizeRssi();
-        else {
-          AutoTriggerLevelbandsMode=!AutoTriggerLevelbandsMode;
-          //ToggleNormalizeRssi(false);
-          }
-      redrawStatus = true;
+        ToggleNormalizeRssi();
+        redrawStatus = true;
       break;
 
      case KEY_8:
@@ -2653,6 +2650,10 @@ static void GetParametersText(uint8_t index, char *buffer) {
             
         case 7:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
+            break;
+
+        case 8:
+            sprintf(buffer, "AutLevelbands:%s", AutoTriggerLevelbandsMode ? "ON" : "OFF");
             break;
 
         default:
