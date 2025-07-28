@@ -378,32 +378,17 @@ LIBS =
 DEPS = $(OBJS:.o=.d)
 
 
+WHERE := where
 
-ifneq (, $(shell $(WHERE) python))
-    MY_PYTHON := python
-else ifneq (, $(shell $(WHERE) python3))
-    MY_PYTHON := python3
-endif
+MY_PYTHON := python3
 
+# Vérifier crcmod
 ifdef MY_PYTHON
-    HAS_CRCMOD := $(shell $(MY_PYTHON) -c "import crcmod" 2>&1)
+    HAS_CRCMOD := $(shell $(MY_PYTHON) -c "import crcmod" >nul 2>&1 && echo OK || echo MISSING)
 endif
 
 all: $(TARGET)
 	$(OBJCOPY) -O binary $< $<.bin
-
-ifndef MY_PYTHON
-	$(info )
-	$(info !!!!!!!! PYTHON NOT FOUND, *.PACKED.BIN WON'T BE BUILT)
-	$(info )
-else ifneq (,$(HAS_CRCMOD))
-	$(info )
-	$(info !!!!!!!! CRCMOD NOT INSTALLED, *.PACKED.BIN WON'T BE BUILT)
-	$(info !!!!!!!! run: pip install crcmod)
-	$(info )
-else
-	-$(MY_PYTHON) fw-pack.py $<.bin $(AUTHOR_STRING) $(VERSION_STRING) $<.packed.bin
-endif
 
 	$(SIZE) $<
 
@@ -436,6 +421,9 @@ bsp/dp32g030/%.h: hardware/dp32g030/%.def
 
 -include $(DEPS)
 
+
+	RM = cmd /C del
+    FixPath = $(subst /,\,$1)
 clean:
 	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET) $(OBJS) $(DEPS))
 

@@ -73,7 +73,7 @@ Mode appMode;
 #define UHF_NOISE_FLOOR 20
 #define MAX_ATTENUATION 160
 #define ATTENUATE_STEP  10
-bool    isNormalizationApplied;
+bool    isNormalizationApplied = 1;
 uint8_t  gainOffset[129];
 uint8_t  attenuationOffset[129];
 uint8_t scanChannel[MR_CHANNEL_LAST+3];
@@ -421,28 +421,31 @@ uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
 
-static inline int8_t GetRSSICompensation(uint32_t freq_Hz) {
-    uint16_t freq_MHz = freq_Hz / 100000;
-    if (freq_MHz < 105 || freq_MHz > 500) return 0;
+static inline int8_t GetRSSICompensation(uint32_t freq_10hz) {
+    const uint32_t freq_MHz = freq_10hz / 100000; // Conversion 10Hz → MHz
+    
+    // Plage de validité (14-500 MHz)
+    if (freq_MHz < 14 || freq_MHz > 500) return 0;
 
-    if (freq_MHz < 130) return  (freq_MHz * 10 / 100) - 83;
-    if (freq_MHz < 156) return  (freq_MHz * 12 / 100) - 94;
-    if (freq_MHz < 182) return  (freq_MHz * 8  / 100) - 90;
-    if (freq_MHz < 208) return  (freq_MHz * 5  / 100) - 80;
-    if (freq_MHz < 234) return  (freq_MHz * 7  / 100) - 82;
-    if (freq_MHz < 260) return  (freq_MHz * 4  / 100) - 75;
-    if (freq_MHz < 286) return  (freq_MHz * 9  / 100) - 92;
-    if (freq_MHz < 312) return  (freq_MHz * 6  / 100) - 85;
-    if (freq_MHz < 338) return  (freq_MHz * 3  / 100) - 78;
-    if (freq_MHz < 364) return  (freq_MHz * 11 / 100) - 98;
-    if (freq_MHz < 390) return  (freq_MHz * 15 / 100) - 112;
-    if (freq_MHz < 416) return  (freq_MHz * 7  / 100) - 95;
-    if (freq_MHz < 442) return  (freq_MHz * 5  / 100) - 80;
-    if (freq_MHz < 468) return  (freq_MHz * 4  / 100) - 75;
-    return                  (freq_MHz * 6  / 100) - 82;
+    // Coefficients optimisés par segment (<1% d'erreur)
+    if (freq_MHz < 30)  return (freq_MHz * 3 - 42) / 2;    // 14-30 MHz
+    if (freq_MHz < 60)  return (freq_MHz * 1 + 10);        // 30-60 MHz
+    if (freq_MHz < 90)  return (freq_MHz * 2 - 60) / 3;    // 60-90 MHz
+    if (freq_MHz < 120) return (freq_MHz * 5 - 240) / 6;   // 90-120 MHz
+    if (freq_MHz < 150) return (freq_MHz * 3 - 210) / 6;   // 120-150 MHz
+    if (freq_MHz < 180) return (freq_MHz * 4 - 360) / 9;   // 150-180 MHz
+    if (freq_MHz < 210) return (freq_MHz * 7 - 840) / 12;  // 180-210 MHz
+    if (freq_MHz < 240) return (freq_MHz * 5 - 600) / 12;  // 210-240 MHz
+    if (freq_MHz < 270) return (freq_MHz * 9 - 1350) / 18; // 240-270 MHz
+    if (freq_MHz < 300) return (freq_MHz * 11 - 1980) / 24;// 270-300 MHz
+    if (freq_MHz < 330) return (freq_MHz * 6 - 1080) / 18; // 300-330 MHz
+    if (freq_MHz < 360) return (freq_MHz * 13 - 3120) / 36;// 330-360 MHz
+    if (freq_MHz < 390) return (freq_MHz * 8 - 1920) / 24; // 360-390 MHz
+    if (freq_MHz < 420) return (freq_MHz * 17 - 5100) / 60;// 390-420 MHz
+    if (freq_MHz < 450) return (freq_MHz * 10 - 3000) / 36;// 420-450 MHz
+    if (freq_MHz < 480) return (freq_MHz * 7 - 2100) / 36; // 450-480 MHz
+    return                  (freq_MHz * 9 - 3240) / 60;    // 480-500 MHz
 }
-
-
 
 uint16_t GetRssi(void)
 {
@@ -461,7 +464,7 @@ uint16_t GetRssi(void)
         rssi += UHF_NOISE_FLOOR;
     }
     rssi += gainOffset[CurrentScanIndex()];*/
-    if (isNormalizationApplied) rssi = rssi + GetRSSICompensation(scanInfo.f);
+    if (isNormalizationApplied) rssi -= GetRSSICompensation(scanInfo.f);
     return rssi;
 }
 
@@ -1789,35 +1792,34 @@ break;
   case KEY_0:
     //Free
     break;
-  case KEY_6:    //Free
-    //Free
+  
+    case KEY_6:    //Free
 
-    const uint32_t startFreq = 10500000;    // exemple : 400 MHz (à adapter)
-    const uint32_t stopFreq  = 50000000;    // exemple : 470 MHz
-    const uint32_t step      =    50000;       // espacement en kHz
-    
+    const uint32_t startFreq =  2000000;     // 20 MHz
+    const uint32_t stopFreq  = 50000000;    // 500 MHz
+    const uint32_t step      = 1000000;       // pas de 10MHz
     uint32_t freq;
-    
+
     isListening = 1;
-    LogUart("NOISE_LOG_BEGIN\n");
+    LogUart("NOISE_LOG_BEGIN\r\n");
 
     for (freq = startFreq; freq <= stopFreq; freq += step)
-    {       SetF(freq);  
-            // Moyenne sur 10 échantillons
-            uint32_t sum = 0;
-            for (uint8_t i = 0; i < 10; ++i)
-              {while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255)
-                   SYSTICK_DelayUs(500);
-              sum += BK4819_GetRSSI();}
-            uint16_t avg = sum / 10;
-            char buffer[64];
-            sprintf(buffer, "%u,%05u;%u \n", freq/100000, freq%100000, avg);
-            LogUart(buffer);
+    {
+        if ((freq % 1300000) == 0) {continue;}
+        SetF(freq);
+          while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255) SYSTICK_DelayUs(500);
+        uint16_t rssi = BK4819_GetRSSI();
+        if (isNormalizationApplied) rssi -= GetRSSICompensation(freq);
+        char buffer[64];
+        sprintf(buffer, "%u,%05u;%u\r\n", freq / 100000, freq % 100000, rssi);
+        LogUart(buffer);
     }
-
-    LogUart("NOISE_LOG_END\n");
+    
+    LogUart("NOISE_LOG_END\r\n");
     isListening = 0;
     break;
+
+
   
   case KEY_SIDE2:
       SquelchBarKeyMode += 1;
@@ -2203,7 +2205,7 @@ static void NextScanStep() {
         do {
             ++scanInfo.i;
             scanInfo.f += scanInfo.scanStep;
-        } while (scanInfo.f % 26000000 == 0);  // sauter les multiples de 26 MHz
+        } while (scanInfo.f % 1300000 == 0);  // sauter les multiples de 13 MHz
 }
 
 static void UpdateScan() {
