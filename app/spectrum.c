@@ -298,7 +298,7 @@ static void ResetPeak() {
 }
 
 
-// scan step in 0.01khz
+// scan step in 0,01khz
 uint32_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
 uint16_t GetStepsCount() 
@@ -421,51 +421,94 @@ uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
 
-static inline int8_t GetRSSICompensation(uint32_t freq_10hz) {
-    const uint32_t freq_MHz = freq_10hz / 100000; // Conversion 10Hz → MHz
-    
-    // Plage de validité (14-500 MHz)
-    if (freq_MHz < 14 || freq_MHz > 500) return 0;
+const NoiseLUT noise_lut_optimized[LUT_SIZE_OPTIMIZED] = {
+    {1400000,  49},
+    {2441702,  53},
+    {3483404,  56},
+    {4525106,  66},
+    {5566808,  58},
+    {6608510,  51},
+    {7650212,  52},
+    {8691914,  55},
+    {9733617,  58},
+    {10775319, 64},
+    {11817021, 71},
+    {12200000, 74},
+    {12550000, 76},
+    {12858723, 81},
+    {13200000, 83},
+    {13590000, 84},    
+    {13900425, 83},
+    {14942127, 78},
+    {15983829, 76},
+    {17025531, 74},
+    {18067234, 68},
+    {19108936, 68},
+    {20150638, 56},
+    {21192340, 54},
+    {22234042, 52},
+    {23275744, 50},
+    {24317446, 49},
+    {25359148, 50},
+    {26400851, 49},
+    {27442553, 48},
+    {28484255, 49},
+    {29525957, 60},
+    {30567659, 65},
+    {31609361, 59},
+    {32651063, 55},
+    {33692765, 55},
+    {34734468, 54},
+    {35776170, 56},
+    {36817872, 62},
+    {37859574, 70},
+    {38901276, 82},
+    {39942978, 72},
+    {40984680, 65},
+    {42026382, 57},
+    {43068085, 52},
+    {44109787, 50},
+    {45151489, 48},
+    {46193191, 47},
+    {47234893, 45},
+    {48276595, 46},
+    {49318297, 46},
+    {50360000, 44}
+};
 
-    // Coefficients optimisés par segment (<1% d'erreur)
-    if (freq_MHz < 30)  return (freq_MHz * 3 - 42) / 2;    // 14-30 MHz
-    if (freq_MHz < 60)  return (freq_MHz * 1 + 10);        // 30-60 MHz
-    if (freq_MHz < 90)  return (freq_MHz * 2 - 60) / 3;    // 60-90 MHz
-    if (freq_MHz < 120) return (freq_MHz * 5 - 240) / 6;   // 90-120 MHz
-    if (freq_MHz < 150) return (freq_MHz * 3 - 210) / 6;   // 120-150 MHz
-    if (freq_MHz < 180) return (freq_MHz * 4 - 360) / 9;   // 150-180 MHz
-    if (freq_MHz < 210) return (freq_MHz * 7 - 840) / 12;  // 180-210 MHz
-    if (freq_MHz < 240) return (freq_MHz * 5 - 600) / 12;  // 210-240 MHz
-    if (freq_MHz < 270) return (freq_MHz * 9 - 1350) / 18; // 240-270 MHz
-    if (freq_MHz < 300) return (freq_MHz * 11 - 1980) / 24;// 270-300 MHz
-    if (freq_MHz < 330) return (freq_MHz * 6 - 1080) / 18; // 300-330 MHz
-    if (freq_MHz < 360) return (freq_MHz * 13 - 3120) / 36;// 330-360 MHz
-    if (freq_MHz < 390) return (freq_MHz * 8 - 1920) / 24; // 360-390 MHz
-    if (freq_MHz < 420) return (freq_MHz * 17 - 5100) / 60;// 390-420 MHz
-    if (freq_MHz < 450) return (freq_MHz * 10 - 3000) / 36;// 420-450 MHz
-    if (freq_MHz < 480) return (freq_MHz * 7 - 2100) / 36; // 450-480 MHz
-    return                  (freq_MHz * 9 - 3240) / 60;    // 480-500 MHz
+uint16_t get_background_rssi_optimized(uint32_t freq_10hz) {
+    if (freq_10hz < 1400000 || freq_10hz > 50360000) return 0;
+
+    for (int i = 0; i < LUT_SIZE_OPTIMIZED - 1; ++i) {
+        uint32_t f1 = noise_lut_optimized[i].freq_10hz;
+        uint32_t f2 = noise_lut_optimized[i+1].freq_10hz;
+        if (freq_10hz >= f1 && freq_10hz <= f2) {
+            return noise_lut_optimized[i].rssi;
+        }
+    }
+    return 0;
 }
 
-uint16_t GetRssi(void)
-{
+uint16_t GetRssi(void) {
     uint16_t rssi;
+    
     if (isListening) {
-      while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255)
-        SYSTICK_DelayUs(500);
+        while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255) {
+            SYSTICK_DelayUs(500);
+        }
+    } else {
+        BK4819_ReadRegister(0x63);
+        SYSTICK_DelayUs(DelayRssi * 1000);
     }
-    else {
-      BK4819_ReadRegister(0x63);
-      SYSTICK_DelayUs(DelayRssi * 1000);
-    }
+    
     rssi = BK4819_GetRSSI();
-    /*if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz))
-    {
-        rssi += UHF_NOISE_FLOOR;
-    }
-    rssi += gainOffset[CurrentScanIndex()];*/
-    if (isNormalizationApplied) rssi -= GetRSSICompensation(scanInfo.f);
-    return rssi;
+    
+    if (isNormalizationApplied) {
+      uint16_t rssi_comp = get_background_rssi_optimized(scanInfo.f);
+      if (rssi_comp > rssi) rssi = 0;        
+        else rssi -=rssi_comp;
+      }
+  return rssi;
 }
 
 static void ToggleAudio(bool on) {
@@ -1622,7 +1665,7 @@ static void OnKeyDown(uint8_t key) {
                   case 6: // ToggleListeningBW
                   case 7: // ToggleModulation
                       if (isKey3 || key == KEY_1) {
-                          if (parametersSelectedIndex == 7) {
+                          if (parametersSelectedIndex == 6) {
                               ToggleListeningBW(isKey3 ? 0 : 1);
                           } else {
                               ToggleModulation();
@@ -1794,32 +1837,9 @@ break;
     break;
   
     case KEY_6:    //Free
-
-    const uint32_t startFreq =  2000000;     // 20 MHz
-    const uint32_t stopFreq  = 50000000;    // 500 MHz
-    const uint32_t step      = 1000000;       // pas de 10MHz
-    uint32_t freq;
-
-    isListening = 1;
-    LogUart("NOISE_LOG_BEGIN\r\n");
-
-    for (freq = startFreq; freq <= stopFreq; freq += step)
-    {
-        if ((freq % 1300000) == 0) {continue;}
-        SetF(freq);
-          while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255) SYSTICK_DelayUs(500);
-        uint16_t rssi = BK4819_GetRSSI();
-        if (isNormalizationApplied) rssi -= GetRSSICompensation(freq);
-        char buffer[64];
-        sprintf(buffer, "%u,%05u;%u\r\n", freq / 100000, freq % 100000, rssi);
-        LogUart(buffer);
-    }
-    
-    LogUart("NOISE_LOG_END\r\n");
-    isListening = 0;
+      if(Spectrum_state++ >4) Spectrum_state = 0;
+      APP_RunSpectrum(Spectrum_state);
     break;
-
-
   
   case KEY_SIDE2:
       SquelchBarKeyMode += 1;
@@ -2348,17 +2368,12 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   redrawStatus = true;
   redrawScreen = true;
   newScanStart = true;
-
-
-  //ToggleRX(true), ToggleRX(false); // hack to prevent noise when squelch off
-  if (appMode != SCAN_BAND_MODE){
-      RADIO_SetModulation(settings.modulationType = gTxVfo->Modulation);
-      BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
-      RADIO_SetModulation(settings.modulationType = MODULATION_FM);
-      BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
-      AutoAdjustFreqChangeStep();
-      }
-
+  
+  //BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
+  RADIO_SetModulation(settings.modulationType = MODULATION_FM);
+  BK4819_SetFilterBandwidth(settings.listenBw = BK4819_FILTER_BW_NARROWER, false);
+  AutoAdjustFreqChangeStep();
+  
   RelaunchScan();
 
   for (int i = 0; i < 128; ++i) {

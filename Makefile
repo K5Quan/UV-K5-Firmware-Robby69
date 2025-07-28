@@ -422,10 +422,13 @@ bsp/dp32g030/%.h: hardware/dp32g030/%.def
 -include $(DEPS)
 
 
-	RM = cmd /C del
-    FixPath = $(subst /,\,$1)
+RM = cmd /C del /Q /F
+FixPath = $(subst /,\,$1)
+
 clean:
-	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET) $(OBJS) $(DEPS))
+	@echo Cleaning...
+	-$(RM) $(call FixPath,$(TARGET).bin $(TARGET).packed.bin $(TARGET).elf)
+	-$(RM) $(call FixPath,$(OBJS) $(DEPS))
 
 run:
 	make docker && make flash
