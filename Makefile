@@ -45,7 +45,7 @@ ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
 
 #############################################################
-
+BUILD_DIR = build
 TARGET = firmware
 
 ifeq ($(ENABLE_CLANG),1)
@@ -420,15 +420,3 @@ bsp/dp32g030/%.h: hardware/dp32g030/%.def
 .FORCE:
 
 -include $(DEPS)
-
-
-RM = cmd /C del /Q /F
-FixPath = $(subst /,\,$1)
-
-clean:
-	@echo Cleaning...
-	-$(RM) $(call FixPath,$(TARGET).bin $(TARGET).packed.bin $(TARGET).elf)
-	-$(RM) $(call FixPath,$(OBJS) $(DEPS))
-
-run:
-	make docker && make flash

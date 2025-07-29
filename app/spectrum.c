@@ -172,13 +172,130 @@ static uint32_t lastReceivingFreq = 0;
 #endif
   static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
 
-RegisterSpec registerSpecs[] = {
-    {},
-    {"LNAs", BK4819_REG_13, 8, 0b11,  1},
-    {"LNA",  BK4819_REG_13, 5, 0b111, 1},
-    {"PGA",  BK4819_REG_13, 0, 0b111, 1},
-    {"MIX",  BK4819_REG_13, 3, 0b11,  1},
+const RegisterSpec allRegisterSpecs[] = {
+    // Rejestry standardowe
+    {"LNAs",  0x13, 8, 0b11,  1},
+    {"LNA",   0x13, 5, 0b111, 1},
+    {"PGA",   0x13, 0, 0b111, 1},
+    {"MIX",   0x13, 3, 0b11,  1},
+
+    // Rejestry rozszerzone (hiddenRegisterSpecs z FAGCI)
+    {"XTAL F Mode Select", 0x3C, 6, 0b11, 1},
+    {"IF step100x", 0x3D, 0, 0xFFFF, 100},
+    {"IF step1x", 0x3D, 0, 0xFFFF, 1},
+    {"RFfiltBW1.7-4.5khz ", 0x43, 12, 0b111, 1},
+    {"RFfiltBWweak1.7-4.5khz", 0x43, 9, 0b111, 1},
+    {"BW Mode Selection", 0x43, 4, 0b11, 1},
+    {"XTAL F Low-16bits", 0x3B, 0, 0xFFFF, 1},
+    {"XTAL F Low-16bits 100", 0x3B, 0, 0xFFFF, 100},
+    {"XTAL F High-8bits", 0x3C, 8, 0xFF, 1},
+    {"XTAL F reserved flt", 0x3C, 0, 0b111111, 1},
+    {"XTAL Enable", 0x37, 1, 1, 1},
+    {"ANA LDO Selection", 0x37, 11, 1, 1},
+    {"VCO LDO Selection", 0x37, 10, 1, 1},
+    {"RF LDO Selection", 0x37, 9, 1, 1},
+    {"PLL LDO Selection", 0x37, 8, 1, 1},
+    {"ANA LDO Bypass", 0x37, 7, 1, 1},
+    {"VCO LDO Bypass", 0x37, 6, 1, 1},
+    {"RF LDO Bypass", 0x37, 5, 1, 1},
+    {"PLL LDO Bypass", 0x37, 4, 1, 1},
+    {"Freq Scan Indicator", 0x0D, 15, 1, 1},
+    {"F Scan High 16 bits", 0x0D, 0, 0xFFFF, 1},
+    {"F Scan Low 16 bits", 0x0E, 0, 0xFFFF, 1},
+    {"AGC fix", 0x7E, 15, 0b1, 1},
+    {"AGC idx", 0x7E, 12, 0b111, 1},
+    {"49", 0x49, 0, 0xFFFF, 100},
+    {"7B", 0x7B, 0, 0xFFFF, 100},
+    {"rssi_rel", 0x65, 8, 0xFF, 1},
+    {"agc_rssi", 0x62, 8, 0xFF, 1},
+    {"lna_peak_rssi", 0x62, 0, 0xFF, 1},
+    {"rssi_sq", 0x67, 0, 0xFF, 1},
+    {"weak_rssi 1", 0x0C, 7, 1, 1},
+    {"ext_lna_gain set", 0x2C, 0, 0b11111, 1},
+    {"snr_out", 0x61, 8, 0xFF, 1},
+    {"noise sq", 0x65, 0, 0xFF, 1},
+    {"glitch", 0x63, 0, 0xFF, 1},
+    {"soft_mute_en 1", 0x20, 12, 1, 1},
+    {"SNR Threshold SoftMut", 0x20, 0, 0b111111, 1},
+    {"soft_mute_atten", 0x20, 6, 0b11, 1},
+    {"soft_mute_rate", 0x20, 8, 0b11, 1},
+    {"Band Selection Thr", 0x3E, 0, 0xFFFF, 100},
+    {"chip_id", 0x00, 0, 0xFFFF, 1},
+    {"rev_id", 0x01, 0, 0xFFFF, 1},
+    {"aerror_en 0am 1fm", 0x30, 9, 1, 1},
+    {"bypass 1tx 0rx", 0x47, 0, 1, 1},
+    {"bypass tx gain 1", 0x47, 1, 1, 1},
+    {"bps afdac 3tx 9rx ", 0x47, 8, 0b1111, 1},
+    {"bps tx dcc=0 ", 0x7E, 3, 0b111, 1},
+    {"audio_tx_mute1", 0x50, 15, 1, 1},
+    {"audio_tx_limit_bypass1", 0x50, 10, 1, 1},
+    {"audio_tx_limit320", 0x50, 0, 0x3FF, 1},
+    {"audio_tx_limit reserved7", 0x50, 11, 0b1111, 1},
+    {"audio_tx_path_sel", 0x2D, 2, 0b11, 1},
+    {"AFTx Filt Bypass All", 0x47, 0, 1, 1},
+    {"3kHz AF Resp K Tx", 0x74, 0, 0xFFFF, 100},
+    {"MIC Sensit Tuning", 0x7D, 0, 0b11111, 1},
+    {"DCFiltBWTxMICIn15-480hz", 0x7E, 3, 0b111, 1},
+    {"04 768", 0x04, 0, 0x0300, 1},
+    {"43 32264", 0x43, 0, 0x7E08, 1},
+    {"4b 58434", 0x4b, 0, 0xE442, 1},
+    {"73 22170", 0x73, 0, 0x569A, 1},
+    {"7E 13342", 0x7E, 0, 0x341E, 1},
+    {"47 26432 24896", 0x47, 0, 0x6740, 1},
+    {"03 49662 49137", 0x30, 0, 0xC1FE, 1},
+    {"Enable Compander", 0x31, 3, 1, 1},
+    {"Band-Gap Enable", 0x37, 0, 1, 1},
+    {"IF step100x", 0x3D, 0, 0xFFFF, 100},
+    {"IF step1x", 0x3D, 0, 0xFFFF, 1},
+    {"Band Selection Thr", 0x3E, 0, 0xFFFF, 1},
+    {"RF filt BW ", 0x43, 12, 0b111, 1},
+    {"RF filt BW weak", 0x43, 9, 0b111, 1},
+    {"BW Mode Selection", 0x43, 4, 0b11, 1},
+    {"AF Output Inverse", 0x47, 13, 1, 1},
+    {"AF ALC Disable", 0x4B, 5, 1, 1},
+    {"AFC Range Select", 0x73, 11, 0b111, 1},
+    {"AGC Fix Mode", 0x7E, 15, 1, 1},
+    {"AGC Fix Index", 0x7E, 12, 0b111, 1},
+    {"Crystal vReg Bit", 0x1A, 12, 0b1111, 1},
+    {"Crystal iBit", 0x1A, 8, 0b1111, 1},
+    {"PLL CP bit", 0x1F, 0, 0b1111, 1},
+    {"PLL/VCO Enable", 0x30, 4, 0xF, 1},
+    {"Exp AF Rx Ratio", 0x28, 14, 0b11, 1},
+    {"Exp AF Rx 0 dB", 0x28, 7, 0x7F, 1},
+    {"Exp AF Rx noise", 0x28, 0, 0x7F, 1},
+    {"OFF AFRxHPF300 flt", 0x2B, 10, 1, 1},
+    {"OFF AF RxLPF3K flt", 0x2B, 9, 1, 1},
+    {"OFF AF Rx de-emp", 0x2B, 8, 1, 1},
+    {"Gain after FM Demod", 0x43, 2, 1, 1},
+    {"AF Rx Gain1", 0x48, 10, 0x11, 1},
+    {"AF Rx Gain2", 0x48, 4, 0b111111, 1},
+    {"AF DAC G after G1 G2", 0x48, 0, 0b1111, 1},
+    {"300Hz AF Resp K Rx", 0x54, 0, 0xFFFF, 100},
+    {"300Hz AF Resp K Rx", 0x55, 0, 0xFFFF, 100},
+    {"3kHz AF Resp K Rx", 0x75, 0, 0xFFFF, 100},
+    {"DC Filt BW Rx IF In", 0x7E, 0, 0b111, 1},
+    {"MIC AGC Disable", 0x19, 15, 1, 1},
+    {"Compress AF Tx Ratio", 0x29, 14, 0b11, 1},
+    {"Compress AF Tx 0 dB", 0x29, 7, 0x7F, 1},
+    {"Compress AF Tx noise", 0x29, 0, 0x7F, 1},
+    {"OFF AFTxHPF300filter", 0x2B, 2, 1, 1},
+    {"OFF AFTxLPF1filter", 0x2B, 1, 1, 1},
+    {"OFF AFTxpre-emp flt", 0x2B, 0, 1, 1},
+    {"PA Gain Enable", 0x30, 3, 1, 1},
+    {"PA Biasoutput 0~3", 0x36, 8, 0xFF, 1},
+    {"PA Gain1 Tuning", 0x36, 3, 0b111, 1},
+    {"PA Gain2 Tuning", 0x36, 0, 0b111, 1},
+    {"RF TxDeviation ON", 0x40, 12, 1, 1},
+    {"RF Tx Deviation", 0x40, 0, 0xFFF, 10},
+    {"AFTxLPF2fltBW1.7-4.5khz", 0x43, 6, 0b111, 1},
+    {"300Hz AF Resp K Tx", 0x44, 0, 0xFFFF, 100},
+    {"300Hz AF Resp K Tx", 0x45, 0, 0xFFFF, 100},
 };
+
+#define STILL_REGS_MAX_LINES 3
+static uint8_t stillRegSelected = 0;
+static uint8_t stillRegScroll = 0;
+static bool stillEditRegs = false; // false = edycja czestotliwosci, true = edycja rejestrow
 
 uint16_t statuslineUpdateTimer = 0;
 
@@ -186,13 +303,13 @@ static void RelaunchScan();
 static void ResetInterrupts();
 static char StringCode[10] = "";
 static uint16_t GetRegMenuValue(uint8_t st) {
-  RegisterSpec s = registerSpecs[st];
+  RegisterSpec s = allRegisterSpecs[st];
   return (BK4819_ReadRegister(s.num) >> s.offset) & s.mask;
 }
 
 static void SetRegMenuValue(uint8_t st, bool add) {
   uint16_t v = GetRegMenuValue(st);
-  RegisterSpec s = registerSpecs[st];
+  RegisterSpec s = allRegisterSpecs[st];
 
   uint16_t reg = BK4819_ReadRegister(s.num);
   if (add && v <= s.mask - s.inc) {
@@ -297,7 +414,7 @@ static void ResetPeak() {
 }
 
 
-// scan step in 0,01khz
+// scan step in 0.01khz
 uint32_t GetScanStep() { return scanStepValues[settings.scanStepIndex]; }
 
 uint16_t GetStepsCount() 
@@ -513,6 +630,10 @@ uint16_t GetRssi(void) {
       if (rssi_comp > rssi) rssi = 0;        
         else rssi -=rssi_comp;
       }
+      else if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
+        rssi += UHF_NOISE_FLOOR;
+      }
+    rssi += gainOffset[CurrentScanIndex()];
   return rssi;
 }
 
@@ -1840,7 +1961,7 @@ break;
     break;
   
     case KEY_6:    //Free
-      if(Spectrum_state++ >4) Spectrum_state = 0;
+      if(++Spectrum_state > 4) Spectrum_state = 0;
       APP_RunSpectrum(Spectrum_state);
     break;
   
@@ -1950,18 +2071,30 @@ void OnKeyDownStill(KEY_Code_t key) {
     UpdateDBMax(false);
     break;
   case KEY_UP:
-    if (menuState) {
-      SetRegMenuValue(menuState, true);
-      break;
-    }
+      if (stillEditRegs) {
+        SetRegMenuValue(stillRegSelected, true);
+      } else {
     UpdateCurrentFreqStill(true);
+      }
     break;
   case KEY_DOWN:
-    if (menuState) {
-      SetRegMenuValue(menuState, false);
+      if (stillEditRegs) {
+        SetRegMenuValue(stillRegSelected, false);
+      } else {
+        UpdateCurrentFreqStill(false);
+      }
       break;
-    }
-    UpdateCurrentFreqStill(false);
+    case KEY_2: // przewijanie w górę po liście rejestrów
+      if (stillEditRegs && stillRegSelected > 0) {
+        stillRegSelected--;
+        redrawScreen = true;
+      }
+      break;
+    case KEY_8: // przewijanie w dół po liście rejestrów
+      if (stillEditRegs && stillRegSelected < ARRAY_SIZE(allRegisterSpecs)-1) {
+        stillRegSelected++;
+        redrawScreen = true;
+      }
     break;
   case KEY_STAR:
     UpdateRssiTriggerLevel(true);
@@ -1985,26 +2118,24 @@ void OnKeyDownStill(KEY_Code_t key) {
     ExitAndCopyToVfo();
     break;
   case KEY_MENU:
-    if (menuState == ARRAY_SIZE(registerSpecs) - 1) {
-      menuState = 1;
-    } else {
-      menuState++;
-    }
+      stillEditRegs = !stillEditRegs;
     redrawScreen = true;
     break;
   case KEY_EXIT:
-    if (!menuState) {
+      if (stillEditRegs) {
+        stillEditRegs = false;
+        redrawScreen = true;
+        break;
+      }
       SetState(SPECTRUM);
       SpectrumDelay = 0; //Prevent coming back to still directly
       RelaunchScan();
-      break;
-    }
-    menuState = 0;
     break;
   default:
     break;
   }
 }
+
 
 static void RenderFreqInput() {
   UI_PrintString(freqInputString, 2, 127, 0, 8);
@@ -2060,13 +2191,9 @@ static void RenderStill() {
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, fMeasure);
 
   if(sLevelAtt.over > 0)
-  {
     sprintf(String, "S%2d+%2d", sLevelAtt.sLevel, sLevelAtt.over);
-  }
   else
-  {
     sprintf(String, "S%2d", sLevelAtt.sLevel);
-  }
 
   GUI_DisplaySmallest(String, 4, 25, false, true);
   sprintf(String, "%d dBm", sLevelAtt.dBmRssi);
@@ -2075,31 +2202,43 @@ static void RenderStill() {
   x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
   gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
 
-  const uint8_t PAD_LEFT = 4;
-  const uint8_t CELL_WIDTH = 30;
-  uint8_t offset = PAD_LEFT;
-  uint8_t row = 4;
+  // --- lista rejestrów
+  uint8_t total = ARRAY_SIZE(allRegisterSpecs);
+  uint8_t lines = STILL_REGS_MAX_LINES;
+  if (total < lines) lines = total;
 
-  for (int i = 0, idx = 1; idx <= 4; ++i, ++idx) {
-    if (idx == 5) {
-      row += 2;
-      i = 0;
+  // Scroll logic
+  if (stillRegSelected >= total) stillRegSelected = total-1;
+  if (stillRegSelected < stillRegScroll) stillRegScroll = stillRegSelected;
+  if (stillRegSelected >= stillRegScroll + lines) stillRegScroll = stillRegSelected - lines + 1;
+
+  for (uint8_t i = 0; i < lines; ++i) {
+    uint8_t idx = i + stillRegScroll;
+    RegisterSpec s = allRegisterSpecs[idx];
+    uint16_t v = GetRegMenuValue(idx);
+
+    char buf[32];
+    // Przygotuj tekst do wyświetlenia
+    if (stillEditRegs && idx == stillRegSelected)
+      snprintf(buf, sizeof(buf), ">%-18s %6u", s.name, v);
+    else
+      snprintf(buf, sizeof(buf), " %-18s %6u", s.name, v);
+
+    uint8_t y = 32 + i * 8;
+    if (stillEditRegs && idx == stillRegSelected) {
+      // Najpierw czarny prostokąt na wysokość linii
+      for (uint8_t px = 0; px < 128; ++px)
+        for (uint8_t py = y; py < y + 6; ++py) // 6 = wysokość fontu 3x5
+          PutPixel(px, py, true); // 
+      // Następnie białe litery (fill = true)
+      GUI_DisplaySmallest(buf, 0, y, false, false);
+    } else {
+      // Zwykły tekst: czarne litery na białym
+      GUI_DisplaySmallest(buf, 0, y, false, true);
     }
-    offset = PAD_LEFT + i * CELL_WIDTH;
-    if (menuState == idx) {
-      for (int j = 0; j < CELL_WIDTH; ++j) {
-        gFrameBuffer[row][j + offset] = 0xFF;
-        gFrameBuffer[row + 1][j + offset] = 0xFF;
-      }
-    }
-    sprintf(String, "%s", registerSpecs[idx].name);
-    GUI_DisplaySmallest(String, offset + 2, row * 8 + 2, false,
-                        menuState != idx);
-    sprintf(String, "%u", GetRegMenuValue(idx));
-    GUI_DisplaySmallest(String, offset + 2, (row + 1) * 8 + 1, false,
-                        menuState != idx);
   }
 }
+
 
 static void Render() {
   memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
@@ -2839,8 +2978,3 @@ static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItem
     ST7565_BlitFullScreen();
 }
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
-
-
-
-
-
