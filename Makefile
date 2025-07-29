@@ -45,7 +45,7 @@ ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
 
 #############################################################
-BUILD_DIR = build
+
 TARGET = firmware
 
 ifeq ($(ENABLE_CLANG),1)
@@ -378,17 +378,33 @@ LIBS =
 DEPS = $(OBJS:.o=.d)
 
 
-WHERE := where
 
+ifneq (, $(shell $(WHERE) python))
+    MY_PYTHON := python
+else ifneq (, $(shell $(WHERE) python3))
 MY_PYTHON := python3
+endif
 
-# Vérifier crcmod
 ifdef MY_PYTHON
-    HAS_CRCMOD := $(shell $(MY_PYTHON) -c "import crcmod" >nul 2>&1 && echo OK || echo MISSING)
+    HAS_CRCMOD := $(shell $(MY_PYTHON) -c "import crcmod" 2>&1)
 endif
 
 all: $(TARGET)
 	$(OBJCOPY) -O binary $< $<.bin
+
+ifndef MY_PYTHON
+	$(info )
+	$(info !!!!!!!! PYTHON NOT FOUND, *.PACKED.BIN WON'T BE BUILT)
+	$(info )
+else ifneq (,$(HAS_CRCMOD))
+	$(info )
+	$(info !!!!!!!! CRCMOD NOT INSTALLED, *.PACKED.BIN WON'T BE BUILT)
+	$(info !!!!!!!! run: pip install crcmod)
+	$(info )
+else
+	-$(MY_PYTHON) fw-pack.py $<.bin $(AUTHOR_STRING) $(VERSION_STRING) $<.packed.bin
+endif
+
 	$(SIZE) $<
 
 debug:
@@ -398,8 +414,6 @@ debug:
 docker:
 	./compile-with-docker.sh
 
-clean:
-	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET) $(OBJS) $(DEPS))
 	
 version.o: .FORCE
 
@@ -417,3 +431,9 @@ bsp/dp32g030/%.h: hardware/dp32g030/%.def
 .FORCE:
 
 -include $(DEPS)
+
+clean:
+	$(RM) $(call FixPath, $(TARGET).bin $(TARGET).packed.bin $(TARGET) $(OBJS) $(DEPS))
+
+run:
+	make docker && make flash
