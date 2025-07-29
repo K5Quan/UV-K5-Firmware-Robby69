@@ -466,7 +466,7 @@ static void DeInitSpectrum(bool ComeBack) {
     StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
     Ptt_Toggle_Mode =0;
     }
-  ToggleNormalizeRssi(false);
+  //ToggleNormalizeRssi(false);
 }
 
 uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
@@ -811,6 +811,7 @@ static void AutoTriggerLevel() {
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
   settings.rssiTriggerLevel = clamp(max + 3, 0, RSSI_MAX_VALUE);
   settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
+  settings.dbMax = Rssi2DBm(max*1.2);
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -2406,21 +2407,15 @@ static void UpdateListening() {
   preventKeypress = false;
 
   if (currentState == SPECTRUM) {
-    if(appMode!=CHANNEL_MODE)
-      BK4819_WriteRegister(0x43, GetBWRegValueForScan());
+    //if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
     Measure();
-    BK4819_SetFilterBandwidth(settings.listenBw, false);
-  } else {
-    Measure();
-  }
-
+    //BK4819_SetFilterBandwidth(settings.listenBw, false);
+  } 
+  //else {Measure();}
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-  if (IsPeakOverLevel()) {
-    return;
-  }
-
+  if (IsPeakOverLevel()) {return;}
   ToggleRX(false);
   if(RandomEmission) AutoTriggerLevelScanlist();
   WaitSpectrum = SpectrumDelay;
