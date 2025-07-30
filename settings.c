@@ -38,9 +38,7 @@ void SETTINGS_SaveVfoIndices(void)
 {
 	uint8_t State[8];
 
-	#ifndef ENABLE_NOAA
-		EEPROM_ReadBuffer(0x0E80, State, sizeof(State));
-	#endif
+	EEPROM_ReadBuffer(0x0E80, State, sizeof(State));
 
 	State[0] = gEeprom.ScreenChannel[0];
 	State[1] = gEeprom.MrChannel[0];

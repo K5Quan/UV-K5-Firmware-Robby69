@@ -110,9 +110,6 @@ typedef struct {
 	uint8_t               SQUELCH_LEVEL;
 	uint8_t               TX_TIMEOUT_TIMER;
 	bool                  KEY_LOCK;
-	bool                  VOX_SWITCH;
-	uint8_t               VOX_LEVEL; // sensitivity and OFF when 0
-	uint8_t				  VOX_DELAY; // vox delay (0-10)
 	bool                  BEEP_CONTROL;
 	uint8_t               CHANNEL_DISPLAY_MODE;
 	bool                  VFO_OPEN;
@@ -161,10 +158,6 @@ typedef struct {
 #ifdef ENABLE_ENCRYPTION
 	char                  ENC_KEY[16];
 #endif
-
-	uint16_t              VOX1_THRESHOLD;
-	uint16_t              VOX0_THRESHOLD;
-
 	uint8_t               field77_0x95;
 	uint8_t               field78_0x96;
 	uint8_t               field79_0x97;
