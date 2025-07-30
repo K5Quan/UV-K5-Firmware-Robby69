@@ -104,8 +104,6 @@ u8 squelch;
 u8 max_talk_time;
 u8 noaa_autoscan;
 u8 key_lock;
-u8 vox_switch;
-u8 vox_level;
 u8 mic_gain;
 
 
@@ -289,12 +287,6 @@ struct {
     #seekto 0x1F40;
     ul16 batLvl[6];
 
-    #seekto 0x1F50;
-    ul16 vox1Thr[10];
-
-    #seekto 0x1F68;
-    ul16 vox0Thr[10];
-
     #seekto 0x1F80;
     u8 micLevel[5];
 
@@ -429,7 +421,6 @@ TX_VFO_LIST = ["A", "B"]
 REMENDOFTALK_LIST = ["OFF", "Morse", "Mario"]
 RTE_LIST = ["OFF", "100ms", "200ms", "300ms", "400ms",
             "500ms", "600ms", "700ms", "800ms", "900ms", "1000ms"]
-VOX_LIST = ["OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
 MEM_SIZE = 0x2000  # size of all memory
 PROG_SIZE = 0x1d00  # size of the memory that we will write
@@ -1198,16 +1189,6 @@ class UVK5Radio(chirp_common.CloneModeRadio):
             elif elname == "tot":
                 _mem.max_talk_time = TALK_TIME_LIST.index(str(element.value))
 
-            # NOAA autoscan
-            elif elname == "noaa_autoscan":
-                _mem.noaa_autoscan = int(element.value)
-
-            # VOX
-            elif elname == "vox":
-                voxvalue = VOX_LIST.index(str(element.value))
-                _mem.vox_switch = voxvalue > 0
-                _mem.vox_level = (voxvalue - 1) if _mem.vox_switch else 0
-
             # mic gain
             elif elname == "mic_gain":
                 _mem.mic_gain = int(element.value)
@@ -1452,10 +1433,6 @@ class UVK5Radio(chirp_common.CloneModeRadio):
         val = RadioSettingValueList(ch_list, None, tmpfreq0)
         freq0_setting = RadioSetting("VFO_A_chn",
                                      "VFO A current channel/band", val)
-
-        tmptxvfo = list_def(_mem.TX_VFO, TX_VFO_LIST, "A")
-        val = RadioSettingValueList(TX_VFO_LIST, None, tmptxvfo)
-        tx_vfo_setting = RadioSetting("TX_VFO", "Main VFO", val)
 
         tmpsq = min_max_def(_mem.squelch, 0, 9, 1)
         val = RadioSettingValueInteger(0, 9, tmpsq)
@@ -1727,8 +1704,6 @@ class UVK5Radio(chirp_common.CloneModeRadio):
 
         radio_setting_group = RadioSettingGroup("battery_calibration",
                                                 "Battery")
-        calibration.append(radio_setting_group)
-
         for lvl in range(0,6):
             name = "_mem.cal.batLvl[" + str(lvl) + "]"
             temp_val = min_max_def(eval(name), 0, 4999, 4999)
@@ -1740,23 +1715,7 @@ class UVK5Radio(chirp_common.CloneModeRadio):
 
 
 
-        radio_setting_group = RadioSettingGroup("vox_calibration", "VOX")
         calibration.append(radio_setting_group)
-
-        for lvl in range(0,10):
-            append_label(radio_setting_group, "Level " + str(lvl + 1))
-
-            name = "_mem.cal.vox1Thr[" + str(lvl) + "]"
-            val = RadioSettingValueInteger(0, 65535, eval(name))
-            radio_setting = RadioSetting(name, "On", val)
-            radio_setting_group.append(radio_setting)
-
-            name = "_mem.cal.vox0Thr[" + str(lvl) + "]"
-            val = RadioSettingValueInteger(0, 65535, eval(name))
-            radio_setting = RadioSetting(name, "Off", val)
-            radio_setting_group.append(radio_setting)
-
-
 
         radio_setting_group = RadioSettingGroup("mic_calibration",
                                                 "Microphone sensitivity")
@@ -1826,7 +1785,6 @@ class UVK5Radio(chirp_common.CloneModeRadio):
         append_label(basic, "=" * 6 + " Radio state " + "=" * 300, "=" * 300)
 
         basic.append(freq0_setting)
-        basic.append(tx_vfo_setting)
         basic.append(keypad_cock_setting)
 
         advanced.append(freq_mode_allowed_setting)
