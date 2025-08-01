@@ -836,9 +836,9 @@ static void AutoTriggerLevelbands(void) {
   for (int i = 0; i < AnalyseSize; ++i) {
       uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
       SetF(FreqAnalyse);
-      while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
+      BK4819_ReadRegister(0x63);
+      SYSTICK_DelayUs(DelayRssi * 1000);
       rssiAnalyse = BK4819_GetRSSI();
-      
       if (rssiAnalyse > topRssi) {topRssi = rssiAnalyse;}    
   }
     settings.rssiTriggerLevel = clamp(topRssi + 10, 0, RSSI_MAX_VALUE);
