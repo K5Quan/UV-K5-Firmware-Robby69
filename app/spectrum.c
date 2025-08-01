@@ -21,8 +21,8 @@
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
 // see GetParametersText
-uint8_t DelayRssi = 12;                         // 1
-uint8_t RandomEmission = 0;                     // 2
+uint8_t DelayRssi = 10;                         // 1
+uint8_t PttEmission = 0;                     // 2
 uint16_t SpectrumDelay = 0;                     // 3
 uint32_t gScanRangeStart;                       // 4
 uint32_t gScanRangeStop;                        // 5
@@ -34,11 +34,13 @@ bool AutoTriggerLevelbandsMode = 0;             // 9
 ////////////////////////////////////////////////////////////////////
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
+uint32_t Last_Tuned_Freq = 44610000;
 #define SQUELCH_OFF_DELAY 10;
 bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
 bool PopUpclear = 0;
 uint8_t historyListIndex = 0;
+uint8_t ArrowLine = 1;
 bool historyListActive = false;
 //static uint32_t PreviousRecorded = 0;
 static int historyScrollOffset = 0;
@@ -442,7 +444,7 @@ uint32_t GetFEnd() {
 	return (currentFreq + (GetBW() >> 1));} //robby69
 
 static void TuneToPeak() {
-  scanInfo.f = peak.f;
+  scanInfo.f = Last_Tuned_Freq = peak.f;
   scanInfo.rssi = peak.rssi;
   scanInfo.i = peak.i;
   SetF(scanInfo.f);
@@ -491,7 +493,7 @@ static void ExitAndCopyToVfo() {
       DeInitSpectrum(0);
       break;
     case SPECTRUM:
-    if (RandomEmission){
+    if (PttEmission ==1){
       uint16_t randomChannel = GetRandomChannelFromRSSI(scanChannelsCount);
       static uint32_t rndfreq;
       uint8_t i = 0;
@@ -513,6 +515,18 @@ static void ExitAndCopyToVfo() {
       gTxVfo->STEP_SETTING = STEP_0_01kHz;
       gRequestSaveChannel = 1;
       }
+      else if (PttEmission ==2){
+      SpectrumDelay = 0; //not compatible
+      SETTINGS_SetVfoFrequency(Last_Tuned_Freq);
+      COMMON_SwitchToVFOMode();
+      //gVfoConfigureMode = VFO_CONFIGURE;
+	    //gFlagResetVfos    = true;
+      gTxVfo->Modulation = MODULATION_FM;
+      gTxVfo->STEP_SETTING = STEP_0_01kHz;
+      gTxVfo->OUTPUT_POWER = OUTPUT_POWER_HIGH;
+      gRequestSaveChannel = 1;
+      }
+
       DeInitSpectrum(1);
       break;      
     
@@ -809,9 +823,9 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max + 3, 0, RSSI_MAX_VALUE);
+  settings.rssiTriggerLevel = clamp(max + 10, 0, RSSI_MAX_VALUE);
   settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-  settings.dbMax = Rssi2DBm(max*1.2);
+  //settings.dbMax = Rssi2DBm(max*1.2);
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -1107,21 +1121,6 @@ static void Blacklist() {
   ResetScanStats();
 }
 
-static void AutoTriggerLevelScanlist(void) {
-  if (appMode!=CHANNEL_MODE) return;
-  uint8_t rssiAnalyse = 0;
-  uint8_t topRssi = 0;
-  for (int i = 0; i <= scanChannelsCount; ++i) {
-      uint32_t FreqAnalyse = gMR_ChannelFrequencyAttributes[scanChannel[i]].Frequency;
-      SetF(FreqAnalyse);
-      while ((BK4819_ReadRegister(0x63) & 0b11111111) >= 255) SYSTICK_DelayUs(500);
-      rssiAnalyse = BK4819_GetRSSI();
-      if (rssiAnalyse > topRssi) {topRssi = rssiAnalyse;}    
-  }
-    settings.rssiTriggerLevel = clamp(topRssi+15, 0, RSSI_MAX_VALUE);
-    settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-}
-
 // Draw things
 
 // applied x2 to prevent initial rounding
@@ -1178,7 +1177,7 @@ static void DrawStatus() {
   int len=0;
   int pos=0;
 
-  switch(appMode) {
+   switch(appMode) {
     case FREQUENCY_MODE:
       len = sprintf(&String[pos],"FR ");
       pos += len;
@@ -1198,7 +1197,7 @@ static void DrawStatus() {
       len = sprintf(&String[pos],"BD ");
       pos += len;
     break;
-  }
+  } 
   len = sprintf(&String[pos],"%d/%ddb ",settings.dbMin,settings.dbMax);
   pos += len;  // Move position forward
   if(isNormalizationApplied){len = sprintf(&String[pos], "N ");pos += len;}
@@ -1262,14 +1261,14 @@ static void DrawF(uint32_t f) {
         UI_DisplayPopup("History Cleared");
         PopUpclear = 0;
       	ST7565_BlitFullScreen();
-        SYSTEM_DelayMs(1000);
+        SYSTEM_DelayMs(500);
         return;
         }
     if(saved_params) //Display saved for a while
       {UI_DisplayPopup("Params Saved");
         saved_params = 0;
         ST7565_BlitFullScreen();
-        SYSTEM_DelayMs(500);
+        SYSTEM_DelayMs(200);
         return;
       }
     if (f == 0) return;
@@ -1387,8 +1386,13 @@ static void DrawF(uint32_t f) {
 
     // --- Render to Screen ---
     UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
-    if (line2[0]) UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
-    if (line3[0]) UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
+      ArrowLine = 1;
+    if (line2[0]) {
+      UI_PrintStringSmallBold(line2, 1, 1, 1);  // Line 2 (Freq/Name/Code)
+      ArrowLine = 2;}
+    if (line3[0]) {
+      UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
+      ArrowLine = 3;}
 }
 
 void LookupChannelInfo() {
@@ -1509,7 +1513,7 @@ static void DrawArrow(uint8_t x) {
   for (signed i = -2; i <= 2; ++i) {
     signed v = x + i;
     if (!(v & 128)) {
-      gFrameBuffer[1][v] |= (0b111 >> my_abs(i)) & 0b111;
+      gFrameBuffer[ArrowLine][v] |= (0b111 >> my_abs(i)) & 0b111;
     }
   }
 }
@@ -1774,8 +1778,10 @@ static void OnKeyDown(uint8_t key) {
                       }
                       break;
                     
-                  case 2: // RandomEmission
-                      RandomEmission = isKey3 ? 1 : 0;
+                  case 2: // PttEmission
+                      PttEmission = isKey3 ?
+                                (PttEmission >= 2 ? 0 : PttEmission + 1) :
+                                (PttEmission <= 0 ? 2 : PttEmission - 1);
                       break;
                     
                   case 3: // FreqInput
@@ -1812,6 +1818,7 @@ static void OnKeyDown(uint8_t key) {
               break;
           }
         case KEY_EXIT: // Exit parameters menu to previous menu/state
+          SaveSettings();
           SetState(SPECTRUM);
           RelaunchScan();
           ResetModifiers();
@@ -2417,7 +2424,6 @@ static void UpdateListening() {
 
   if (IsPeakOverLevel()) {return;}
   ToggleRX(false);
-  if(RandomEmission) AutoTriggerLevelScanlist();
   WaitSpectrum = SpectrumDelay;
   ResetScanStats();
 }
@@ -2486,7 +2492,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
   if (Spectrum_state == 1) mode = CHANNEL_MODE ;
   EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
   if (!Key_1_pressed)LoadSettings();
-  if(RandomEmission) AutoTriggerLevelScanlist();
   appMode = mode;
   ResetModifiers();
   if (appMode==CHANNEL_MODE)LoadValidMemoryChannels();
@@ -2614,7 +2619,7 @@ void LoadValidMemoryChannels(void)
 typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
     uint8_t DelayRssi;
-    uint8_t RandomEmission; 
+    uint8_t PttEmission; 
     uint8_t BPRssiTriggerLevel[32]; // 32 bytes of trigger levels
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
@@ -2623,6 +2628,7 @@ typedef struct {
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
+    bool isNormalizationApplied;
 } SettingsEEPROM;
 
 
@@ -2644,10 +2650,9 @@ void LoadSettings()
   for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
     DelayRssi = eepromData.DelayRssi;
     if (DelayRssi > 12) DelayRssi =12;
-    if (RandomEmission > 1) RandomEmission =0;
-    RandomEmission = eepromData.RandomEmission;
-    
-    
+    if (PttEmission > 1) PttEmission =0;
+    PttEmission = eepromData.PttEmission;
+    isNormalizationApplied = eepromData.isNormalizationApplied;
     validScanListCount = 0;
     ChannelAttributes_t att;
     for (int i = 0; i < 200; i++) {
@@ -2667,7 +2672,8 @@ void SaveSettings()
   eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
-  eepromData.RandomEmission = RandomEmission;
+  eepromData.PttEmission = PttEmission;
+  eepromData.isNormalizationApplied = isNormalizationApplied;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks
@@ -2756,7 +2762,12 @@ static void GetParametersText(uint8_t index, char *buffer) {
             break;
             
         case 2:
-            sprintf(buffer, "Mode Ninja: %s", RandomEmission ? "ON" : "OFF");
+            if(PttEmission == 0)
+              sprintf(buffer, "PTT: LAST VFO FREQ");
+            else if (PttEmission == 1)
+              sprintf(buffer, "PTT: NINJA MODE");
+            else if (PttEmission == 2)
+              sprintf(buffer, "PTT: LAST RECEIVED");
             break;
             
         case 3: {

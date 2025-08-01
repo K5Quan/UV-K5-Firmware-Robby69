@@ -196,6 +196,7 @@ const char gSubMenu_RESET[][4] =
 const char * const gSubMenu_F_LOCK[] =
 {
 	"PMR446\nONLY",
+	"136 TO\n500MHz\nONLY",
 	"ENABLE\nALL"
 };
 
