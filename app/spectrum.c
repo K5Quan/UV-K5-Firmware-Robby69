@@ -76,7 +76,6 @@ Mode appMode;
 #define ATTENUATE_STEP  10
 bool    isNormalizationApplied = 1;
 uint8_t  gainOffset[129];
-uint8_t  attenuationOffset[129];
 uint8_t scanChannel[MR_CHANNEL_LAST+3];
 uint8_t scanChannelsCount;
 void ToggleScanList();
@@ -853,7 +852,6 @@ static void ResetModifiers() {
     if (rssiHistory[i] == RSSI_MAX_VALUE) rssiHistory[i] = 0;
   }
   if(appMode==CHANNEL_MODE){LoadValidMemoryChannels();}
-  memset(attenuationOffset, 0, sizeof(attenuationOffset));
   RelaunchScan();
 }
 
@@ -877,7 +875,7 @@ static void UpdateScanInfo() {
   }
   // add attenuation offset to prevent noise floor lowering when attenuated rx is over
   // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi+attenuationOffset[CurrentScanIndex()] < scanInfo.rssiMin) {
+  if (scanInfo.rssi < scanInfo.rssiMin) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawStatus = true;
@@ -1860,6 +1858,7 @@ static void OnKeyDown(uint8_t key) {
         ToggleRX(false);
         AutoTriggerLevel();
         SquelchBarKeyMode=0;
+        FreeTriggerLevel = true;
     break;
      
      case KEY_7:
