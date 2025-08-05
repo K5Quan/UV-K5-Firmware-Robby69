@@ -24,6 +24,8 @@
 
 bool UART_IsCommandAvailable(void);
 void UART_HandleCommand(void);
+bool UART_IsCableConnected(void);
+
 
 #endif
 

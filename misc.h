@@ -159,6 +159,10 @@ typedef struct
 extern ChannelFrequencyAttributes gMR_ChannelFrequencyAttributes[200];
 #endif
 
+#ifdef ENABLE_SCREENSHOT
+         extern volatile uint8_t  gUART_LockScreenshot; // lock screenshot if Chirp is used
+#endif
+
 extern ChannelAttributes_t   gMR_ChannelAttributes[207];
 
 typedef struct

@@ -60,6 +60,9 @@
 #ifdef ENABLE_ENCRYPTION
 	#include "helper/crypto.h"
 #endif
+#ifdef ENABLE_SCREENSHOT
+    #include "screenshot.h"
+#endif
 
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
 
@@ -696,6 +699,10 @@ void APP_TimeSlice10ms(void)
 	if (gUpdateStatus)
 		UI_DisplayStatus();
 
+	#ifdef ENABLE_SCREENSHOT
+        getScreenShot(false);
+    #endif
+	
 	// Skipping authentic device checks
 
 		if (gFmRadioMode && gFmRadioCountdown_500ms > 0)   // 1of11

@@ -8,13 +8,15 @@
 #include "action.h"
 #include "bands.h"
 #include "debugging.h"
+
+#ifdef ENABLE_SCREENSHOT
+  #include "screenshot.h"
+#endif
+
 /*	
           /////////////////////////DEBUG//////////////////////////
           char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
 */
-#ifdef ENABLE_SCREENSHOT
-  #include "screenshot.h"
-#endif
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 250
 
@@ -74,7 +76,7 @@ Mode appMode;
 #define UHF_NOISE_FLOOR 20
 #define MAX_ATTENUATION 160
 #define ATTENUATE_STEP  10
-bool    isNormalizationApplied = 1;
+uint8_t isNormalizationApplied = 0;
 uint8_t  gainOffset[129];
 uint8_t scanChannel[MR_CHANNEL_LAST+3];
 uint8_t scanChannelsCount;
@@ -875,7 +877,7 @@ static void UpdateScanInfo() {
   }
   // add attenuation offset to prevent noise floor lowering when attenuated rx is over
   // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi < scanInfo.rssiMin) {
+  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawStatus = true;
@@ -1952,9 +1954,6 @@ break;
   break;
   
   case KEY_SIDE1:
-    #ifdef ENABLE_SCREENSHOT
-      getScreenShot();
-    #endif
     Blacklist();
     WaitSpectrum = 0; //don't wait if this frequency not interesting
     break;
@@ -2279,8 +2278,11 @@ static void Render() {
       RenderScanListChannels();
       break;
 #endif // ENABLE_SCANLIST_SHOW_DETAIL
+    
   }
-
+  #ifdef ENABLE_SCREENSHOT
+    getScreenShot(1);
+  #endif
   ST7565_BlitFullScreen();
 }
 
@@ -2588,29 +2590,6 @@ void LoadValidMemoryChannels(void)
   void ToggleNormalizeRssi()
   {
     isNormalizationApplied = !isNormalizationApplied;
-
-    /*// we don't want to normalize when there is already active signal RX
-    if(IsPeakOverLevel()){
-        memset(gainOffset, 0, sizeof(gainOffset));
-        isNormalizationApplied = false;
-		    return;}
-
-    if(on) {
-      uint8_t max = 0;
-      uint8_t i;
-      for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-        {if (max < rssiHistory[i]) max = rssiHistory[i];}
-      
-      for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-        {gainOffset[i] = max - rssiHistory[i];}
-      isNormalizationApplied = true;
-    }
-    else {
-      memset(gainOffset, 0, sizeof(gainOffset));
-      isNormalizationApplied = false;
-    }
-    AutoTriggerLevel(); //Robby69
-    RelaunchScan();*/
   }
 
 
@@ -2627,7 +2606,7 @@ typedef struct {
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
-    bool isNormalizationApplied;
+    uint8_t isNormalization;
 } SettingsEEPROM;
 
 
@@ -2643,15 +2622,16 @@ void LoadSettings()
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
-  settings.dbMax = eepromData.dbMax;
+    settings.dbMax = eepromData.dbMax;
   
     for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
-  for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
+    for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
     DelayRssi = eepromData.DelayRssi;
     if (DelayRssi > 12) DelayRssi =12;
     if (PttEmission > 1) PttEmission =0;
     PttEmission = eepromData.PttEmission;
-    isNormalizationApplied = eepromData.isNormalizationApplied;
+    if(eepromData.isNormalization) isNormalizationApplied = 1;
+      else isNormalizationApplied = 0;
     validScanListCount = 0;
     ChannelAttributes_t att;
     for (int i = 0; i < 200; i++) {
@@ -2672,7 +2652,7 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.PttEmission = PttEmission;
-  eepromData.isNormalizationApplied = isNormalizationApplied;
+  eepromData.isNormalization = isNormalizationApplied;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks

@@ -113,6 +113,10 @@ ifeq ($(ENABLE_SPECTRUM), 1)
 OBJS += app/spectrum.o
 endif
 
+ifeq ($(ENABLE_SCREENSHOT), 1)
+OBJS += screenshot.o
+endif
+
 OBJS += app/scanner.o
 ifeq ($(ENABLE_UART),1)
 	OBJS += app/uart.o

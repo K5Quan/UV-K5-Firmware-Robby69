@@ -17,16 +17,18 @@
  *     limitations under the License.
  */
 
+#include <stdbool.h>
 #include <string.h>
 
 #if !defined(ENABLE_OVERLAY)
 	#include "ARMCM0.h"
 #endif
 #include "app/fm.h"
-#include "app/uart.h"
 #include "board.h"
 #include "bsp/dp32g030/dma.h"
 #include "bsp/dp32g030/gpio.h"
+#include "bsp/dp32g030/syscon.h"
+#include "bsp/dp32g030/uart.h"
 #include "driver/backlight.h"
 #include "driver/bk4819.h"
 #include "driver/crc.h"
@@ -467,4 +469,10 @@ void UART_HandleCommand(void)
 			#endif
 			break;
 	}
+	#ifdef ENABLE_SCREENSHOT
+        gUART_LockScreenshot = 20; // lock screenshot
+	#endif
 }
+
+
+

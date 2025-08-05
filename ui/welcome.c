@@ -29,6 +29,9 @@
 #include "ui/welcome.h"
 #include "ui/status.h"
 #include "version.h"
+#ifdef ENABLE_SCREENSHOT
+    #include "screenshot.h"
+#endif
 
 void UI_DisplayReleaseKeys(void)
 {
@@ -84,6 +87,9 @@ void UI_DisplayWelcome(void)
 
 		ST7565_BlitStatusLine();  // blank status line
 		ST7565_BlitFullScreen();
+		#ifdef ENABLE_SCREENSHOT
+            getScreenShot(true);
+        #endif
 	}
 }
 

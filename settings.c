@@ -22,7 +22,6 @@
 #include "app/fm.h"
 
 #include "driver/eeprom.h"
-#include "driver/uart.h"
 #include "driver/bk4819.h"
 #include "misc.h"
 #include "settings.h"

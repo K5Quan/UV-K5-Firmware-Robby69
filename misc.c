@@ -119,6 +119,10 @@ bool              gUpdateRSSI;
 #if defined(ENABLE_TX1750)
 	AlarmState_t  gAlarmState;
 #endif
+
+#ifdef ENABLE_SCREENSHOT
+    volatile uint8_t  gUART_LockScreenshot = 0; // lock screenshot if Chirp is used
+#endif
 uint16_t          gMenuCountdown;
 bool              gPttWasReleased;
 bool              gPttWasPressed;

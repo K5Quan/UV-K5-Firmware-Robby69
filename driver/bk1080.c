@@ -70,7 +70,8 @@ void BK1080_Init(uint16_t Frequency, bool bDoScan)
 		}
 
 		// Europe/USA configuration
-		BK1080_WriteRegister(BK1080_REG_05_SYSTEM_CONFIGURATION2, (0u << 8) | (0b00 << 6) | (0b01 << 4) | (0b1111 << 0));
+		BK1080_WriteRegister(BK1080_REG_05_SYSTEM_CONFIGURATION2, 0x0A1F);
+
 		BK1080_SetFrequency(Frequency);
 	}
 	else
