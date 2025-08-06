@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -34,6 +34,7 @@ uint32_t gScanRangeStop;                        // 5
 bool AutoTriggerLevelbandsMode = 0;             // 9
 #define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
+bool dynamicTrigger=0;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 uint32_t Last_Tuned_Freq = 44610000;
@@ -76,12 +77,9 @@ Mode appMode;
 #define UHF_NOISE_FLOOR 20
 #define MAX_ATTENUATION 160
 #define ATTENUATE_STEP  10
-uint8_t isNormalizationApplied = 0;
-uint8_t  gainOffset[129];
 uint8_t scanChannel[MR_CHANNEL_LAST+3];
 uint8_t scanChannelsCount;
 void ToggleScanList();
-void ToggleNormalizeRssi();
 static void LoadSettings();
 static void SaveSettings();
 static void AutoTriggerLevel(void);
@@ -129,7 +127,7 @@ uint16_t BPRssiTriggerLevel[32]={0};
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_500kHz,
                              frequencyChangeStep: 80000,
-                             rssiTriggerLevel: 100,
+                             rssiTriggerLevel: 20,
 							               rssiTriggerLevelH: 100,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
@@ -397,7 +395,51 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
 
-bool IsPeakOverLevel() {return peak.rssi > settings.rssiTriggerLevel; }
+bool IsPeakOverLevel() {
+    static enum { IDLE, PEAK_ACTIVE } state = IDLE;
+    static uint16_t baseline = 0;
+    static uint16_t highestPeak = 0;
+    bool peakDetected = false;
+
+    // Initialize baseline (skip first sample)
+    static bool firstRun = true;
+    if (firstRun) {
+        baseline = peak.rssi;
+        firstRun = false;
+        return false;
+    }
+
+    switch (state) {
+        case IDLE:
+            if (peak.rssi > baseline + settings.rssiTriggerLevel) {
+                highestPeak = peak.rssi;
+                state = PEAK_ACTIVE;
+                peakDetected = true;
+            } else if (peak.rssi < baseline) {
+                baseline = peak.rssi; // Track minimum RSSI
+            }
+            break;
+
+        case PEAK_ACTIVE:
+            if (peak.rssi > highestPeak) {
+                highestPeak = peak.rssi;
+            }
+            else if (peak.rssi < highestPeak - settings.rssiTriggerLevel) {
+                baseline = peak.rssi;
+                highestPeak = 0;  // CRITICAL RESET
+                state = IDLE;
+            }
+            peakDetected = true;
+            break;
+    }
+
+/*    char str[128];
+    sprintf(str, "State: %d, RSSI: %d, Base: %d, Peak: %d, Out: %d\r\n",
+            state, peak.rssi, baseline, highestPeak, peakDetected);
+    LogUart(str);*/
+
+    return peakDetected;
+}
 
 bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
 
@@ -469,7 +511,6 @@ static void DeInitSpectrum(bool ComeBack) {
     StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
     Ptt_Toggle_Mode =0;
     }
-  //ToggleNormalizeRssi(false);
 }
 
 uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
@@ -552,80 +593,6 @@ uint8_t GetBWRegValueForScan() {
   return scanStepBWRegValues[settings.scanStepIndex];
 }
 
-const NoiseLUT noise_lut_optimized[LUT_SIZE_OPTIMIZED] = {
-    {1400000,  49},
-    {2441702,  53},
-    {3483404,  56},
-    {4525106,  66},
-    {5566808,  58},
-    {6608510,  51},
-    {7650212,  52},
-    {8691914,  55},
-    {9733617,  58},
-    {10775319, 64},
-    {11817021, 71},
-    {12200000, 74},
-    {12550000, 76},
-    {12858723, 81},
-    {13200000, 83},
-    {13590000, 84},    
-    {13900425, 83},
-    {14942127, 78},
-    {15983829, 76},
-    {17025531, 74},
-    {18067234, 68},
-    {19108936, 68},
-    {20150638, 56},
-    {21192340, 54},
-    {22234042, 52},
-    {23275744, 50},
-    {24317446, 49},
-    {25359148, 50},
-    {26400851, 49},
-    {27442553, 48},
-    {28484255, 49},
-    {29525957, 60},
-    {30567659, 65},
-    {31609361, 59},
-    {32651063, 55},
-    {33692765, 55},
-    {34734468, 54},
-    {35776170, 56},
-    {36817872, 62},
-    {37859574, 70},
-    {38901276, 82},
-    {39942978, 72},
-    {40984680, 65},
-    {42026382, 57},
-    {43068085, 52},
-    {44109787, 50},
-    {45151489, 48},
-    {46193191, 47},
-    {47234893, 45},
-    {48276595, 46},
-    {49318297, 46},
-    {50360000, 44}
-};
-
-uint16_t get_background_rssi_optimized(uint32_t freq_10hz) {
-    if (freq_10hz < 1400000 || freq_10hz > 50360000) return 0;
-
-    for (int i = 0; i < LUT_SIZE_OPTIMIZED - 1; ++i) {
-        uint32_t f1 = noise_lut_optimized[i].freq_10hz;
-        uint32_t f2 = noise_lut_optimized[i + 1].freq_10hz;
-        int16_t r1 = noise_lut_optimized[i].rssi;
-        int16_t r2 = noise_lut_optimized[i + 1].rssi;
-
-        if (freq_10hz >= f1 && freq_10hz <= f2) {
-            int32_t delta_f = f2 - f1;
-            int32_t delta_r = r2 - r1;
-            int32_t offset = freq_10hz - f1;
-            return r1 + (delta_r * offset) / delta_f;
-        }
-    }
-    return 0;
-}
-
 uint16_t GetRssi(void) {
     uint16_t rssi;
     
@@ -640,15 +607,9 @@ uint16_t GetRssi(void) {
     
     rssi = BK4819_GetRSSI();
     
-    if (isNormalizationApplied) {
-      uint16_t rssi_comp = get_background_rssi_optimized(scanInfo.f);
-      if (rssi_comp > rssi) rssi = 0;        
-        else rssi -=rssi_comp;
-      }
-      else if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
+    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
         rssi += UHF_NOISE_FLOOR;
       }
-    rssi += gainOffset[CurrentScanIndex()];
   return rssi;
 }
 
@@ -710,17 +671,6 @@ void FillfreqHistory(bool count) {
 static void ResetReceivingState() {
     wasReceiving = false;
     lastReceivingFreq = 0;
-}
-
-static uint16_t dbm2rssi(int dBm)
-{
-  return (dBm + 160)*2;
-}
-
-static void ClampRssiTriggerLevel()
-{
-  settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
-  settings.rssiTriggerLevelH = clamp(settings.rssiTriggerLevelH, dbm2rssi(settings.dbMin), dbm2rssi(settings.dbMax));
 }
 
 static void ToggleRX(bool on) {
@@ -824,9 +774,6 @@ static void AutoTriggerLevel() {
   uint8_t i;
   for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
     {if (max < rssiHistory[i]) max = rssiHistory[i];}
-  settings.rssiTriggerLevel = clamp(max + 10, 0, RSSI_MAX_VALUE);
-  settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-  //settings.dbMax = Rssi2DBm(max*1.2);
 }
 
 static void AutoTriggerLevelbands(void) {
@@ -900,9 +847,6 @@ static void UpdatePeakInfo() {
 static void Measure() 
 { 
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    
-    if (IsPeakOverLevel())  {FillfreqHistory(true);}
-    else if (IsPeakOverLevelH()) FillfreqHistory(false);
     if(scanInfo.measurementsCount > 128) {
       uint8_t idx = CurrentScanIndex();
       if(rssiHistory[idx] < rssi || isListening)
@@ -914,7 +858,7 @@ static void Measure()
 }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-    const int8_t delta = inc ? 5 : -5;
+    const int8_t delta = inc ? 1 : -1;
     
     switch (SquelchBarKeyMode) {
         case 2:
@@ -928,8 +872,8 @@ static void UpdateRssiTriggerLevel(bool inc) {
             settings.rssiTriggerLevel += delta;
             break;
     }
-    
-    ClampRssiTriggerLevel();
+    redrawStatus = true;
+    //ClampRssiTriggerLevel();
     BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
 }
 
@@ -938,7 +882,7 @@ static void UpdateDBMax(bool inc) {
       else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
            else {return;}
   settings.dbMax = ((settings.dbMax + (settings.dbMax >= 0 ? 2 : -2)) / 5) * 5;
-  ClampRssiTriggerLevel();
+  //ClampRssiTriggerLevel();
   redrawStatus = true;
   redrawScreen = true;
   SYSTEM_DelayMs(20);
@@ -1198,10 +1142,9 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"%d/%ddb ",settings.dbMin,settings.dbMax);
+  len = sprintf(&String[pos],"%d/%ddb SQ%d ",settings.dbMin,settings.dbMax, settings.rssiTriggerLevel);
   pos += len;  // Move position forward
-  if(isNormalizationApplied){len = sprintf(&String[pos], "N ");pos += len;}
-
+  
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
 
@@ -1496,7 +1439,7 @@ static void DrawNums() {
     }
 }
 
-static void DrawRssiTriggerLevel() {
+/*static void DrawRssiTriggerLevel() {
   uint8_t y;
   y = Rssi2Y(settings.rssiTriggerLevel);
   for (uint8_t x = 0; x < 128; x += 2) {PutPixel(x, y, true);}
@@ -1505,7 +1448,7 @@ static void DrawRssiTriggerLevel() {
     y = Rssi2Y(settings.rssiTriggerLevelH);
     for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
   }
-}
+}*/
 
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
@@ -1867,9 +1810,8 @@ static void OnKeyDown(uint8_t key) {
         SaveSettings(); 
         break;
      
-     case KEY_2:
-        ToggleNormalizeRssi();
-        redrawStatus = true;
+     case KEY_2: //FREE
+      dynamicTrigger=!dynamicTrigger;
       break;
 
      case KEY_8:
@@ -2158,7 +2100,7 @@ static void RenderSpectrum() {
   DrawNums();
   DrawArrow(128u * (peak.i-1) / GetStepsCount());
   DrawSpectrum();
-  DrawRssiTriggerLevel();
+  //DrawRssiTriggerLevel();
   DrawF(peak.f); 
 }
 
@@ -2443,12 +2385,6 @@ static void Tick() {
     // listening has it's own timer
     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
-    if (IsPeakOverLevel()) {
-        ToggleRX(true);
-        TuneToPeak();
-        if (SpectrumDelay)SetState(STILL);
-		    return;
-      }
       redrawScreen = true;
       preventKeypress = false;
     }
@@ -2585,15 +2521,6 @@ void LoadValidMemoryChannels(void)
       }
   }
 
-  // flattens spectrum by bringing all the rssi readings to the peak value
-  //void ToggleNormalizeRssi(bool on)
-  void ToggleNormalizeRssi()
-  {
-    isNormalizationApplied = !isNormalizationApplied;
-  }
-
-
-
 typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
     uint8_t DelayRssi;
@@ -2606,7 +2533,6 @@ typedef struct {
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
-    uint8_t isNormalization;
 } SettingsEEPROM;
 
 
@@ -2630,8 +2556,6 @@ void LoadSettings()
     if (DelayRssi > 12) DelayRssi =12;
     if (PttEmission > 1) PttEmission =0;
     PttEmission = eepromData.PttEmission;
-    if(eepromData.isNormalization) isNormalizationApplied = 1;
-      else isNormalizationApplied = 0;
     validScanListCount = 0;
     ChannelAttributes_t att;
     for (int i = 0; i < 200; i++) {
@@ -2652,7 +2576,6 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.PttEmission = PttEmission;
-  eepromData.isNormalization = isNormalizationApplied;
   for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
   for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
   // Write in 8-byte chunks

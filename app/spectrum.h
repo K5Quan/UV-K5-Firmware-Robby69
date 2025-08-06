@@ -203,17 +203,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state);
   void LookupChannelModulation();
 #endif
 
-#include <stdint.h>
 
-#define LUT_SIZE_OPTIMIZED 52
-
-typedef struct {
-    uint32_t freq_10hz;  // fréquence en 10 Hz
-    uint16_t rssi;    // RSSI brut
-} NoiseLUT;
-
-extern const NoiseLUT noise_lut_optimized[LUT_SIZE_OPTIMIZED];
-
-uint16_t get_background_rssi_optimized(uint32_t freq_10hz);
 
 #endif 
