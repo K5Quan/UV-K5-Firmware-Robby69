@@ -404,28 +404,28 @@ bool IsPeakOverLevel() {
     // Initialize baseline (skip first sample)
     static bool firstRun = true;
     if (firstRun) {
-        baseline = peak.rssi;
+        baseline = scanInfo.rssi;
         firstRun = false;
         return false;
     }
 
     switch (state) {
         case IDLE:
-            if (peak.rssi > baseline + settings.rssiTriggerLevel) {
-                highestPeak = peak.rssi;
+            if (scanInfo.rssi > baseline + settings.rssiTriggerLevel) {
+                highestPeak = scanInfo.rssi;
                 state = PEAK_ACTIVE;
                 peakDetected = true;
-            } else if (peak.rssi < baseline) {
-                baseline = peak.rssi; // Track minimum RSSI
+            } else if (scanInfo.rssi < baseline) {
+                baseline = scanInfo.rssi; // Track minimum RSSI
             }
             break;
 
         case PEAK_ACTIVE:
-            if (peak.rssi > highestPeak) {
-                highestPeak = peak.rssi;
+            if (scanInfo.rssi > highestPeak) {
+                highestPeak = scanInfo.rssi;
             }
-            else if (peak.rssi < highestPeak - settings.rssiTriggerLevel) {
-                baseline = peak.rssi;
+            else if (scanInfo.rssi < highestPeak - settings.rssiTriggerLevel) {
+                baseline = scanInfo.rssi;
                 highestPeak = 0;  // CRITICAL RESET
                 state = IDLE;
             }
@@ -435,7 +435,7 @@ bool IsPeakOverLevel() {
 
 /*    char str[128];
     sprintf(str, "State: %d, RSSI: %d, Base: %d, Peak: %d, Out: %d\r\n",
-            state, peak.rssi, baseline, highestPeak, peakDetected);
+            state, scanInfo.rssi, baseline, highestPeak, peakDetected);
     LogUart(str);*/
 
     return peakDetected;
