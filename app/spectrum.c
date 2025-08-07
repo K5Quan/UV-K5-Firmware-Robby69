@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -34,7 +34,7 @@ uint32_t gScanRangeStop;                        // 5
 bool AutoTriggerLevelbandsMode = 0;             // 9
 #define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
-bool dynamicTrigger=0;
+bool debug=0;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 uint32_t Last_Tuned_Freq = 44610000;
@@ -131,7 +131,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 							               rssiTriggerLevelH: 100,
                              backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
-                             listenBw: BK4819_FILTER_BW_WIDE,
+                             listenBw: BK4819_FILTER_BW_NARROW,
                              modulationType: false,
                              dbMin: -128,
                              dbMax: 10,
@@ -395,51 +395,39 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
 
-bool IsPeakOverLevel() {
-    static enum { IDLE, PEAK_ACTIVE } state = IDLE;
-    static uint16_t baseline = 0;
-    static uint16_t highestPeak = 0;
-    bool peakDetected = false;
-
-    // Initialize baseline (skip first sample)
+/*bool IsPeakOverLevel(void) {
+    static int16_t previousRssi = 0;
+    static int16_t highestPeak = 0;
     static bool firstRun = true;
+    static bool result = false;
+
     if (firstRun) {
-        baseline = scanInfo.rssi;
+        previousRssi = scanInfo.rssi;
         firstRun = false;
         return false;
     }
 
-    switch (state) {
-        case IDLE:
-            if (scanInfo.rssi > baseline + settings.rssiTriggerLevel) {
-                highestPeak = scanInfo.rssi;
-                state = PEAK_ACTIVE;
-                peakDetected = true;
-            } else if (scanInfo.rssi < baseline) {
-                baseline = scanInfo.rssi; // Track minimum RSSI
-            }
-            break;
-
-        case PEAK_ACTIVE:
-            if (scanInfo.rssi > highestPeak) {
-                highestPeak = scanInfo.rssi;
-            }
-            else if (scanInfo.rssi < highestPeak - settings.rssiTriggerLevel) {
-                baseline = scanInfo.rssi;
-                highestPeak = 0;  // CRITICAL RESET
-                state = IDLE;
-            }
-            peakDetected = true;
-            break;
+    if (debug) {
+        char str[64];
+        sprintf(str, "RSSI: %d, Prev: %d, Peak: %d, Out: %d\r\n",
+                scanInfo.rssi, previousRssi, highestPeak, result);
+        LogUart(str);
     }
 
-/*    char str[128];
-    sprintf(str, "State: %d, RSSI: %d, Base: %d, Peak: %d, Out: %d\r\n",
-            state, scanInfo.rssi, baseline, highestPeak, peakDetected);
-    LogUart(str);*/
+    int16_t trigger = settings.rssiTriggerLevel;
 
-    return peakDetected;
+    if (rssiHistory[scanInfo.i]  > rssiHistory[scanInfo.i-1] + trigger) result = true;
+
+    if (rssiHistory[scanInfo.i] > highestPeak) highestPeak = rssiHistory[scanInfo.i];
+    previousRssi = rssiHistory[scanInfo.i-1];
+        
+    if (isListening && rssiHistory[scanInfo.i]< highestPeak - (trigger / 4)) {
+        highestPeak = 0;
+        result = false;
+    }
+    return result;
 }
+*/
 
 bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
 
@@ -844,18 +832,53 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
+bool gIsPeak = false;  // Variable globale à définir en dehors de la fonction
+
 static void Measure() 
 { 
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    if(scanInfo.measurementsCount > 128) {
-      uint8_t idx = CurrentScanIndex();
-      if(rssiHistory[idx] < rssi || isListening)
-        rssiHistory[idx] = rssi;
-      rssiHistory[(idx+1)%128] = 0;
-      return;
+    uint8_t idx = CurrentScanIndex();
+
+    // Détection du pic
+    static int16_t previousRssi = 0;
+    static int16_t highestPeak = 0;
+    static bool isFirst = true;
+
+    int16_t trigger = (settings.rssiTriggerLevel > 0) ? settings.rssiTriggerLevel : 40;
+
+    // Comparaison même dès le premier appel
+    if (isFirst) {
+        previousRssi = rssi;
+        highestPeak = rssi;
+        gIsPeak = false;
+        isFirst = false;
+    } else {
+        if (rssi > previousRssi + trigger)
+            gIsPeak = true;
+
+        if (rssi > highestPeak)
+            highestPeak = rssi;
+
+        // Sortie du pic si signal redescend
+        if (isListening && rssi < highestPeak - (trigger)) {
+            highestPeak = 0;
+            gIsPeak = false;
+        }
+
+        previousRssi = rssi;
     }
-  rssiHistory[scanInfo.i] = rssi;
+
+    // Mise à jour du tableau RSSI
+    if (scanInfo.measurementsCount > 128) {
+        if (rssiHistory[idx] < rssi || isListening)
+            rssiHistory[idx] = rssi;
+        rssiHistory[(idx + 1) % 128] = 0;
+        return;
+    }
+
+    rssiHistory[scanInfo.i] = rssi;
 }
+
 
 static void UpdateRssiTriggerLevel(bool inc) {
     const int8_t delta = inc ? 1 : -1;
@@ -873,7 +896,7 @@ static void UpdateRssiTriggerLevel(bool inc) {
             break;
     }
     redrawStatus = true;
-    //ClampRssiTriggerLevel();
+    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, 100);
     BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
 }
 
@@ -1085,18 +1108,18 @@ uint8_t Rssi2Y(uint16_t rssi) {
 }
 
 static void DrawSpectrum()
-    {
+    {//Robby69 V4.16
       uint16_t steps = GetStepsCount();
       // max bars at 128 to correctly draw larger numbers of samples
       uint8_t bars = (steps > 128) ? 128 : steps;
       // shift to center bar on freq marker
       uint8_t shift_graph = 64 / steps + 1;
+      uint16_t rssi;
 
         uint8_t ox = 0;
         for (uint8_t i = 0; i < 127; ++i)
-        {
-            uint16_t rssi = rssiHistory[1+ (i >> settings.stepsCount)];//Robby69 first bar display
-            if (rssi != RSSI_MAX_VALUE)
+        {rssi = rssiHistory[1+ (i >> settings.stepsCount)];//Robby69 first bar display
+         if (rssi != RSSI_MAX_VALUE)
             {
                 // stretch bars to fill the screen width
                 uint8_t x = i * 128 / bars + shift_graph;
@@ -1108,6 +1131,7 @@ static void DrawSpectrum()
             }
         }
     }
+
 
  // Format frequency string (remove trailing zeros)
  void RemoveTrailZeros(char* freqStr){
@@ -1142,7 +1166,7 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"%d/%ddb SQ%d ",settings.dbMin,settings.dbMax, settings.rssiTriggerLevel);
+  len = sprintf(&String[pos],"%d/%ddb SQ %d ",settings.dbMin,settings.dbMax, settings.rssiTriggerLevel);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1811,7 +1835,7 @@ static void OnKeyDown(uint8_t key) {
         break;
      
      case KEY_2: //FREE
-      dynamicTrigger=!dynamicTrigger;
+      //debug=!debug;
       break;
 
      case KEY_8:
@@ -1909,7 +1933,8 @@ break;
     break;
   
     case KEY_6:    //Free
-      if(++Spectrum_state > 4) Spectrum_state = 0;
+    Spectrum_state++;
+      if(Spectrum_state > 4) Spectrum_state = 0;
       APP_RunSpectrum(Spectrum_state);
     break;
   
@@ -2333,7 +2358,7 @@ static void UpdateScan() {
   redrawScreen = true;
   preventKeypress = false;
   UpdatePeakInfo();
-  if (IsPeakOverLevel()) {
+  if (gIsPeak) {
     // Signal detected or resumed
     ToggleRX(true);
     TuneToPeak();
@@ -2350,7 +2375,7 @@ static void UpdateStill() {
   preventKeypress = false;
 
   peak.rssi = scanInfo.rssi;
-  ToggleRX(IsPeakOverLevel());
+  ToggleRX(gIsPeak);
 }
 
 static void UpdateListening() {
@@ -2365,7 +2390,7 @@ static void UpdateListening() {
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
-  if (IsPeakOverLevel()) {return;}
+  if (gIsPeak) {return;}
   ToggleRX(false);
   WaitSpectrum = SpectrumDelay;
   ResetScanStats();
@@ -2385,6 +2410,12 @@ static void Tick() {
     // listening has it's own timer
     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
+      if (gIsPeak) {
+        ToggleRX(true);
+        TuneToPeak();
+        if (SpectrumDelay)SetState(STILL);
+		    return;
+      }
       redrawScreen = true;
       preventKeypress = false;
     }
