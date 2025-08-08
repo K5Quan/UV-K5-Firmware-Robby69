@@ -38,7 +38,6 @@ bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 uint32_t Last_Tuned_Freq = 44610000;
 #define SQUELCH_OFF_DELAY 10;
-bool FreeTriggerLevel = 0;
 bool StorePtt_Toggle_Mode = 0;
 bool PopUpclear = 0;
 uint8_t historyListIndex = 0;
@@ -768,38 +767,73 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
-bool gIsPeak = false;  // Variable globale à définir en dehors de la fonction
-
+bool gIsPeak = false; 
 
 static void Measure() 
-{   static int16_t highestPeak = 0;
-    uint16_t rssi = scanInfo.rssi = GetRssi();
-    uint8_t idx = CurrentScanIndex();
+{
+    static int16_t highestPeak = 0;
     static int16_t previousRssi = 0;
-    
     static bool isFirst = true;
+
+    uint8_t idx = CurrentScanIndex();
     int16_t trigger = (settings.rssiTriggerLevel > 0) ? settings.rssiTriggerLevel : 40;
-        
+
+    // Lire une première fois le RSSI
+    uint16_t rssi = scanInfo.rssi = GetRssi();
+
+    // === Premier appel ===
     if (isFirst) {
         previousRssi = rssi;
         highestPeak = rssi;
         gIsPeak = false;
         isFirst = false;
-    } else {
-        if (rssi > previousRssi + trigger) {
-          gIsPeak = true;
-          FillfreqHistory(true);
-        }
+    }
 
-        if (rssi > highestPeak) {highestPeak = rssi;}
-
-        if (isListening && rssi < highestPeak - trigger) {
-                    highestPeak = 0;
-                    gIsPeak = false;
-                }
-        previousRssi = rssi;
+    // === Validation ouverture de pic ===
+    if (!gIsPeak && rssi > previousRssi + trigger) {
+        // Re-mesurer deux fois pour confirmer
+        SYSTEM_DelayMs(50);
+        uint16_t rssi2 = GetRssi();
+        SYSTEM_DelayMs(50);
+        uint16_t rssi3 = GetRssi();
+            if (debug) {
+                char str[64];
+                sprintf(str, "Open %d %d %d\r\n",
+                        rssi, rssi2,rssi3);
+                LogUart(str);
+            }
+        if (rssi2 > previousRssi + trigger && rssi3 > previousRssi + trigger) {
+            gIsPeak = true;
+            FillfreqHistory(true);
+            highestPeak = MAX(rssi, MAX(rssi2, rssi3));
         }
-    
+    }
+
+    // === Validation fermeture de pic ===
+    if (gIsPeak && isListening && rssi < highestPeak - trigger) {
+        SYSTEM_DelayMs(50);
+        uint16_t rssi2 = GetRssi();
+        SYSTEM_DelayMs(50);
+        uint16_t rssi3 = GetRssi();
+            if (debug) {
+                char str[64];
+                sprintf(str, "Close %d %d %d\r\n",
+                        rssi,rssi2,rssi3);
+                LogUart(str);
+            }
+        if (rssi2 < highestPeak - trigger && rssi3 < highestPeak - trigger) {
+            gIsPeak = false;
+            highestPeak = 0;
+        }
+    }
+
+    // Mise à jour du pic max
+    if (gIsPeak && rssi > highestPeak)
+        highestPeak = rssi;
+
+    previousRssi = rssi;
+
+    // === Historique ===
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
@@ -1384,6 +1418,26 @@ static void DrawArrow(uint8_t x) {
   }
 }
 
+static void NextScanStep() {
+  ++peak.t;
+      // channel mode
+    if (appMode==CHANNEL_MODE)
+    {
+      if (scanInfo.i <= GetStepsCount())
+      {
+      int currentChannel = scanChannel[scanInfo.i];
+      scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
+      }
+      ++scanInfo.i; 
+    }
+    else
+    // frequency mode
+        do {
+            ++scanInfo.i;
+            scanInfo.f += scanInfo.scanStep;
+        } while (scanInfo.f % 1300000 == 0);  // sauter les multiples de 13 MHz
+}
+
 static void OnKeyDown(uint8_t key) {
         BACKLIGHT_TurnOn();
   
@@ -1701,12 +1755,10 @@ static void OnKeyDown(uint8_t key) {
   switch (key) {
 
       case KEY_STAR:
-         FreeTriggerLevel = true;
          UpdateRssiTriggerLevel(true);
       break;
      
      case KEY_F:
-        FreeTriggerLevel = true;
         UpdateRssiTriggerLevel(false);
      break;
 
@@ -1719,9 +1771,8 @@ static void OnKeyDown(uint8_t key) {
     break;
 
      case KEY_1: //AUTO SET
+        NextScanStep();   
         ToggleRX(false);
-        UpdateScan();
-        FreeTriggerLevel = true;
     break;
      
      case KEY_7:
@@ -1729,7 +1780,7 @@ static void OnKeyDown(uint8_t key) {
         break;
      
      case KEY_2: //FREE
-      //debug=!debug;
+      debug=!debug;
       break;
 
      case KEY_8:
@@ -2217,25 +2268,7 @@ static void Scan() {
   }
 }
 
-static void NextScanStep() {
-  ++peak.t;
-      // channel mode
-    if (appMode==CHANNEL_MODE)
-    {
-      if (scanInfo.i <= GetStepsCount())
-      {
-      int currentChannel = scanChannel[scanInfo.i];
-      scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
-      }
-      ++scanInfo.i; 
-    }
-    else
-    // frequency mode
-        do {
-            ++scanInfo.i;
-            scanInfo.f += scanInfo.scanStep;
-        } while (scanInfo.f % 1300000 == 0);  // sauter les multiples de 13 MHz
-}
+
 
 static void UpdateScan() {
   Scan();
