@@ -770,70 +770,40 @@ static void UpdatePeakInfo() {
 bool gIsPeak = false; 
 
 static void Measure() 
-{
-    static int16_t highestPeak = 0;
+{ 
+    uint16_t rssi = scanInfo.rssi = GetRssi();
+    uint8_t idx = CurrentScanIndex();
+
+    // Détection du pic
     static int16_t previousRssi = 0;
+    static int16_t highestPeak = 0;
     static bool isFirst = true;
 
-    uint8_t idx = CurrentScanIndex();
     int16_t trigger = (settings.rssiTriggerLevel > 0) ? settings.rssiTriggerLevel : 40;
 
-    // Lire une première fois le RSSI
-    uint16_t rssi = scanInfo.rssi = GetRssi();
-
-    // === Premier appel ===
+    // Comparaison même dès le premier appel
     if (isFirst) {
         previousRssi = rssi;
         highestPeak = rssi;
         gIsPeak = false;
         isFirst = false;
-    }
-
-    // === Validation ouverture de pic ===
-    if (!gIsPeak && rssi > previousRssi + trigger) {
-        // Re-mesurer deux fois pour confirmer
-        SYSTEM_DelayMs(50);
-        uint16_t rssi2 = GetRssi();
-        SYSTEM_DelayMs(50);
-        uint16_t rssi3 = GetRssi();
-            if (debug) {
-                char str[64];
-                sprintf(str, "Open %d %d %d\r\n",
-                        rssi, rssi2,rssi3);
-                LogUart(str);
-            }
-        if (rssi2 > previousRssi + trigger && rssi3 > previousRssi + trigger) {
+    } else {
+        if (rssi > previousRssi + trigger)
             gIsPeak = true;
-            FillfreqHistory(true);
-            highestPeak = MAX(rssi, MAX(rssi2, rssi3));
-        }
-    }
 
-    // === Validation fermeture de pic ===
-    if (gIsPeak && isListening && rssi < highestPeak - trigger) {
-        SYSTEM_DelayMs(50);
-        uint16_t rssi2 = GetRssi();
-        SYSTEM_DelayMs(50);
-        uint16_t rssi3 = GetRssi();
-            if (debug) {
-                char str[64];
-                sprintf(str, "Close %d %d %d\r\n",
-                        rssi,rssi2,rssi3);
-                LogUart(str);
-            }
-        if (rssi2 < highestPeak - trigger && rssi3 < highestPeak - trigger) {
-            gIsPeak = false;
+        if (rssi > highestPeak)
+            highestPeak = rssi;
+
+        // Sortie du pic si signal redescend
+        if (isListening && rssi < highestPeak - trigger/2) {
             highestPeak = 0;
+            gIsPeak = false;
         }
+
+        previousRssi = rssi;
     }
 
-    // Mise à jour du pic max
-    if (gIsPeak && rssi > highestPeak)
-        highestPeak = rssi;
-
-    previousRssi = rssi;
-
-    // === Historique ===
+    // Mise à jour du tableau RSSI
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
