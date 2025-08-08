@@ -33,7 +33,7 @@ uint32_t gScanRangeStop;                        // 5
 //Modulation                                    // 8
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
-bool debug=0;
+bool classic = 1;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 uint32_t Last_Tuned_Freq = 44610000;
@@ -52,6 +52,7 @@ static void UpdateScan();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
+void DrawMeter(int);
 uint8_t scanListSelectedIndex = 0;
 uint8_t scanListScrollOffset = 0;
 uint8_t parametersSelectedIndex = 0;
@@ -788,14 +789,16 @@ static void Measure()
         gIsPeak = false;
         isFirst = false;
     } else {
-        if (rssi > previousRssi + trigger)
+        if (rssi > previousRssi + trigger){
             gIsPeak = true;
+            FillfreqHistory(1);
+        }
 
         if (rssi > highestPeak)
             highestPeak = rssi;
 
         // Sortie du pic si signal redescend
-        if (isListening && rssi < highestPeak - trigger/2) {
+        if (isListening && rssi < highestPeak - trigger) {
             highestPeak = 0;
             gIsPeak = false;
         }
@@ -803,7 +806,6 @@ static void Measure()
         previousRssi = rssi;
     }
 
-    // Mise à jour du tableau RSSI
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
@@ -814,12 +816,13 @@ static void Measure()
     rssiHistory[scanInfo.i] = rssi;
 }
 
+static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void UpdateRssiTriggerLevel(bool inc) {
-    const int8_t delta = inc ? 1 : -1;
+    int8_t delta = inc ? 5 : -5;
     settings.rssiTriggerLevel += delta;
     redrawStatus = true;
-    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, 100);
+    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, my_abs(delta)*100);
     BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
 }
 
@@ -1169,7 +1172,7 @@ static void DrawF(uint32_t f) {
         int chno = (f - base) / 700;
         f = base + (chno * 833) + (chno == 3);
     }
-    char freqStr[16];
+    char freqStr[18];
     sprintf(freqStr, "%u.%05u", f / 100000, f % 100000);
     RemoveTrailZeros(freqStr);
 
@@ -1212,13 +1215,14 @@ static void DrawF(uint32_t f) {
     char line1[19] = "";
     char line2[19] = "";
     char line3[19] = "";
-
+    
     f = freqHistory[indexFd];
     bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = channelFd != -1;
     
-    strncpy(line1, freqStr, 18);
+    if(classic) {
+      strncpy(line1, freqStr, 18);
     
     // --- Default: Band Name or Scan List (Top Line) ---
     if (appMode == SCAN_BAND_MODE && !isListening) {
@@ -1252,7 +1256,7 @@ static void DrawF(uint32_t f) {
         // Priority 2: Show Channel Name + Frequency (if known)
         else if (isKnownChannel) {
             if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
-                snprintf(line1, sizeof(line2), "%s %s", channelName, freqStr);
+                snprintf(line1, sizeof(line1), "%s %s", channelName, freqStr);
             } else {
                 strncpy(line1, channelName, 18);
                 strncpy(line2, freqStr, 18);
@@ -1272,8 +1276,8 @@ static void DrawF(uint32_t f) {
             formatHistory(line2, indexFd, channelFd, f);
         }
     }
-
     // --- Render to Screen ---
+    
     UI_PrintStringSmallBold(line1, 1, 1, 0);  // Line 1 (Band/Scan List)
       ArrowLine = 1;
     if (line2[0]) {
@@ -1282,6 +1286,58 @@ static void DrawF(uint32_t f) {
     if (line3[0]) {
       UI_PrintStringSmallBold(line3, 1, 1, 2);  // Line 3 (Code/History)
       ArrowLine = 3;}
+    
+    }
+
+    else {
+      DrawMeter(6);
+      strncpy(line2, freqStr, 18);
+      if (appMode == SCAN_BAND_MODE) {
+        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
+    } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
+              if (enabledCount > 0) {
+                snprintf(line1, sizeof(line1), "SL %s", enabledLists);
+              } else {
+                snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
+              }
+            }
+      if (isListening || refresh > 1) {
+        if (refresh > 1 && StringCode[0]) {
+            if (isKnownChannel) {
+                // Try to fit "Name Code" on one line
+                if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
+                    snprintf(line2, sizeof(line2), "%s %s", channelName, StringCode);
+                } else {
+                    // Split into two lines
+                    strncpy(line2, channelName, 18);
+                    strncpy(line3, StringCode, 18);
+                }
+            } else {
+                // Show "Frequency Code"
+                snprintf(line2, sizeof(line2), "%s %s", freqStr, StringCode);
+            }
+        } 
+        // Priority 2: Show Channel Name + Frequency (if known)
+        else if (isKnownChannel) {
+            if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
+                snprintf(line2, sizeof(line2), "%s %s", channelName, freqStr);
+            } else {
+                strncpy(line2, channelName, 18);
+                strncpy(line3, freqStr, 18);
+            }
+        } 
+        // Priority 3: Just Frequency (if unknown channel)
+    } 
+
+    // --- Show History (if enabled) ---
+    if (showHistory) {
+        if (!line3[0]) formatHistory(line3, indexFd, channelFd, f);
+    }
+
+         UI_PrintString(line1, 1, 128, 0, 8);
+         UI_PrintString(line2, 1, 128, 2, 8);
+         UI_PrintString(line3, 1, 128, 4, 8);
+    }
 }
 
 void LookupChannelInfo() {
@@ -1366,18 +1422,16 @@ static void DrawNums() {
   
 }
 
-/*static void DrawRssiTriggerLevel() {
+static void DrawRssiTriggerLevel() {
   uint8_t y;
   y = Rssi2Y(settings.rssiTriggerLevel);
   for (uint8_t x = 0; x < 128; x += 2) {PutPixel(x, y, true);}
   
-  if (ShowHistory) { 
+/*  if (ShowHistory) { 
     y = Rssi2Y(settings.rssiTriggerLevelH);
     for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
-  }
-}*/
-
-static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
+  }*/
+}
 
 static void DrawArrow(uint8_t x) {
   for (signed i = -2; i <= 2; ++i) {
@@ -1750,7 +1804,7 @@ static void OnKeyDown(uint8_t key) {
         break;
      
      case KEY_2: //FREE
-      debug=!debug;
+      classic=!classic;
       break;
 
      case KEY_8:
@@ -2035,42 +2089,51 @@ static void RenderStatus() {
 
 static void RenderSpectrum() {
   DrawNums();
-  DrawArrow(128u * (peak.i-1) / GetStepsCount());
-  DrawSpectrum();
-  //DrawRssiTriggerLevel();
+  if(classic){
+    DrawArrow(128u * (peak.i-1) / GetStepsCount());
+    DrawSpectrum();
+    DrawRssiTriggerLevel();
+  }
   DrawF(peak.f); 
 }
 
-
-
-static void RenderStill() {
-  if (WaitSpectrum > 0 && WaitSpectrum <61000) { //65000 locks still mode
-      WaitSpectrum-=20;
-      redrawStatus = true;
-      SYSTEM_DelayMs(1);
-      if (WaitSpectrum ==0) SetState(SPECTRUM); 
-      }
-  
-  DrawF(fMeasure);
-  
+void DrawMeter(int line) {
   const uint8_t METER_PAD_LEFT = 3;
 
   for (int i = 0; i < 121; i++) {
     if (i % 10 == 0) {
-      gFrameBuffer[2][i + METER_PAD_LEFT] = 0b01110000;
+      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b01110000;
     } else if (i % 5 == 0) {
-      gFrameBuffer[2][i + METER_PAD_LEFT] = 0b00110000;
+      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b00110000;
     } else {
-      gFrameBuffer[2][i + METER_PAD_LEFT] = 0b00010000;
+      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b00010000;
     }
   }
 
   uint8_t x = Rssi2PX(scanInfo.rssi, 0, 121);
   for (int i = 0; i < x; ++i) {
     if (i % 5) {
-      gFrameBuffer[2][i + METER_PAD_LEFT] |= 0b00000111;
+      gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b00000111;
     }
   }
+  x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
+  gFrameBuffer[line][METER_PAD_LEFT + x] = 0b11111111;
+}
+
+static void RenderStill() {
+  static bool previousclassic;
+  previousclassic = classic;
+  if (WaitSpectrum > 0 && WaitSpectrum <61000) { //65000 locks still mode
+      WaitSpectrum-=20;
+      redrawStatus = true;
+      SYSTEM_DelayMs(1);
+      if (WaitSpectrum ==0) SetState(SPECTRUM); 
+      }
+  classic=1;
+  DrawF(fMeasure);
+  classic = previousclassic;
+  
+  DrawMeter(2);
 
   sLevelAttributes sLevelAtt;
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, fMeasure);
@@ -2084,8 +2147,7 @@ static void RenderStill() {
   sprintf(String, "%d dBm", sLevelAtt.dBmRssi);
   GUI_DisplaySmallest(String, 40, 25, false, true);
 
-  x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
-  gFrameBuffer[2][METER_PAD_LEFT + x] = 0b11111111;
+
 
   // --- lista rejestrów
   uint8_t total = ARRAY_SIZE(allRegisterSpecs);
