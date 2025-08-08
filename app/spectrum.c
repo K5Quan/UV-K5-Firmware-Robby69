@@ -31,8 +31,7 @@ uint32_t gScanRangeStop;                        // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
-bool AutoTriggerLevelbandsMode = 0;             // 9
-#define PARAMETER_COUNT 9
+#define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool debug=0;
 bool Key_1_pressed = 0;
@@ -50,6 +49,7 @@ static int historyScrollOffset = 0;
 static void RenderHistoryList();
 static void RenderScanListSelect();
 static void RenderParametersSelect();
+static void UpdateScan();
 static uint8_t bandListSelectedIndex = 0;
 static int bandListScrollOffset = 0;
 static void RenderBandSelect();
@@ -70,7 +70,6 @@ bool saved_params= false;
 uint32_t cdcssFreq;
 uint16_t ctcssFreq;
 uint8_t refresh = 0;
-uint8_t SquelchBarKeyMode = 0; //Robby69 change keys between audio and history squelch
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 #define Bottom_print 51 //Robby69
 Mode appMode;
@@ -82,8 +81,6 @@ uint8_t scanChannelsCount;
 void ToggleScanList();
 static void LoadSettings();
 static void SaveSettings();
-static void AutoTriggerLevel(void);
-static void AutoTriggerLevelbands(void);
 const uint16_t RSSI_MAX_VALUE = 65535;
 static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
@@ -154,7 +151,7 @@ uint8_t freqInputDotIndex = 0;
 KEY_Code_t freqInputArr[10];
 char freqInputString[11];
 static const bandparameters BParams[32];
-static uint8_t nextBandToScanIndex = 0; // Indeks następnego pasma do sprawdzenia (0-14) - zylka
+static uint8_t nextBandToScanIndex = 0;
 
 uint8_t menuState = 0;
 static bool wasReceiving = false;
@@ -394,40 +391,6 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
-
-/*bool IsPeakOverLevel(void) {
-    static int16_t previousRssi = 0;
-    static int16_t highestPeak = 0;
-    static bool firstRun = true;
-    static bool result = false;
-
-    if (firstRun) {
-        previousRssi = scanInfo.rssi;
-        firstRun = false;
-        return false;
-    }
-
-    if (debug) {
-        char str[64];
-        sprintf(str, "RSSI: %d, Prev: %d, Peak: %d, Out: %d\r\n",
-                scanInfo.rssi, previousRssi, highestPeak, result);
-        LogUart(str);
-    }
-
-    int16_t trigger = settings.rssiTriggerLevel;
-
-    if (rssiHistory[scanInfo.i]  > rssiHistory[scanInfo.i-1] + trigger) result = true;
-
-    if (rssiHistory[scanInfo.i] > highestPeak) highestPeak = rssiHistory[scanInfo.i];
-    previousRssi = rssiHistory[scanInfo.i-1];
-        
-    if (isListening && rssiHistory[scanInfo.i]< highestPeak - (trigger / 4)) {
-        highestPeak = 0;
-        result = false;
-    }
-    return result;
-}
-*/
 
 bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
 
@@ -739,8 +702,6 @@ static bool InitScan() {
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
                 scanInitializedSuccessfully = true;
                 redrawStatus = true;
-                if (AutoTriggerLevelbandsMode) AutoTriggerLevelbands();
-                  else {if (!FreeTriggerLevel)settings.rssiTriggerLevel = BPRssiTriggerLevel[bl];}
                 break;
             }
             nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
@@ -755,31 +716,6 @@ static bool InitScan() {
 	if(appMode==CHANNEL_MODE)
     scanInfo.measurementsCount++;
     return scanInitializedSuccessfully;
-}
-
-static void AutoTriggerLevel() {
-  uint8_t max = 0;
-  uint8_t i;
-  for(i = 0; i < ARRAY_SIZE(rssiHistory); i++)
-    {if (max < rssiHistory[i]) max = rssiHistory[i];}
-}
-
-static void AutoTriggerLevelbands(void) {
-  uint8_t rssiAnalyse = 0;
-  uint8_t topRssi = 0;
-  static uint8_t AnalyseSize = 32;
-  uint32_t AnalyseStep = (gScanRangeStop - gScanRangeStart)/AnalyseSize;
-  for (int i = 0; i < AnalyseSize; ++i) {
-      uint32_t FreqAnalyse = gScanRangeStart + (AnalyseStep * i);
-      SetF(FreqAnalyse);
-      BK4819_ReadRegister(0x63);
-      SYSTICK_DelayUs(DelayRssi * 1000);
-      rssiAnalyse = BK4819_GetRSSI();
-      if (rssiAnalyse > topRssi) {topRssi = rssiAnalyse;}    
-  }
-    settings.rssiTriggerLevel = clamp(topRssi + 10, 0, RSSI_MAX_VALUE);
-    settings.rssiTriggerLevelH = settings.rssiTriggerLevel;
-  
 }
 
 // resets modifiers like blacklist, attenuation, normalization
@@ -834,41 +770,36 @@ static void UpdatePeakInfo() {
 
 bool gIsPeak = false;  // Variable globale à définir en dehors de la fonction
 
+
 static void Measure() 
-{ 
+{   static int16_t highestPeak = 0;
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint8_t idx = CurrentScanIndex();
-
-    // Détection du pic
     static int16_t previousRssi = 0;
-    static int16_t highestPeak = 0;
+    
     static bool isFirst = true;
-
     int16_t trigger = (settings.rssiTriggerLevel > 0) ? settings.rssiTriggerLevel : 40;
-
-    // Comparaison même dès le premier appel
+        
     if (isFirst) {
         previousRssi = rssi;
         highestPeak = rssi;
         gIsPeak = false;
         isFirst = false;
     } else {
-        if (rssi > previousRssi + trigger)
-            gIsPeak = true;
-
-        if (rssi > highestPeak)
-            highestPeak = rssi;
-
-        // Sortie du pic si signal redescend
-        if (isListening && rssi < highestPeak - (trigger)) {
-            highestPeak = 0;
-            gIsPeak = false;
+        if (rssi > previousRssi + trigger) {
+          gIsPeak = true;
+          FillfreqHistory(true);
         }
 
-        previousRssi = rssi;
-    }
+        if (rssi > highestPeak) {highestPeak = rssi;}
 
-    // Mise à jour du tableau RSSI
+        if (isListening && rssi < highestPeak - trigger) {
+                    highestPeak = 0;
+                    gIsPeak = false;
+                }
+        previousRssi = rssi;
+        }
+    
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
@@ -882,19 +813,7 @@ static void Measure()
 
 static void UpdateRssiTriggerLevel(bool inc) {
     const int8_t delta = inc ? 1 : -1;
-    
-    switch (SquelchBarKeyMode) {
-        case 2:
-            settings.rssiTriggerLevelH += delta;
-            break;
-        case 1:
-            settings.rssiTriggerLevel += delta;
-            break;
-        case 0:
-            settings.rssiTriggerLevelH += delta;
-            settings.rssiTriggerLevel += delta;
-            break;
-    }
+    settings.rssiTriggerLevel += delta;
     redrawStatus = true;
     settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, 100);
     BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
@@ -905,7 +824,6 @@ static void UpdateDBMax(bool inc) {
       else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
            else {return;}
   settings.dbMax = ((settings.dbMax + (settings.dbMax >= 0 ? 2 : -2)) / 5) * 5;
-  //ClampRssiTriggerLevel();
   redrawStatus = true;
   redrawScreen = true;
   SYSTEM_DelayMs(20);
@@ -1437,30 +1355,11 @@ static void DrawNums() {
     GUI_DisplaySmallest(String, 90, Bottom_print, false, true);
   }
   
-  if(SquelchBarKeyMode ==0 )
-  { sprintf(String, "HL");
-    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
-  }
-  
-  if(SquelchBarKeyMode ==1 )
-  { sprintf(String, "L");
-    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
-  }
-  
-  if(SquelchBarKeyMode ==2 )
-  { sprintf(String, "H");
-    GUI_DisplaySmallest(String, 50, Bottom_print, false, true);
-  }
-
   if(isBlacklistApplied){
     sprintf(String, "BL");
     GUI_DisplaySmallest(String, 60, Bottom_print, false, true);
   }
   
-  if(AutoTriggerLevelbandsMode && appMode == SCAN_BAND_MODE){ //Display status
-    sprintf(String, "AB");
-    GUI_DisplaySmallest(String, 80, Bottom_print, false, true);
-    }
 }
 
 /*static void DrawRssiTriggerLevel() {
@@ -1773,10 +1672,6 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
-                  case 8: // AutoTriggerLevelbandsMode
-                      AutoTriggerLevelbandsMode = isKey3 ? 1 : 0;
-                      break;
-
               }
             
               if (isKey3 || redrawNeeded) { //TO REMOVE MAYBE
@@ -1825,8 +1720,7 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_1: //AUTO SET
         ToggleRX(false);
-        AutoTriggerLevel();
-        SquelchBarKeyMode=0;
+        UpdateScan();
         FreeTriggerLevel = true;
     break;
      
@@ -1938,10 +1832,7 @@ break;
       APP_RunSpectrum(Spectrum_state);
     break;
   
-  case KEY_SIDE2:
-      SquelchBarKeyMode += 1;
-      if (SquelchBarKeyMode == 3) SquelchBarKeyMode = 0;
-      ShowHistory = 1;
+  case KEY_SIDE2: //Free
       break;
 
   case KEY_PTT:
@@ -2380,13 +2271,7 @@ static void UpdateStill() {
 
 static void UpdateListening() {
   preventKeypress = false;
-
-  if (currentState == SPECTRUM) {
-    //if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
-    Measure();
-    //BK4819_SetFilterBandwidth(settings.listenBw, false);
-  } 
-  //else {Measure();}
+  Measure(); 
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
 
@@ -2728,10 +2613,6 @@ static void GetParametersText(uint8_t index, char *buffer) {
             
         case 7:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
-            break;
-
-        case 8:
-            sprintf(buffer, "AutLevelbands:%s", AutoTriggerLevelbandsMode ? "ON" : "OFF");
             break;
 
         default:
