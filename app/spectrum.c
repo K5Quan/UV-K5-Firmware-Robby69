@@ -24,14 +24,15 @@
 // see parametersSelectedIndex
 // see GetParametersText
 uint8_t DelayRssi = 10;                         // 1
-uint8_t PttEmission = 0;                     // 2
+uint8_t PttEmission = 0;                        // 2
 uint16_t SpectrumDelay = 0;                     // 3
 uint32_t gScanRangeStart;                       // 4
 uint32_t gScanRangeStop;                        // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
-#define PARAMETER_COUNT 8
+int16_t trigger   = 20;                         // 9
+#define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
 bool classic = 1;
 bool Key_1_pressed = 0;
@@ -545,18 +546,20 @@ uint8_t GetBWRegValueForScan() {
 }
 
 uint16_t GetRssi(void) {
-    uint16_t rssi;
+    uint16_t rssi,test=0;
     
-    if (isListening) {
-        while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255) {
-            SYSTICK_DelayUs(500);
+    while (test == 0){
+        if (isListening) {
+            while ((BK4819_ReadRegister(0x63) & 0xFF) >= 255) {
+                SYSTICK_DelayUs(500);
+            }
+        } else {
+            BK4819_ReadRegister(0x63);
+            SYSTICK_DelayUs(DelayRssi * 1000);
         }
-    } else {
-        BK4819_ReadRegister(0x63);
-        SYSTICK_DelayUs(DelayRssi * 1000);
-    }
-    
-    rssi = BK4819_GetRSSI();
+        test = BK4819_GetRSSI();
+        if(test) rssi = test;
+  }
     
     if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
         rssi += UHF_NOISE_FLOOR;
@@ -663,7 +666,7 @@ static void ToggleRX(bool on) {
 
 // Scan info
 static void ResetScanStats() {
-  scanInfo.rssi = 0;
+  //scanInfo.rssi = 0;
   scanInfo.rssiMax = 0;
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
@@ -768,44 +771,49 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
-bool gIsPeak = false; 
+bool gIsPeak = false;
+int16_t highestPeak = 0;
 
-static void Measure() 
-{ 
-    uint16_t rssi = scanInfo.rssi = GetRssi();
-    uint8_t idx = CurrentScanIndex();
-
-    // Détection du pic
+static void Measure()
+{
     static int16_t previousRssi = 0;
-    static int16_t highestPeak = 0;
     static bool isFirst = true;
 
-    int16_t trigger = (settings.rssiTriggerLevel > 0) ? settings.rssiTriggerLevel : 40;
+    uint8_t idx = CurrentScanIndex();
+    uint16_t rssi = scanInfo.rssi = GetRssi();
 
-    // Comparaison même dès le premier appel
+    // === Initialisation ===
     if (isFirst) {
         previousRssi = rssi;
-        highestPeak = rssi;
-        gIsPeak = false;
-        isFirst = false;
-    } else {
-        if (rssi > previousRssi + trigger){
-            gIsPeak = true;
-            FillfreqHistory(1);
-        }
-
-        if (rssi > highestPeak)
-            highestPeak = rssi;
-
-        // Sortie du pic si signal redescend
-        if (isListening && rssi < highestPeak - trigger) {
-            highestPeak = 0;
-            gIsPeak = false;
-        }
-
-        previousRssi = rssi;
+        highestPeak  = rssi;
+        gIsPeak      = false;
+        isFirst      = false;
     }
 
+    // --- Détection montée ---
+    if (!gIsPeak && rssi > previousRssi + trigger) {
+        gIsPeak     = true;
+        highestPeak = rssi;
+        FillfreqHistory(true);
+    }
+
+    // --- Mise à jour du plus haut pic pendant ouverture ---
+    if (gIsPeak && rssi > highestPeak)
+        highestPeak = rssi;
+
+    // --- Fermeture si descente significative ---
+    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevel) {
+        gIsPeak     = false;
+        highestPeak = rssi;
+    }
+
+    // --- Mise à jour previousRssi (suivi lent en descente) ---
+    if (!gIsPeak || !isListening)
+        previousRssi = rssi;
+    else if (rssi < previousRssi)
+        previousRssi = rssi; // suit aussi en descente pendant écoute
+
+    // === Historique ===
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
@@ -815,6 +823,7 @@ static void Measure()
 
     rssiHistory[scanInfo.i] = rssi;
 }
+
 
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
@@ -1091,7 +1100,7 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"%d/%ddb SQ %d ",settings.dbMin,settings.dbMax, settings.rssiTriggerLevel);
+  len = sprintf(&String[pos],"%d/%ddb T %d ",settings.dbMin,settings.dbMax, trigger);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1288,15 +1297,18 @@ static void DrawF(uint32_t f) {
       ArrowLine = 3;}
     
     }
+    //############################## NOT CLASSIC ##############################
 
     else {
+      uint8_t maxchar = 15;
       DrawMeter(6);
-      strncpy(line2, freqStr, 18);
+      strncpy(line2, freqStr, maxchar);
       if (appMode == SCAN_BAND_MODE) {
-        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
+        //snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
+        snprintf(line1, sizeof(line1), "B%u:R%d P%d", bl+1, scanInfo.rssi,highestPeak);
     } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
               if (enabledCount > 0) {
-                snprintf(line1, sizeof(line1), "SL %s", enabledLists);
+                snprintf(line1, sizeof(line1), "SL%s R%d P%d", enabledLists,scanInfo.rssi,highestPeak);
               } else {
                 snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
               }
@@ -1305,12 +1317,11 @@ static void DrawF(uint32_t f) {
         if (refresh > 1 && StringCode[0]) {
             if (isKnownChannel) {
                 // Try to fit "Name Code" on one line
-                if (strlen(channelName) + 1 + strlen(StringCode) <= 18) {
+                if (strlen(channelName) + 1 + strlen(StringCode) <= maxchar) {
                     snprintf(line2, sizeof(line2), "%s %s", channelName, StringCode);
                 } else {
                     // Split into two lines
-                    strncpy(line2, channelName, 18);
-                    strncpy(line3, StringCode, 18);
+                    strncpy(line3, StringCode, maxchar);
                 }
             } else {
                 // Show "Frequency Code"
@@ -1319,24 +1330,23 @@ static void DrawF(uint32_t f) {
         } 
         // Priority 2: Show Channel Name + Frequency (if known)
         else if (isKnownChannel) {
-            if (strlen(channelName) + 1 + strlen(freqStr) <= 18) {
+            if (strlen(channelName) + 1 + strlen(freqStr) <= maxchar) {
                 snprintf(line2, sizeof(line2), "%s %s", channelName, freqStr);
             } else {
-                strncpy(line2, channelName, 18);
-                strncpy(line3, freqStr, 18);
+                strncpy(line2, channelName, maxchar);
             }
         } 
         // Priority 3: Just Frequency (if unknown channel)
     } 
 
     // --- Show History (if enabled) ---
-    if (showHistory) {
-        if (!line3[0]) formatHistory(line3, indexFd, channelFd, f);
+    if (showHistory && !refresh) {
+        formatHistory(line3, indexFd, channelFd, f);
     }
 
-         UI_PrintString(line1, 1, 128, 0, 8);
-         UI_PrintString(line2, 1, 128, 2, 8);
-         UI_PrintString(line3, 1, 128, 4, 8);
+         UI_PrintString(line1, 1, 1, 0, 8);
+         UI_PrintString(line2, 1, 1, 2, 8);
+         UI_PrintString(line3, 1, 1, 4, 8);
     }
 }
 
@@ -1704,7 +1714,7 @@ static void OnKeyDown(uint8_t key) {
               bool isKey3 = (key == KEY_3);
               bool redrawNeeded = false;
           
-              switch(parametersSelectedIndex) {
+              switch(parametersSelectedIndex) {//SEE HERE
                   case 0: // DelayRssi
                       DelayRssi = isKey3 ? 
                                  (DelayRssi >= 12 ? 2 : DelayRssi + 1) :
@@ -1750,6 +1760,11 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
+                  case 8: // trigger
+                      trigger = isKey3 ?
+                                (trigger >= 500 ? 0 : trigger + 5) :
+                                (trigger <= 0 ? 500 : trigger - 5);
+                      break;
               }
             
               if (isKey3 || redrawNeeded) { //TO REMOVE MAYBE
@@ -1794,10 +1809,13 @@ static void OnKeyDown(uint8_t key) {
         UpdateDBMax(false);
     break;
 
-     case KEY_1: //AUTO SET
-        NextScanStep();   
+     case KEY_1: //SKIP
+        rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
+        rssiHistory[peak.i] = RSSI_MAX_VALUE;
+        ResetPeak();
         ToggleRX(false);
-    break;
+        ResetScanStats();   
+     break;
      
      case KEY_7:
         SaveSettings(); 
@@ -2088,11 +2106,11 @@ static void RenderStatus() {
 
 
 static void RenderSpectrum() {
-  DrawNums();
   if(classic){
+    DrawNums();
     DrawArrow(128u * (peak.i-1) / GetStepsCount());
     DrawSpectrum();
-    DrawRssiTriggerLevel();
+    if(isListening) DrawRssiTriggerLevel();
   }
   DrawF(peak.f); 
 }
@@ -2100,7 +2118,7 @@ static void RenderSpectrum() {
 void DrawMeter(int line) {
   const uint8_t METER_PAD_LEFT = 3;
 
-  for (int i = 0; i < 121; i++) {
+/*  for (int i = 0; i < 121; i++) {
     if (i % 10 == 0) {
       gFrameBuffer[line][i + METER_PAD_LEFT] = 0b01110000;
     } else if (i % 5 == 0) {
@@ -2108,15 +2126,17 @@ void DrawMeter(int line) {
     } else {
       gFrameBuffer[line][i + METER_PAD_LEFT] = 0b00010000;
     }
-  }
+  }*/
 
   uint8_t x = Rssi2PX(scanInfo.rssi, 0, 121);
   for (int i = 0; i < x; ++i) {
     if (i % 5) {
-      gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b00000111;
+      if (!classic && !ShowHistory)gFrameBuffer[line-1][i + METER_PAD_LEFT] |= 0b11111111;
+      gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b11111111;
     }
   }
   x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
+  if (!classic)gFrameBuffer[line-1][METER_PAD_LEFT + x] = 0b11111111;
   gFrameBuffer[line][METER_PAD_LEFT + x] = 0b11111111;
 }
 
@@ -2131,9 +2151,8 @@ static void RenderStill() {
       }
   classic=1;
   DrawF(fMeasure);
-  classic = previousclassic;
-  
   DrawMeter(2);
+  classic = previousclassic;
 
   sLevelAttributes sLevelAtt;
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, fMeasure);
@@ -2339,7 +2358,6 @@ static void UpdateListening() {
   Measure(); 
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
-
   if (gIsPeak) {return;}
   ToggleRX(false);
   WaitSpectrum = SpectrumDelay;
@@ -2510,7 +2528,7 @@ typedef struct {
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
     uint8_t rssiTriggerLevel;
-    uint8_t rssiTriggerLevelH;
+    int16_t Trigger;
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
@@ -2525,7 +2543,7 @@ void LoadSettings()
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
   for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
   settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
-  settings.rssiTriggerLevelH = eepromData.rssiTriggerLevelH;
+  trigger = eepromData.Trigger;
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
@@ -2551,7 +2569,7 @@ void SaveSettings()
   SettingsEEPROM  eepromData  = {0};
   for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
   eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
-  eepromData.rssiTriggerLevelH =settings.rssiTriggerLevelH;
+  eepromData.Trigger = trigger;
   eepromData.RangeStart = gScanRangeStart;
   eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
@@ -2679,7 +2697,10 @@ static void GetParametersText(uint8_t index, char *buffer) {
         case 7:
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
             break;
-
+        
+        case 8:
+            sprintf(buffer, "TriggerUp: %d", trigger);
+            break;
         default:
             // Gestion d'un index inattendu (optionnel)
             buffer[0] = '\0';
