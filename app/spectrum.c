@@ -781,7 +781,7 @@ static void Measure()
 
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-
+    uint16_t rssi2;
     // === Initialisation ===
     if (isFirst) {
         previousRssi = rssi;
@@ -792,9 +792,13 @@ static void Measure()
 
     // --- Détection montée ---
     if (!gIsPeak && rssi > previousRssi + trigger) {
-        gIsPeak     = true;
-        highestPeak = rssi;
-        FillfreqHistory(true);
+        SYSTEM_DelayMs(50);
+        rssi2 = scanInfo.rssi = GetRssi();
+        if (!gIsPeak && rssi2 > rssi+10) {
+          gIsPeak     = true;
+          highestPeak = rssi2;
+          FillfreqHistory(true);
+        }
     }
 
     // --- Mise à jour du plus haut pic pendant ouverture ---
