@@ -37,6 +37,7 @@ int16_t trigger   = 20;                         // 9
 bool classic = 1;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
+//uint16_t StopSpectrum = 0;
 uint32_t Last_Tuned_Freq = 44610000;
 #define SQUELCH_OFF_DELAY 10;
 bool StorePtt_Toggle_Mode = 0;
@@ -126,8 +127,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_500kHz,
                              frequencyChangeStep: 80000,
                              rssiTriggerLevel: 20,
-							               rssiTriggerLevelH: 100,
-                             backlightAlwaysOn: false,
+							               backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_NARROW,
                              modulationType: false,
@@ -654,6 +654,7 @@ static void ToggleRX(bool on) {
     ToggleAFBit(on);
     
     if (on) { 
+        //if (StopSpectrum == 0) StopSpectrum = 5000;
         BK4819_SetFilterBandwidth(settings.listenBw, false);
         BK4819_WriteRegister(BK4819_REG_3F, BK4819_REG_02_CxCSS_TAIL);
         gBacklightCountdown = 0;
@@ -772,7 +773,6 @@ static void UpdatePeakInfo() {
 }
 
 bool gIsPeak = false;
-int16_t highestPeak = 0;
 
 static void Measure()
 {
@@ -782,42 +782,29 @@ static void Measure()
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint16_t rssi2;
-    // === Initialisation ===
+    
     if (isFirst) {
         previousRssi = rssi;
-        highestPeak  = rssi;
         gIsPeak      = false;
         isFirst      = false;
     }
 
-    // --- Détection montée ---
     if (!gIsPeak && rssi > previousRssi + trigger) {
         SYSTEM_DelayMs(50);
         rssi2 = scanInfo.rssi = GetRssi();
         if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
-          highestPeak = rssi2;
           FillfreqHistory(true);
         }
     }
 
-    // --- Mise à jour du plus haut pic pendant ouverture ---
-    if (gIsPeak && rssi > highestPeak)
-        highestPeak = rssi;
+    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevel) {gIsPeak     = false;}
 
-    // --- Fermeture si descente significative ---
-    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevel) {
-        gIsPeak     = false;
-        highestPeak = rssi;
-    }
-
-    // --- Mise à jour previousRssi (suivi lent en descente) ---
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
     else if (rssi < previousRssi)
-        previousRssi = rssi; // suit aussi en descente pendant écoute
+        previousRssi = rssi;
 
-    // === Historique ===
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
@@ -1104,12 +1091,15 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"%d/%ddb T %d ",settings.dbMin,settings.dbMax, trigger);
+  len = sprintf(&String[pos],"%d/%ddb U%d/D%d ",settings.dbMin,settings.dbMax, trigger,settings.rssiTriggerLevel);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
-
+  
+  //if (StopSpectrum>0 && StopSpectrum <61000){len = sprintf(&String[pos],"%d", StopSpectrum/1000);pos += len;}
+  //else if(StopSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
+  
   GUI_DisplaySmallest(String, 0, 1, true,true);
   BOARD_ADC_GetBatteryInfo(&gBatteryVoltages[gBatteryCheckCounter++ % 4]);
 
@@ -1228,7 +1218,7 @@ static void DrawF(uint32_t f) {
     char line1[19] = "";
     char line2[19] = "";
     char line3[19] = "";
-    
+        
     f = freqHistory[indexFd];
     bool showHistory = (ShowHistory) && (f > 0) && (indexFd > 0);
     int channelFd = BOARD_gMR_fetchChannel(f);
@@ -1308,11 +1298,10 @@ static void DrawF(uint32_t f) {
       DrawMeter(6);
       strncpy(line2, freqStr, maxchar);
       if (appMode == SCAN_BAND_MODE) {
-        //snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
-        snprintf(line1, sizeof(line1), "B%u:R%d P%d", bl+1, scanInfo.rssi,highestPeak);
+        snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
     } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
               if (enabledCount > 0) {
-                snprintf(line1, sizeof(line1), "SL%s R%d P%d", enabledLists,scanInfo.rssi,highestPeak);
+                snprintf(line1, sizeof(line1), "SL%s", enabledLists);
               } else {
                 snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
               }
@@ -1342,15 +1331,15 @@ static void DrawF(uint32_t f) {
         } 
         // Priority 3: Just Frequency (if unknown channel)
     } 
-
+    
     // --- Show History (if enabled) ---
     if (showHistory && !refresh) {
         formatHistory(line3, indexFd, channelFd, f);
     }
 
-         UI_PrintString(line1, 1, 1, 0, 8);
-         UI_PrintString(line2, 1, 1, 2, 8);
-         UI_PrintString(line3, 1, 1, 4, 8);
+         UI_PrintString(line1, 1, 128, 0, 8);
+         UI_PrintString(line2, 1, 128, 2, 8);
+         UI_PrintString(line3, 1, 128, 4, 8);
     }
 }
 
@@ -1782,6 +1771,7 @@ static void OnKeyDown(uint8_t key) {
           RelaunchScan();
           ResetModifiers();
           if(Key_1_pressed) {
+            Key_1_pressed = 0;
             APP_RunSpectrum(3);
           }
           break;
@@ -2153,6 +2143,7 @@ static void RenderStill() {
       SYSTEM_DelayMs(1);
       if (WaitSpectrum ==0) SetState(SPECTRUM); 
       }
+ 
   classic=1;
   DrawF(fMeasure);
   DrawMeter(2);
@@ -2362,6 +2353,14 @@ static void UpdateListening() {
   Measure(); 
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
+  
+  /*if (StopSpectrum > 0 && StopSpectrum <61000) { //65000 locks still mode
+      StopSpectrum-=20;
+      redrawStatus = true;
+      SYSTEM_DelayMs(1);
+      if (StopSpectrum ==0) gIsPeak = 0; 
+      }
+  */
   if (gIsPeak) {return;}
   ToggleRX(false);
   WaitSpectrum = SpectrumDelay;
