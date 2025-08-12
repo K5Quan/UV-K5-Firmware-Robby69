@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -15,7 +15,7 @@
 
 /*	
           /////////////////////////DEBUG//////////////////////////
-          char str[64] = "";sprintf(str, "%d\n", Spectrum_state );LogUart(str);
+          char str[64] = "";sprintf(str, "%d\r\n", Spectrum_state );LogUart(str);
 */
 #define MAX_VISIBLE_LINES 6
 #define HISTORY_SIZE 250
@@ -35,6 +35,7 @@ uint32_t gScanRangeStop;                        // 5
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool classic = 1;
+uint8_t SlIndex = 20;
 int16_t trigger   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -48,6 +49,7 @@ uint8_t ArrowLine = 1;
 bool historyListActive = false;
 //static uint32_t PreviousRecorded = 0;
 static int historyScrollOffset = 0;
+static void BuildValidScanListIndices();
 static void RenderHistoryList();
 static void RenderScanListSelect();
 static void RenderParametersSelect();
@@ -816,9 +818,9 @@ static void UpdateRssiTriggerLevel(bool inc) {
 
 static void UpdateDBMaxAuto() {
 if (settings.rssiTriggerLevel >scanInfo.rssiMax)
-    settings.dbMax = clamp(Rssi2DBm(settings.rssiTriggerLevel + 70), -90, 100);
-  else settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 70), -90, 100);
-  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-150,-70);
+    settings.dbMax = clamp(Rssi2DBm(settings.rssiTriggerLevel*1.1), -90, 100);
+  else settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.1), -90, 100);
+  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,-70);
   redrawStatus = true;
   redrawScreen = true;
 }
@@ -1756,6 +1758,7 @@ static void OnKeyDown(uint8_t key) {
                   case 3: // FreqInput
                   case 4:
                       if (!isKey3) {
+                          appMode = SCAN_RANGE_MODE;
                           FreqInput();
                           Key_1_pressed = 1;
                       }
@@ -1893,6 +1896,18 @@ break;
       
       if (indexFd < indexFs-1) indexFd++;
       if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+      
+      if(appMode==CHANNEL_MODE){
+        BuildValidScanListIndices();
+        SlIndex = (SlIndex < validScanListCount-1 ? SlIndex+1:0);
+        ToggleScanList(validScanListIndices[SlIndex], 1);
+        SetState(SPECTRUM);
+        ResetModifiers();
+        redrawScreen = true;
+        redrawStatus = true;
+        RelaunchScan();
+        break;
+      }
     }
     break;
   case KEY_DOWN:
@@ -1921,7 +1936,20 @@ break;
     indexFd--;
     if (indexFd < 1) {indexFd = 1;}
     if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
+
+    if(appMode==CHANNEL_MODE){
+        BuildValidScanListIndices();
+        SlIndex = (SlIndex > 0 ? SlIndex-1:validScanListCount-1);
+        ToggleScanList(validScanListIndices[SlIndex], 1);
+        SetState(SPECTRUM);
+        ResetModifiers();
+        redrawScreen = true;
+        redrawStatus = true;
+        RelaunchScan();
+        break;
+      }
 }
+
   break;
   
   case KEY_SIDE1:
@@ -2131,7 +2159,8 @@ static void RenderSpectrum() {
     DrawSpectrum();
     DrawRssiTriggerLevel();
   }
-  DrawF(peak.f); 
+  //DrawF(peak.f); 
+  DrawF(scanInfo.f); 
 }
 
 void DrawMeter(int line) {
