@@ -994,9 +994,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			
 			if (gMonitor)
 				ACTION_Monitor(); //turn off the monitor
-#ifdef ENABLE_SCAN_RANGES
-			gScanRangeStart = 0;
-#endif
 		}
 
 		if (gScreenToDisplay == DISPLAY_MENU)       // 1of11

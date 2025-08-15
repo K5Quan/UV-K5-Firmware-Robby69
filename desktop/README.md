@@ -39,7 +39,7 @@ pip install pyserial pygame
    ```bash
    ./k5viewer.py -port /dev/ttyUSB0             # Linux
    ./k5viewer.py -port /dev/cu.usbserial-xxxx   # macOS
-   ./k5viewer.py -port COM3                     # Windows
+   k5viewer.py --port COM3                     # Windows
    ```
     >[!NOTE]   
     >If no -port is provided, the script defaults to /dev/ttyUSB0.

@@ -38,7 +38,7 @@
 #include "ui/ui.h"
 #include <stdlib.h>
 
-void toggle_scan_range(void)
+/*void toggle_scan_range(void)
 {	// toggle the selected channels scanlist setting
 
 	SETTINGS_UpdateChannel(gTxVfo->CHANNEL_SAVE, gTxVfo, true);
@@ -65,7 +65,7 @@ void toggle_scan_range(void)
 	}
 #endif
 	//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
-}
+}*/
 
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {

@@ -124,7 +124,8 @@ const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6",
   "SL7", "SL8", "SL9", "SL10", "SL11", "SL12", "SL13", "SL14", "SL15", "ALL"};
 const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
-uint16_t BPRssiTriggerLevel[32]={0};
+uint8_t BPRssiTriggerLevelDn[32]={0};
+uint8_t BPRssiTriggerLevelUp[32]={0};
 
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_500kHz,
@@ -396,8 +397,6 @@ static void SetF(uint32_t f) {
   BK4819_WriteRegister(BK4819_REG_30, reg);
 }
 
-bool IsPeakOverLevelH() { return scanInfo.rssi > settings.rssiTriggerLevelH; }
-
 static void ResetInterrupts()
 {
   // disable interupts
@@ -456,7 +455,6 @@ static void DeInitSpectrum(bool ComeBack) {
   if(!ComeBack) {
     uint8_t Spectrum_state = 0; //Spectrum Not Active
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
-    gScanRangeStart = 0;
     }
     
   else {
@@ -810,16 +808,14 @@ static void UpdateRssiTriggerLevel(bool inc) {
     int8_t delta = inc ? 5 : -5;
     settings.rssiTriggerLevel += delta;
     redrawStatus = true;
-    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, my_abs(delta)*100);
-    BPRssiTriggerLevel[bl] = settings.rssiTriggerLevel;
+    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, 200);
+    BPRssiTriggerLevelDn[bl] = settings.rssiTriggerLevel;
 }
 
 
 
 static void UpdateDBMaxAuto() {
-if (settings.rssiTriggerLevel >scanInfo.rssiMax)
-    settings.dbMax = clamp(Rssi2DBm(settings.rssiTriggerLevel*1.1), -90, 100);
-  else settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.1), -90, 100);
+  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.1), -90, 50);
   settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,-70);
   redrawStatus = true;
   redrawScreen = true;
@@ -840,7 +836,7 @@ static void UpdateScanInfo() {
   }
 }
 
-static void UpdateDBMax(bool inc) {
+/*static void UpdateDBMax(bool inc) {
     if (inc && settings.dbMax <= 100) {settings.dbMax += 5;} 
       else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
            else {return;}
@@ -848,7 +844,7 @@ static void UpdateDBMax(bool inc) {
   redrawStatus = true;
   redrawScreen = true;
   SYSTEM_DelayMs(20);
-}
+} */
 
 static void UpdateScanStep(bool inc) {
 if (inc) {
@@ -1822,12 +1818,14 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_3:
         //UpdateDBMax(true);
-        trigger = (trigger >= 100 ? 0 : trigger + 1);
+        trigger = (trigger >= 200 ? 0 : trigger + 1);
+        BPRssiTriggerLevelUp[bl] = trigger;
      break;
      
      case KEY_9:
         //UpdateDBMax(false);
-        trigger = (trigger <= 0 ? 100 : trigger - 1);
+        trigger = (trigger <= 0 ? 200 : trigger - 1);
+        BPRssiTriggerLevelUp[bl] = trigger;
     break;
 
      case KEY_1: //SKIP
@@ -2068,10 +2066,10 @@ static void OnKeyDownFreqInput(uint8_t key) {
 void OnKeyDownStill(KEY_Code_t key) {
   switch (key) {
   case KEY_3:
-    UpdateDBMax(true);
+    //UpdateDBMax(true);
     break;
   case KEY_9:
-    UpdateDBMax(false);
+    //UpdateDBMax(false);
     break;
   case KEY_UP:
       if (stillEditRegs) {
@@ -2581,7 +2579,8 @@ typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
     uint8_t DelayRssi;
     uint8_t PttEmission; 
-    uint8_t BPRssiTriggerLevel[32]; // 32 bytes of trigger levels
+    uint8_t BPRssiTriggerLevelDn[32]; // 32 bytes of trigger levels
+    uint8_t BPRssiTriggerLevelUp[32]; // 32 bytes of trigger levels
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
     uint8_t rssiTriggerLevel;
@@ -2606,8 +2605,11 @@ void LoadSettings()
     gScanRangeStop = eepromData.RangeStop;}
     settings.dbMax = eepromData.dbMax;
   
-    for (int i = 0; i < 32; i++) {BPRssiTriggerLevel[i] = eepromData.BPRssiTriggerLevel[i];}
-    for (int i = 0; i < 32; i++) {settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;}
+    for (int i = 0; i < 32; i++) {
+      BPRssiTriggerLevelDn[i] = eepromData.BPRssiTriggerLevelDn[i];
+      BPRssiTriggerLevelUp[i] = eepromData.BPRssiTriggerLevelUp[i];
+      settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;
+    }
     DelayRssi = eepromData.DelayRssi;
     if (DelayRssi > 12) DelayRssi =12;
     if (PttEmission > 1) PttEmission =0;
@@ -2632,8 +2634,11 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.PttEmission = PttEmission;
-  for (int i = 0; i < 32; i++) { eepromData.BPRssiTriggerLevel[i] = BPRssiTriggerLevel[i];}
-  for (int i = 0; i < 32; i++) {if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);}
+  for (int i = 0; i < 32; i++) { 
+      eepromData.BPRssiTriggerLevelDn[i] = BPRssiTriggerLevelDn[i];
+      eepromData.BPRssiTriggerLevelUp[i] = BPRssiTriggerLevelUp[i];
+      if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);
+    }
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
     EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
