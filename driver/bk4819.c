@@ -238,9 +238,7 @@ void BK4819_SetAGC(bool enable)
 	// }
 }
 
-void BK4819_InitAGC(ModulationMode_t modulation)
-{
-	// REG_10, REG_11, REG_12 REG_13, REG_14
+// REG_10, REG_11, REG_12 REG_13, REG_14
 	//
 	// Rx AGC Gain Table[]. (Index Max->Min is 3,2,1,0,-1)
 	//
@@ -279,6 +277,9 @@ void BK4819_InitAGC(ModulationMode_t modulation)
 	//         0 = -33dB
 	//
 
+void BK4819_InitAGC(ModulationMode_t modulation)
+{
+	
 	if(modulation==MODULATION_AM)
 	{
 		//AM modulation

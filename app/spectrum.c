@@ -23,7 +23,7 @@
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
 // see GetParametersText
-uint8_t DelayRssi = 10;                         // 1
+uint8_t DelayRssi = 4;                          // 1
 uint8_t PttEmission = 0;                        // 2
 uint16_t SpectrumDelay = 0;                     // 3
 uint32_t gScanRangeStart;                       // 4
@@ -31,12 +31,12 @@ uint32_t gScanRangeStop;                        // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
-//int16_t trigger   = 20;                         // 9
+//int16_t settings.rssiTriggerLevelUp   = 20;                // 9
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool classic = 1;
 uint8_t SlIndex = 20;
-int16_t trigger   = 20;
+//int16_t settings.rssiTriggerLevelUp   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 //uint16_t StopSpectrum = 0;
@@ -78,10 +78,12 @@ uint8_t refresh = 0;
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 #define Bottom_print 51 //Robby69
 Mode appMode;
-#define UHF_NOISE_FLOOR 20
-#define MAX_ATTENUATION 160
-#define ATTENUATE_STEP  10
-uint8_t scanChannel[MR_CHANNEL_LAST+3];
+#define UHF_NOISE_FLOOR 0
+
+uint8_t scanChannel[MR_CHANNEL_LAST + 3];
+uint8_t ScanListNumber[MR_CHANNEL_LAST + 3];
+
+//uint8_t scanChannel[MR_CHANNEL_LAST+3];
 uint8_t scanChannelsCount;
 void ToggleScanList();
 static void LoadSettings();
@@ -126,11 +128,13 @@ const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
 uint8_t BPRssiTriggerLevelDn[32]={0};
 uint8_t BPRssiTriggerLevelUp[32]={0};
-
+uint8_t SLRssiTriggerLevelDn[15]={0};
+uint8_t SLRssiTriggerLevelUp[15]={0};
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_500kHz,
                              frequencyChangeStep: 80000,
-                             rssiTriggerLevel: 20,
+                             rssiTriggerLevelUp: 20,
+                             rssiTriggerLevelDn: 150,
 							               backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_NARROW,
@@ -494,7 +498,7 @@ static void ExitAndCopyToVfo() {
       uint8_t i = 0;
       SpectrumDelay = 0; //not compatible with ninja
     
-      while (rssiHistory[randomChannel]> settings.rssiTriggerLevel) //check channel availability
+      while (rssiHistory[randomChannel]> settings.rssiTriggerLevelDn) //check channel availability
         {i++;
         randomChannel++;
         if (randomChannel >scanChannelsCount)randomChannel = 1;
@@ -702,6 +706,8 @@ static bool InitScan() {
                 settings.scanStepIndex = BParams[bl].scanStep; 
                 gScanRangeStart = BParams[bl].Startfrequency;
                 gScanRangeStop = BParams[bl].Stopfrequency;
+                settings.rssiTriggerLevelUp = BPRssiTriggerLevelUp[bl];
+                settings.rssiTriggerLevelDn = BPRssiTriggerLevelDn[bl];
                 scanInfo.measurementsCount = GetStepsCount();
                 settings.modulationType = BParams[bl].modulationType;
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
@@ -775,17 +781,19 @@ static void Measure()
         isFirst      = false;
     }
 
-    if (!gIsPeak && rssi > previousRssi + trigger) {
+    if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
         SYSTEM_DelayMs(50);
         rssi2 = scanInfo.rssi = GetRssi();
         if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
+          //char str[64] = "";sprintf(str, "%d %d %d\r\n", rssi,rssi2,scanInfo.rssiMin );LogUart(str);
           FillfreqHistory(true);
+          //if(DelayRssi<9) settings.rssiTriggerLevelDn = scanInfo.rssiMin*2.5;
+          //else settings.rssiTriggerLevelDn = scanInfo.rssiMin*1.8;
         }
     }
 
-    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevel) {gIsPeak     = false;}
-
+    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevelDn) {gIsPeak = false;}
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
     else if (rssi < previousRssi)
@@ -806,17 +814,19 @@ static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void UpdateRssiTriggerLevel(bool inc) {
     int8_t delta = inc ? 5 : -5;
-    settings.rssiTriggerLevel += delta;
+    settings.rssiTriggerLevelDn += delta;
     redrawStatus = true;
-    settings.rssiTriggerLevel = clamp(settings.rssiTriggerLevel, 0, 200);
-    BPRssiTriggerLevelDn[bl] = settings.rssiTriggerLevel;
+    settings.rssiTriggerLevelDn = clamp(settings.rssiTriggerLevelDn, 0, 200);
+    if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelDn[bl] = settings.rssiTriggerLevelDn;
+    if(appMode == CHANNEL_MODE) SLRssiTriggerLevelDn[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelDn;
+    
 }
 
 
 
 static void UpdateDBMaxAuto() {
-  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.1), -90, 50);
-  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,-70);
+  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.5), -70, 70);
+  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-140,-100);
   redrawStatus = true;
   redrawScreen = true;
 }
@@ -1101,7 +1111,7 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"%d/%ddb U%d/D%d ",settings.dbMin,settings.dbMax, trigger,settings.rssiTriggerLevel);
+  len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1436,11 +1446,11 @@ static void DrawNums() {
 
 static void DrawRssiTriggerLevel() {
   uint8_t y;
-  y = Rssi2Y(settings.rssiTriggerLevel);
+  y = Rssi2Y(settings.rssiTriggerLevelDn);
   for (uint8_t x = 0; x < 128; x += 4) {PutPixel(x, y, true);}
   
 /*  if (ShowHistory) { 
-    y = Rssi2Y(settings.rssiTriggerLevelH);
+    y = Rssi2Y(settings.rssiTriggerLevelDnH);
     for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
   }*/
 }
@@ -1470,6 +1480,8 @@ static void NextScanStep() {
       if (scanInfo.i <= GetStepsCount())
       {
       int currentChannel = scanChannel[scanInfo.i];
+      settings.rssiTriggerLevelDn = SLRssiTriggerLevelDn[ScanListNumber[scanInfo.i]];
+      settings.rssiTriggerLevelUp = SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]];
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
       }
       ++scanInfo.i; 
@@ -1774,10 +1786,10 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
-                  /*case 8: // trigger
-                      trigger = isKey3 ?
-                                (trigger >= 500 ? 0 : trigger + 5) :
-                                (trigger <= 0 ? 500 : trigger - 5);
+                  /*case 8: // settings.rssiTriggerLevelUp
+                      settings.rssiTriggerLevelUp = isKey3 ?
+                                (settings.rssiTriggerLevelUp >= 500 ? 0 : settings.rssiTriggerLevelUp + 5) :
+                                (settings.rssiTriggerLevelUp <= 0 ? 500 : settings.rssiTriggerLevelUp - 5);
                       break;*/
               }
             
@@ -1818,14 +1830,16 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_3:
         //UpdateDBMax(true);
-        trigger = (trigger >= 200 ? 0 : trigger + 1);
-        BPRssiTriggerLevelUp[bl] = trigger;
+        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 200 ? 0 : settings.rssiTriggerLevelUp + 1);
+        if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
+        if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
      break;
      
      case KEY_9:
         //UpdateDBMax(false);
-        trigger = (trigger <= 0 ? 200 : trigger - 1);
-        BPRssiTriggerLevelUp[bl] = trigger;
+        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 200 : settings.rssiTriggerLevelUp - 1);
+        if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
+        if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
     break;
 
      case KEY_1: //SKIP
@@ -1838,6 +1852,7 @@ static void OnKeyDown(uint8_t key) {
      
      case KEY_7:
         SaveSettings(); 
+        saved_params= true;
         break;
      
      case KEY_2: //FREE
@@ -2181,7 +2196,7 @@ void DrawMeter(int line) {
       gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b11111111;
     }
   }
-  x = Rssi2PX(settings.rssiTriggerLevel, 0, 121);
+  x = Rssi2PX(settings.rssiTriggerLevelDn, 0, 121);
   if (!classic)gFrameBuffer[line-1][METER_PAD_LEFT + x] = 0b11111111;
   gFrameBuffer[line][METER_PAD_LEFT + x] = 0b11111111;
 }
@@ -2527,27 +2542,27 @@ void LoadValidMemoryChannels(void)
     bool listsEnabled = false;
     
     // loop through all scanlists
-    for (int sl=1; sl <= 16; sl++) {
+    for (int CurrentScanList=1; CurrentScanList <= 16; CurrentScanList++) {
       // skip disabled scanlist
-      if (sl <= 15 && !settings.scanListEnabled[sl-1])
+      if (CurrentScanList <= 15 && !settings.scanListEnabled[CurrentScanList-1])
         continue;
 
       // valid scanlist is enabled
-      if (sl <= 15 && settings.scanListEnabled[sl-1])
+      if (CurrentScanList <= 15 && settings.scanListEnabled[CurrentScanList-1])
         listsEnabled = true;
       
       // break if some lists were enabled, else scan all channels
-      if (sl > 15 && listsEnabled)
+      if (CurrentScanList > 15 && listsEnabled)
         break;
 
       uint8_t offset = scanChannelsCount;
-      uint8_t listChannelsCount = RADIO_ValidMemoryChannelsCount(listsEnabled, sl-1);
+      uint8_t listChannelsCount = RADIO_ValidMemoryChannelsCount(listsEnabled, CurrentScanList-1);
       scanChannelsCount += listChannelsCount;
       signed int channelIndex=-1;
       for(int i=0; i < listChannelsCount; i++)
       {
         int nextChannel;
-        nextChannel = RADIO_FindNextChannel((channelIndex)+1, 1, listsEnabled, sl-1);
+        nextChannel = RADIO_FindNextChannel((channelIndex)+1, 1, listsEnabled, CurrentScanList-1);
 
         if (nextChannel == 0xFF)
         {	// no valid channel found
@@ -2557,6 +2572,7 @@ void LoadValidMemoryChannels(void)
         {
           channelIndex = nextChannel;
           scanChannel[offset+i]=channelIndex;
+          ScanListNumber[offset+i]=CurrentScanList;
         }
       }
     }
@@ -2579,8 +2595,10 @@ typedef struct {
     // Block 1 (0x1D10 - 0x1D1F)
     uint8_t DelayRssi;
     uint8_t PttEmission; 
-    uint8_t BPRssiTriggerLevelDn[32]; // 32 bytes of trigger levels
-    uint8_t BPRssiTriggerLevelUp[32]; // 32 bytes of trigger levels
+    uint16_t BPRssiTriggerLevelDn[32]; // 32 bytes of settings.rssiTriggerLevelUp levels
+    uint16_t BPRssiTriggerLevelUp[32]; // 32 bytes of settings.rssiTriggerLevelUp levels
+    uint8_t SLRssiTriggerLevelDn[15];
+    uint8_t SLRssiTriggerLevelUp[15];
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
     uint8_t rssiTriggerLevel;
@@ -2597,9 +2615,13 @@ void LoadSettings()
   
   // Lecture de toutes les données
   EEPROM_ReadBuffer(0x1D10, &eepromData, sizeof(eepromData));
-  for (int i = 0; i < 15; i++) {settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;}
-  settings.rssiTriggerLevel = eepromData.rssiTriggerLevel;
-  trigger = eepromData.Trigger;
+  for (int i = 0; i < 15; i++) {
+    settings.scanListEnabled[i] = (eepromData.scanListFlags >> i) & 0x01;
+    SLRssiTriggerLevelDn[i] = eepromData.SLRssiTriggerLevelDn[i];
+    SLRssiTriggerLevelUp[i] = eepromData.SLRssiTriggerLevelUp[i];
+  }
+  settings.rssiTriggerLevelDn = eepromData.rssiTriggerLevel;
+  settings.rssiTriggerLevelUp = eepromData.Trigger;
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
@@ -2626,9 +2648,13 @@ void LoadSettings()
 void SaveSettings() 
 {
   SettingsEEPROM  eepromData  = {0};
-  for (int i = 0; i < 15; i++) {if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);}
-  eepromData.rssiTriggerLevel = settings.rssiTriggerLevel;
-  eepromData.Trigger = trigger;
+  for (int i = 0; i < 15; i++) {
+    if (settings.scanListEnabled[i]) eepromData.scanListFlags |= (1 << i);
+    eepromData.SLRssiTriggerLevelDn[i] = SLRssiTriggerLevelDn[i];
+    eepromData.SLRssiTriggerLevelUp[i] = SLRssiTriggerLevelUp[i];
+  }
+  eepromData.rssiTriggerLevel = settings.rssiTriggerLevelDn;
+  eepromData.Trigger = settings.rssiTriggerLevelUp;
   eepromData.RangeStart = gScanRangeStart;
   eepromData.RangeStop = gScanRangeStop;
   eepromData.dbMax = settings.dbMax;
@@ -2642,7 +2668,7 @@ void SaveSettings()
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
     EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
-  saved_params= true;
+  
 }
 
 
@@ -2761,7 +2787,7 @@ static void GetParametersText(uint8_t index, char *buffer) {
             break;
         
         /*case 8:
-            sprintf(buffer, "TriggerUp: %d", trigger);
+            sprintf(buffer, "TriggerUp: %d", settings.rssiTriggerLevelUp);
             break;*/
         default:
             // Gestion d'un index inattendu (optionnel)
