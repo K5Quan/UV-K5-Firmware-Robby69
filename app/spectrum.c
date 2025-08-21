@@ -790,8 +790,8 @@ static void Measure()
     }
 
     if (gIsPeak && isListening) {
-      if(rssi > settings.rssiTriggerLevelDn)settings.rssiTriggerLevelDn = rssi-20;
-     else if (rssi < settings.rssiTriggerLevelDn){
+      if(rssi > settings.rssiTriggerLevelDn)settings.rssiTriggerLevelDn = rssi;
+     else if (rssi < settings.rssiTriggerLevelDn-30){
       gIsPeak = false;
       settings.rssiTriggerLevelDn = scanInfo.rssiMin;
       }
@@ -1113,7 +1113,7 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
+  len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn-30,DelayRssi, gModulationStr[settings.modulationType]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1314,7 +1314,7 @@ static void DrawF(uint32_t f) {
       uint8_t maxchar = 15;
       DrawMeter(6);
       strncpy(line2, freqStr, maxchar);
-      /*if (appMode == SCAN_BAND_MODE) {
+      if (appMode == SCAN_BAND_MODE) {
         snprintf(line1, sizeof(line1), "B%u:%s", bl+1, BParams[bl].BandName);
     } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
               if (enabledCount > 0) {
@@ -1322,11 +1322,7 @@ static void DrawF(uint32_t f) {
               } else {
                 snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
               }
-            }*/
-      
-      
-      snprintf(line1, sizeof(line1), "R%d P%d",scanInfo.rssi,settings.rssiTriggerLevelDn);
-      
+            }
       
       if (isListening || refresh > 1) {
         if (refresh > 1 && StringCode[0]) {
@@ -1453,7 +1449,7 @@ static void DrawNums() {
 
 static void DrawRssiTriggerLevel() {
   uint8_t y;
-  y = Rssi2Y(settings.rssiTriggerLevelDn);
+  y = Rssi2Y(settings.rssiTriggerLevelDn-30);
   for (uint8_t x = 0; x < 128; x += 4) {PutPixel(x, y, true);}
   
 /*  if (ShowHistory) { 
