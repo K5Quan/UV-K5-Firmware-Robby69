@@ -788,13 +788,7 @@ void RADIO_PrepareCssTX(void)
 
 void RADIO_SendEndOfTransmission(bool playRoger)
 {
-	if (playRoger) {
-		if (gEeprom.ROGER == ROGER_MODE_ROGER)
-			BK4819_PlayRoger();
-		else
-		if (gEeprom.ROGER == ROGER_MODE_Mario)
-			BK4819_PlayRogerMario();
-	}
+	if (playRoger) {BK4819_PlayRoger(gEeprom.ROGER);}
 }
 
 uint8_t RADIO_ValidMemoryChannelsCount(bool bCheckScanList, uint8_t VFO)

@@ -825,8 +825,8 @@ static void UpdateRssiTriggerLevel(bool inc) {
 
 
 static void UpdateDBMaxAuto() {
-  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.5), -70, 70);
-  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-140,-100);
+  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.1), -80, 70);
+  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-150,-90);
   redrawStatus = true;
   redrawScreen = true;
 }
@@ -1830,19 +1830,20 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_3:
         //UpdateDBMax(true);
-        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 200 ? 0 : settings.rssiTriggerLevelUp + 1);
+        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp + 5);
         if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
         if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
      break;
      
      case KEY_9:
         //UpdateDBMax(false);
-        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 200 : settings.rssiTriggerLevelUp - 1);
+        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp - 5);
         if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
         if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
     break;
 
      case KEY_1: //SKIP
+        settings.rssiTriggerLevelUp = peak.rssi;
         rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
         rssiHistory[peak.i] = RSSI_MAX_VALUE;
         ResetPeak();

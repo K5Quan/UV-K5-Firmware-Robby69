@@ -183,8 +183,16 @@ const char gSubMenu_PONMSG[][8] =
 const char gSubMenu_ROGER[][6] =
 {
 	"OFF",
-	"MORSE",
-	"MARIO"
+	"MARIO",
+	"R2D2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
+	"10",
 };
 
 const char gSubMenu_RESET[][4] =

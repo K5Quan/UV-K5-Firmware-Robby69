@@ -27,6 +27,7 @@
 #include "driver/system.h"
 #include "driver/systick.h"
 #include "settings.h"
+#include "debugging.h"
 
 #ifndef ARRAY_SIZE
 	#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -1471,94 +1472,93 @@ void BK4819_PrepareFSKReceive(void)
 }
 
 //###########################################################################################
-// Morse code for "Robzyl": .-. --- -... --.. -.-- .-..
-// Timing: 50ms per dot, 150ms per dash, 50ms between symbols, 150ms between letters
-// Total duration must fit in 1s (1000ms)
-
-// Tone frequencies
-#define TONE_HIGH  400  // 5kHz tone
-#define TONE_LOW   0     // Mute (or use another freq if needed)
-
-// Morse element durations (adjust for speed)
-#define DOT_DURATION   50  // ms
-#define DASH_DURATION  150 // ms
-#define SYM_GAP        50  // gap between symbols
-#define LETTER_GAP     150 // gap between letters
 
 void play_morse_element(uint32_t freq, uint32_t duration_ms) {
     BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq));
     BK4819_ExitTxMute();
     SYSTEM_DelayMs(duration_ms);
     BK4819_EnterTxMute();
-    SYSTEM_DelayMs(SYM_GAP); // Small gap after each element
+    SYSTEM_DelayMs(50); // Small gap after each element
 }
 
 void play_morse_letter(const char *pattern) {
     while (*pattern) {
         if (*pattern == '.') {
-            play_morse_element(TONE_HIGH, DOT_DURATION);
+            play_morse_element(400, 50);
         } else if (*pattern == '-') {
-            play_morse_element(TONE_HIGH, DASH_DURATION);
+            play_morse_element(400, 150);
         }
         pattern++;
     }
-    SYSTEM_DelayMs(LETTER_GAP - SYM_GAP); // Adjust for letter gap
+    SYSTEM_DelayMs(100); // Adjust for letter gap
 }
 
 void send_robzyl_morse() {
     play_morse_letter(".-."); 	//R
-    //play_morse_letter("---"); //O
+    play_morse_letter("---"); 	//O
     play_morse_letter("-...");  //B
     play_morse_letter("--..");	//Z
-    //play_morse_letter("-.--");//Y
-    //play_morse_letter(".-..");	//L
+    play_morse_letter("-.--");	//Y
+    play_morse_letter(".-..");	//L
 }
 
-// Call this to transmit "Robzyl" in <1s
-void play_fast_robzyl() {
-    send_robzyl_morse();
-    // Optional: End with a mute
-    BK4819_EnterTxMute();
-}
 //###########################################################################################
 
-
-//###########################################################################################
-// Définition des notes (fréquences en Hz)
-
-#define NOTE_C6  523
-#define NOTE_E6  660
-#define NOTE_G6  784
-
-// Durées rythmiques (en ms)
-#define DUR_QUARTER    200
-#define DUR_EIGHTH     100
-#define DUR_HALF       400
 
 void play_note(uint32_t freq, uint32_t duration) {
     BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq));
     BK4819_ExitTxMute();
     SYSTEM_DelayMs(duration);
     BK4819_EnterTxMute();
-    SYSTEM_DelayMs(10);
+    //SYSTEM_DelayMs(10);
 }
 
 void play_mario_intro() {
-    play_note(NOTE_E6, DUR_EIGHTH);
-    play_note(NOTE_E6, DUR_EIGHTH);
-    play_note(0, DUR_EIGHTH);
-    play_note(NOTE_E6, DUR_EIGHTH);
-    play_note(0, DUR_EIGHTH);
-    play_note(NOTE_C6, DUR_EIGHTH);
-    play_note(NOTE_E6, DUR_EIGHTH);
-    play_note(0, DUR_EIGHTH);
-    play_note(NOTE_G6, DUR_EIGHTH);
+    play_note(660, 100);
+    play_note(660, 100);
+    play_note(0, 100);
+    play_note(660, 100);
+    play_note(0, 100);
+    play_note(523, 100);
+    play_note(660, 100);
+    play_note(0, 100);
+    play_note(784, 100);
     play_note(0, 300);
-    play_note(392, DUR_EIGHTH);
+    play_note(392, 100);
+}
+
+
+//###########################################################################################
+void roger_beep_r2d2(void) {
+	play_note(1318, 80);
+    play_note(1568, 60);
+    play_note(2093, 50);
+    play_note(0,    20);
+    play_note(1760, 70);
+    play_note(1174, 40);
+    play_note(2349, 60);
+    play_note(0,    30);
+    play_note(2637, 90);
+	play_note(1760, 80);
+    play_note(2093, 60);
+    play_note(2637, 90);
+    play_note(2349, 70);
+    play_note(3136, 100);
+    play_note(0,    40);
+	play_note(2489, 60);   
+    play_note(2637, 80);   
+    play_note(2093, 70);   
+    play_note(1760, 100);
+}
+
+void roger_beep_3(void) {
+    for (uint16_t i=2000;i>500;i-=50) play_note(i, 5); 
+	for (uint16_t i=2000;i>500;i-=50) play_note(i, 5); 
+	for (uint16_t i=500;i<2550;i+=50) play_note(i, 7);
 }
 //###########################################################################################
 
-void BK4819_PlayRoger(void)
+void BK4819_PlayRoger(uint8_t song)
 {
 	BK4819_EnterTxMute();
 	BK4819_SetAF(BK4819_AF_MUTE);
@@ -1567,31 +1567,33 @@ void BK4819_PlayRoger(void)
 
 	BK4819_EnableTXLink();
 	SYSTEM_DelayMs(50);
-
-	send_robzyl_morse();
-	
-	BK4819_WriteRegister(BK4819_REG_70, 0x0000);
-	BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);   // 1 1 0000 0 1 1111 1 1 1 0
-}
-
-
-
-void BK4819_PlayRogerMario(void)
+switch (song)
 {
-	BK4819_EnterTxMute();
-	BK4819_SetAF(BK4819_AF_MUTE);
+	case 1:
+		play_mario_intro();
+	break;
 
-	BK4819_WriteRegister(BK4819_REG_70, BK4819_REG_70_ENABLE_TONE1 | (66u << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN));
+	case 2:
+		roger_beep_r2d2();	
+	break;
+	case 3:
+		roger_beep_3();	
+	break;
+	case 4:
+		send_robzyl_morse();	
+	break;
 
-	BK4819_EnableTXLink();
-	SYSTEM_DelayMs(50);
-
-	//send_robzyl_morse();
-	play_mario_intro();
-
+default:
+	break;
+}
 	BK4819_WriteRegister(BK4819_REG_70, 0x0000);
 	BK4819_WriteRegister(BK4819_REG_30, 0xC1FE);   // 1 1 0000 0 1 1111 1 1 1 0
 }
+
+
+
+
+
 
 void BK4819_Enable_AfDac_DiscMode_TxDsp(void)
 {
