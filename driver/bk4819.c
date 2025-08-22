@@ -1474,7 +1474,7 @@ void BK4819_PrepareFSKReceive(void)
 
 //###########################################################################################
 
-void play_morse_element(uint32_t freq, uint32_t duration_ms) {
+/* void play_morse_element(uint32_t freq, uint32_t duration_ms) {
     BK4819_WriteRegister(BK4819_REG_71, scale_freq(freq));
     BK4819_ExitTxMute();
     SYSTEM_DelayMs(duration_ms);
@@ -1501,7 +1501,7 @@ void send_robzyl_morse() {
     play_morse_letter("--..");	//Z
     play_morse_letter("-.--");	//Y
     play_morse_letter(".-..");	//L
-}
+} */
 
 //###########################################################################################
 
@@ -1530,7 +1530,7 @@ void play_mario_intro() {
 
 
 //###########################################################################################
-void roger_beep_r2d2(void) {
+/* void roger_beep_r2d2(void) {
 	play_note(1318, 80);
     play_note(1568, 60);
     play_note(2093, 50);
@@ -1550,10 +1550,10 @@ void roger_beep_r2d2(void) {
     play_note(2637, 80);   
     play_note(2093, 70);   
     play_note(1760, 100);
-}
+} */
 //###########################################################################################
 
-void roger_beep_r2d2_rnd(void){
+/* void roger_beep_r2d2_rnd(void){
 // R2-D2 Style Acknowledgment Beep
 play_note(1046, 50);  // C6
 play_note(1318, 50);  // E6
@@ -1562,7 +1562,7 @@ play_note(0, 30);     // Micro-pause for chirp effect
 play_note(1760, 40);  // A6
 play_note(1568, 40);  // G6
 play_note(1318, 100); // E6 (ending the phrase)
-}
+} */
 //###########################################################################################
 
 void roger_beep_3(void) {
@@ -1572,7 +1572,7 @@ void roger_beep_3(void) {
 }
 //###########################################################################################
 
-void send_k2000(void) {
+/* void send_k2000(void) {
 // Knight Rider KITT Scanner Sweep Effect
 // Ascending Sweep
 play_note(300, 25);
@@ -1613,11 +1613,11 @@ play_note(300, 25);
 
 // Optional: add a final lower "pong" for a complete cycle
 play_note(250, 50);
-}
+} */
 
 //###########################################################################################
 
-void send_pacman() {
+/* void send_pacman() {
     play_note(494, 150);   // B4
     play_note(988, 150);   // B5
     play_note(740, 150);   // F#5
@@ -1654,7 +1654,7 @@ void send_pacman() {
     play_note(880, 150);   // A5
     play_note(988, 300);   // B5
 
-}
+} */
 
 
 
@@ -1675,7 +1675,7 @@ switch (song)
 	break;
 
 	case 2:
-		roger_beep_r2d2();	
+		//roger_beep_r2d2();	
 	break;
 
 	case 3:
@@ -1683,18 +1683,18 @@ switch (song)
 	break;
 
 	case 4:
-		roger_beep_r2d2_rnd();	
+		//roger_beep_r2d2_rnd();	
 	break;
 	
 	case 5:
-		send_robzyl_morse();	
+		//send_robzyl_morse();	
 	break;
 
 	case 6:
-		send_k2000();	
+		//send_k2000();	
 	break;
 	case 7:
-		send_pacman();	
+		//send_pacman();	
 	break;
 default:
 	break;

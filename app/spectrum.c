@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -765,6 +765,7 @@ static void UpdatePeakInfo() {
 }
 
 bool gIsPeak = false;
+bool gAutoTriggerLevel = true;
 
 static void Measure()
 {
@@ -773,6 +774,8 @@ static void Measure()
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint16_t rssi2;
+    static uint16_t MaxRssi = 0;
+    static uint16_t MinRssi = 1000;
     
     if (isFirst) {
         previousRssi = rssi;
@@ -789,11 +792,22 @@ static void Measure()
         }
     }
 
-    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevelDn){gIsPeak = false;}
+    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevelDn){
+      gIsPeak = false;
+      MaxRssi = 0;
+      MinRssi = 1000;
+    }
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
     else if (rssi < previousRssi)
         previousRssi = rssi;
+
+    if (gAutoTriggerLevel) {
+      if (rssi > MaxRssi) MaxRssi = rssi;
+      if (rssi < MinRssi) MinRssi = rssi;
+      settings.rssiTriggerLevelDn = MinRssi+(MaxRssi*1.3-MinRssi)/(2);
+      //char str[64] = "";sprintf(str, "%d %d %d\r\n", MaxRssi,MinRssi, settings.rssiTriggerLevelDn);LogUart(str);
+    }
 
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
@@ -1983,7 +1997,8 @@ break;
     break;
   
   case KEY_SIDE2: //Free
-      break;
+    gAutoTriggerLevel=!gAutoTriggerLevel;
+  break;
 
   case KEY_PTT:
       ExitAndCopyToVfo();
