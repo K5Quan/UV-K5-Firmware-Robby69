@@ -53,12 +53,12 @@ static void DrawSmallAntennaAndBars(uint8_t *p, unsigned int level)
 
 static void DrawLevelBar(uint8_t xpos, uint8_t line, uint8_t level)
 {
-	const char hollowBar[] = {
+	/*const char hollowBar[] = {
 		0b01111111,
 		0b01000001,
 		0b01000001,
 		0b01111111
-	};
+	};*/
 
 	uint8_t *p_line = gFrameBuffer[line];
 	level = MIN(level, 13);
@@ -68,9 +68,9 @@ static void DrawLevelBar(uint8_t xpos, uint8_t line, uint8_t level)
 			for(uint8_t j = 0; j < 4; j++)
 				p_line[xpos + i * 5 + j] = (~(0x7F >> (i+1))) & 0x7F;
 		}
-		else {
+		/*else {
 			memcpy(p_line + (xpos + i * 5), &hollowBar, ARRAY_SIZE(hollowBar));
-		}
+		}*/
 	}
 }
 #endif
@@ -133,25 +133,23 @@ void UI_DisplayAudioBar(void)
 
 static void DisplayRSSIBar(const int16_t rssi, const bool now)
 {
-#if defined(ENABLE_RSSI_BAR)
-
+    const char plus[] = {
+        0b00011000,
+        0b00011000,
+        0b01111110,
+        0b01111110,
+        0b01111110,
+        0b00011000,
+        0b00011000,
+    };
+	
 	if (center_line == CENTER_LINE_RSSI) {
-		//const unsigned int txt_width    = 7 * 8;                 // 8 text chars
-		//const unsigned int bar_x        = 2 + txt_width + 4;     // X coord of bar graph
-		const unsigned int bar_x        = 20; 
+		const unsigned int txt_width    = 7 * 8;                 // 8 text chars
+		const unsigned int bar_x        = 2 + txt_width + 4;     // X coord of bar graph
+		//const unsigned int bar_x        = 20; 
 		const unsigned int line         = 3;
 		uint8_t           *p_line        = gFrameBuffer[line];
-		//char               str[16];
-
-/*		const char plus[] = {
-			0b00011000,
-			0b00011000,
-			0b01111110,
-			0b01111110,
-			0b01111110,
-			0b00011000,
-			0b00011000,
-		};*/
+		char               str[16];
 
 		if (gEeprom.KEY_LOCK && gKeypadLocked > 0)
 			return;     // display is in use
@@ -170,40 +168,16 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 		
 		uint8_t overS9Bars = MIN(sLevelAtt.over/10, 4);
 		
-		/*if(overS9Bars == 0) {
+		if(overS9Bars == 0) {
 			sprintf(str, "% 4d S%d", sLevelAtt.dBmRssi, sLevelAtt.sLevel); 
 		}
 		else {
 			sprintf(str, "% 4d  %2d", sLevelAtt.dBmRssi, sLevelAtt.over);
 			memcpy(p_line + 2 + 7*5, &plus, ARRAY_SIZE(plus));
 		}
-
-		UI_PrintStringSmall(str, 2, 0, line);*/ 
-		//Don't show values on s-meter
-
+		UI_PrintStringSmall(str, 2, 0, line); 
 		DrawLevelBar(bar_x, line, sLevelAtt.sLevel + overS9Bars);
 	}
-#else
-
-	uint8_t Level;
-
-	if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][3]) {
-		Level = 6;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][2]) {
-		Level = 4;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][1]) {
-		Level = 2;
-	} else if (rssi >= gEEPROM_RSSI_CALIB[gTxVfo->Band][0]) {
-		Level = 1;
-	} else {
-		Level = 0;
-	}
-
-	uint8_t *pLine = (gEeprom.TX_VFO == 0)? gFrameBuffer[2] : gFrameBuffer[6];
-	if (now)
-		memset(pLine, 0, 23);
-	DrawSmallAntennaAndBars(pLine, Level);
-#endif
 
 	if (now)
 		ST7565_BlitFullScreen();
@@ -259,7 +233,7 @@ void UI_DisplayMain(void)
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT){// transmitting
 			mode = 1;
-			UI_PrintStringSmallBold("TX", 0, 0, line+1);
+			UI_PrintStringSmallBold("TX", 0, 0, line+2);
 		}
 		else
 		{	// receiving .. show the RX symbol
@@ -268,7 +242,7 @@ void UI_DisplayMain(void)
 			     gCurrentFunction == FUNCTION_MONITOR ||
 			     gCurrentFunction == FUNCTION_INCOMING) &&
 			     gEeprom.TX_VFO == vfo_num)
-			{UI_PrintStringSmallBold("RX", 0, 0, line+1);}
+			{UI_PrintStringSmallBold("RX", 0, 0, line+2);}
 		}
 
 		if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
