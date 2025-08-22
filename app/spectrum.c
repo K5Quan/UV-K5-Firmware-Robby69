@@ -450,6 +450,16 @@ static void TuneToPeak() {
   scanInfo.i = peak.i;
   SetF(scanInfo.f);
 }
+
+uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
+  uint32_t rssi = rssiHistory[1]*rssiHistory[maxChannels/2];
+  if (maxChannels == 0 || rssi == 0) {
+        return 1;  // Fallback to channel 1 if invalid input
+    }
+    // Scale RSSI to [1, maxChannels]
+    return 1 + (rssi % maxChannels);
+}
+
 static void DeInitSpectrum(bool ComeBack) {
   
   //RestoreRegisters();
@@ -469,16 +479,6 @@ static void DeInitSpectrum(bool ComeBack) {
     Ptt_Toggle_Mode =0;
     }
 }
-
-uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
-  uint32_t rssi = rssiHistory[1]*rssiHistory[maxChannels/2];
-  if (maxChannels == 0 || rssi == 0) {
-        return 1;  // Fallback to channel 1 if invalid input
-    }
-    // Scale RSSI to [1, maxChannels]
-    return 1 + (rssi % maxChannels);
-}
-
 
 static void ExitAndCopyToVfo() {
   RestoreRegisters();

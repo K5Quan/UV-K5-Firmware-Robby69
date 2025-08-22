@@ -28,6 +28,7 @@
 #include "driver/systick.h"
 #include "settings.h"
 #include "debugging.h"
+#include "app/spectrum.h"
 
 #ifndef ARRAY_SIZE
 	#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
@@ -284,7 +285,7 @@ void BK4819_InitAGC(ModulationMode_t modulation)
 	if(modulation==MODULATION_AM)
 	{
 		//AM modulation
-		BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (20 << 0));
+		BK4819_WriteRegister(BK4819_REG_49, (0 << 14) | (50 << 7) | (18 << 0));
 	}
 	else
 	{
@@ -1550,6 +1551,19 @@ void roger_beep_r2d2(void) {
     play_note(2093, 70);   
     play_note(1760, 100);
 }
+//###########################################################################################
+
+void roger_beep_r2d2_rnd(void){
+// R2-D2 Style Acknowledgment Beep
+play_note(1046, 50);  // C6
+play_note(1318, 50);  // E6
+play_note(1568, 70);  // G6
+play_note(0, 30);     // Micro-pause for chirp effect
+play_note(1760, 40);  // A6
+play_note(1568, 40);  // G6
+play_note(1318, 100); // E6 (ending the phrase)
+}
+//###########################################################################################
 
 void roger_beep_3(void) {
     for (uint16_t i=2000;i>500;i-=50) play_note(i, 5); 
@@ -1557,6 +1571,93 @@ void roger_beep_3(void) {
 	for (uint16_t i=500;i<2550;i+=50) play_note(i, 7);
 }
 //###########################################################################################
+
+void send_k2000(void) {
+// Knight Rider KITT Scanner Sweep Effect
+// Ascending Sweep
+play_note(300, 25);
+play_note(350, 25);
+play_note(400, 25);
+play_note(450, 25);
+play_note(500, 25);
+play_note(550, 25);
+play_note(600, 25);
+play_note(650, 25);
+play_note(700, 25);
+play_note(750, 25);
+play_note(800, 25);
+play_note(850, 25);
+play_note(900, 25);
+play_note(950, 25);
+play_note(1000, 25);
+
+// Peak "ping"
+play_note(1050, 40);
+
+// Descending Sweep
+play_note(1000, 25);
+play_note(950, 25);
+play_note(900, 25);
+play_note(850, 25);
+play_note(800, 25);
+play_note(750, 25);
+play_note(700, 25);
+play_note(650, 25);
+play_note(600, 25);
+play_note(550, 25);
+play_note(500, 25);
+play_note(450, 25);
+play_note(400, 25);
+play_note(350, 25);
+play_note(300, 25);
+
+// Optional: add a final lower "pong" for a complete cycle
+play_note(250, 50);
+}
+
+//###########################################################################################
+
+void send_pacman() {
+    play_note(494, 150);   // B4
+    play_note(988, 150);   // B5
+    play_note(740, 150);   // F#5
+    play_note(622, 150);   // D#5
+    play_note(988, 75);    // B5
+    play_note(740, 225);   // F#5 (pointée)
+    play_note(622, 300);   // D#5 (croche longue)
+
+	play_note(523, 150);   // C5
+    play_note(1047, 150);  // C6
+    play_note(880, 150);  // G6
+    play_note(659, 150);  // E6
+    play_note(1047, 75);   // C6
+    play_note(880, 225);  // G6 (pointée)
+    play_note(659, 300);  // E6 (croche longue)
+
+    // --- Mesure 2 ---
+    play_note(494, 150);   // B4
+    play_note(988, 150);   // B5
+    play_note(740, 150);   // F#5
+    play_note(622, 150);   // D#5
+    play_note(988, 75);    // B5
+    play_note(740, 225);   // F#5 (pointée)
+    play_note(622, 300);   // D#5
+    
+	play_note(622, 75);    // D#5 (double-croche)
+    play_note(659, 75);    // E5
+    play_note(698, 75);    // F5
+    play_note(698, 75);    // F5
+    play_note(740, 75);    // F#5
+    play_note(784, 75);    // G5
+    play_note(784, 75);    // G5
+    play_note(831, 75);    // G#5
+    play_note(880, 150);   // A5
+    play_note(988, 300);   // B5
+
+}
+
+
+
 
 void BK4819_PlayRoger(uint8_t song)
 {
@@ -1576,13 +1677,25 @@ switch (song)
 	case 2:
 		roger_beep_r2d2();	
 	break;
+
 	case 3:
 		roger_beep_3();	
 	break;
+
 	case 4:
+		roger_beep_r2d2_rnd();	
+	break;
+	
+	case 5:
 		send_robzyl_morse();	
 	break;
 
+	case 6:
+		send_k2000();	
+	break;
+	case 7:
+		send_pacman();	
+	break;
 default:
 	break;
 }
