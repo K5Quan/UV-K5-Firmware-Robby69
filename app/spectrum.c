@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
@@ -775,7 +775,7 @@ static void Measure()
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint16_t rssi2;
     static uint16_t MaxRssi = 0;
-    static uint16_t MinRssi = 1000;
+    //static uint16_t MinRssi = 1000;
     
     if (isFirst) {
         previousRssi = rssi;
@@ -795,7 +795,7 @@ static void Measure()
     if (gIsPeak && isListening && rssi < settings.rssiTriggerLevelDn){
       gIsPeak = false;
       MaxRssi = 0;
-      MinRssi = 1000;
+      //MinRssi = 1000;
     }
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
@@ -804,8 +804,8 @@ static void Measure()
 
     if (gAutoTriggerLevel) {
       if (rssi > MaxRssi) MaxRssi = rssi;
-      if (rssi < MinRssi) MinRssi = rssi;
-      settings.rssiTriggerLevelDn = MinRssi+(MaxRssi*1.3-MinRssi)/(2);
+      //if (rssi < MinRssi) MinRssi = rssi;
+      settings.rssiTriggerLevelDn = (MaxRssi*9)/10;
       //char str[64] = "";sprintf(str, "%d %d %d\r\n", MaxRssi,MinRssi, settings.rssiTriggerLevelDn);LogUart(str);
     }
 
@@ -1121,7 +1121,8 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
+  if (gAutoTriggerLevel)len = sprintf(&String[pos],"A U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
+  else len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1491,8 +1492,11 @@ static void NextScanStep() {
       if (scanInfo.i <= GetStepsCount())
       {
       int currentChannel = scanChannel[scanInfo.i];
-      settings.rssiTriggerLevelDn = SLRssiTriggerLevelDn[ScanListNumber[scanInfo.i]];
+      if (!gAutoTriggerLevel) {
+        settings.rssiTriggerLevelDn = SLRssiTriggerLevelDn[ScanListNumber[scanInfo.i]];
+      }
       settings.rssiTriggerLevelUp = SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]];
+      
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
       }
       ++scanInfo.i; 

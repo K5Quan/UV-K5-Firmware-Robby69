@@ -180,19 +180,14 @@ const char gSubMenu_PONMSG[][8] =
 	"NONE"
 };
 
-const char gSubMenu_ROGER[][6] =
+const char gSubMenu_ROGER[][7] =
 {
 	"OFF",
 	"MARIO",
+	"PACMAN",
 	"R2D2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
-	"8",
-	"9",
-	"10",
+	"BLAST",
+	"R2D2-2"
 };
 
 const char gSubMenu_RESET[][4] =
