@@ -35,7 +35,7 @@ uint32_t gScanRangeStop;                        // 5
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool classic = 1;
-uint8_t SlIndex = 20;
+//uint8_t SlIndex = 1;
 //int16_t settings.rssiTriggerLevelUp   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -78,7 +78,7 @@ uint8_t refresh = 0;
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 #define Bottom_print 51 //Robby69
 Mode appMode;
-#define UHF_NOISE_FLOOR 0
+#define UHF_NOISE_FLOOR 20
 
 uint8_t scanChannel[MR_CHANNEL_LAST + 3];
 uint8_t ScanListNumber[MR_CHANNEL_LAST + 3];
@@ -765,7 +765,7 @@ static void UpdatePeakInfo() {
 }
 
 bool gIsPeak = false;
-bool gAutoTriggerLevel = true;
+bool gAutoTriggerLevel = false;
 
 static void Measure()
 {
@@ -805,7 +805,7 @@ static void Measure()
     if (gAutoTriggerLevel) {
       if (rssi > MaxRssi) MaxRssi = rssi;
       //if (rssi < MinRssi) MinRssi = rssi;
-      settings.rssiTriggerLevelDn = (MaxRssi*9)/10;
+      settings.rssiTriggerLevelDn = (MaxRssi*7)/10;
       //char str[64] = "";sprintf(str, "%d %d %d\r\n", MaxRssi,MinRssi, settings.rssiTriggerLevelDn);LogUart(str);
     }
 
@@ -835,8 +835,9 @@ static void UpdateRssiTriggerLevel(bool inc) {
 
 
 static void UpdateDBMaxAuto() {
-  settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax*1.3), -50, 100);
-  settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-155,-100);
+  if (scanInfo.rssiMax > 0) settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax+20), -160, 160);
+  if (scanInfo.rssiMin > 0) settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,160);
+  //char str[64] = "";sprintf(str, "%d %d %d %d\r\n", settings.dbMax, scanInfo.rssiMax, settings.dbMin ,scanInfo.rssiMin );LogUart(str);
   redrawStatus = true;
   redrawScreen = true;
 }
@@ -1928,8 +1929,8 @@ break;
       
       if(appMode==CHANNEL_MODE){
         BuildValidScanListIndices();
-        SlIndex = (SlIndex < validScanListCount-1 ? SlIndex+1:0);
-        ToggleScanList(validScanListIndices[SlIndex], 1);
+        scanListSelectedIndex = (scanListSelectedIndex < validScanListCount-1 ? scanListSelectedIndex+1:0);
+        ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
         SetState(SPECTRUM);
         ResetModifiers();
         redrawScreen = true;
@@ -1968,8 +1969,8 @@ break;
 
     if(appMode==CHANNEL_MODE){
         BuildValidScanListIndices();
-        SlIndex = (SlIndex > 0 ? SlIndex-1:validScanListCount-1);
-        ToggleScanList(validScanListIndices[SlIndex], 1);
+        scanListSelectedIndex = (scanListSelectedIndex < 1 ? validScanListCount-1:scanListSelectedIndex-1);
+        ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
         SetState(SPECTRUM);
         ResetModifiers();
         redrawScreen = true;
