@@ -35,7 +35,7 @@ uint32_t gScanRangeStop;                        // 5
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 bool classic = 1;
-//uint8_t SlIndex = 1;
+uint8_t SlIndex = 1;
 //int16_t settings.rssiTriggerLevelUp   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -629,7 +629,7 @@ void FillfreqHistory(bool count) {
 
 static void ResetReceivingState() {
     wasReceiving = false;
-    lastReceivingFreq = 0;
+    //lastReceivingFreq = 0;
 }
 
 static void ToggleRX(bool on) {
@@ -1929,8 +1929,9 @@ break;
       
       if(appMode==CHANNEL_MODE){
         BuildValidScanListIndices();
-        scanListSelectedIndex = (scanListSelectedIndex < validScanListCount-1 ? scanListSelectedIndex+1:0);
-        ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
+        SlIndex = (SlIndex < validScanListCount-1 ? SlIndex+1:0);
+        scanListSelectedIndex = SlIndex;
+        ToggleScanList(validScanListIndices[SlIndex], 1);
         SetState(SPECTRUM);
         ResetModifiers();
         redrawScreen = true;
@@ -1969,8 +1970,9 @@ break;
 
     if(appMode==CHANNEL_MODE){
         BuildValidScanListIndices();
-        scanListSelectedIndex = (scanListSelectedIndex < 1 ? validScanListCount-1:scanListSelectedIndex-1);
-        ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
+        SlIndex = (SlIndex < 1 ? validScanListCount-1:SlIndex-1);
+        scanListSelectedIndex = SlIndex;
+        ToggleScanList(validScanListIndices[SlIndex], 1);
         SetState(SPECTRUM);
         ResetModifiers();
         redrawScreen = true;
