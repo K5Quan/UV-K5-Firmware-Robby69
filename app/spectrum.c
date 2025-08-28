@@ -1929,20 +1929,20 @@ break;
             break;
           }
       
-      if (indexFd < indexFs-1) indexFd++;
-      if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
       
-      if(appMode==CHANNEL_MODE){
-        BuildValidScanListIndices();
-        SlIndex = (SlIndex < validScanListCount-1 ? SlIndex+1:0);
-        scanListSelectedIndex = SlIndex;
-        ToggleScanList(validScanListIndices[SlIndex], 1);
-        SetState(SPECTRUM);
-        ResetModifiers();
-        redrawScreen = true;
-        redrawStatus = true;
-        RelaunchScan();
-        break;
+      if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+      if (ShowHistory) {if (indexFd < indexFs-1) indexFd++;}
+      else if(appMode==CHANNEL_MODE){
+              BuildValidScanListIndices();
+              SlIndex = (SlIndex < validScanListCount-1 ? SlIndex+1:0);
+              scanListSelectedIndex = SlIndex;
+              ToggleScanList(validScanListIndices[SlIndex], 1);
+              SetState(SPECTRUM);
+              ResetModifiers();
+              redrawScreen = true;
+              redrawStatus = true;
+              RelaunchScan();
+              break;
       }
     }
     break;
@@ -1970,20 +1970,19 @@ break;
         RelaunchScan(); 
         break;}
     indexFd--;
-    if (indexFd < 1) {indexFd = 1;}
     if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
-
-    if(appMode==CHANNEL_MODE){
-        BuildValidScanListIndices();
-        SlIndex = (SlIndex < 1 ? validScanListCount-1:SlIndex-1);
-        scanListSelectedIndex = SlIndex;
-        ToggleScanList(validScanListIndices[SlIndex], 1);
-        SetState(SPECTRUM);
-        ResetModifiers();
-        redrawScreen = true;
-        redrawStatus = true;
-        RelaunchScan();
-        break;
+    if (ShowHistory) { if (indexFd < 1) {indexFd = 1;}}
+    else if(appMode==CHANNEL_MODE){
+            BuildValidScanListIndices();
+            SlIndex = (SlIndex < 1 ? validScanListCount-1:SlIndex-1);
+            scanListSelectedIndex = SlIndex;
+            ToggleScanList(validScanListIndices[SlIndex], 1);
+            SetState(SPECTRUM);
+            ResetModifiers();
+            redrawScreen = true;
+            redrawStatus = true;
+            RelaunchScan();
+            break;
       }
 }
 
@@ -2629,10 +2628,10 @@ typedef struct {
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
     uint8_t rssiTriggerLevel;
     int16_t Trigger;
-    
     int8_t dbMax;
     uint32_t RangeStart;
     uint32_t RangeStop;
+    ScanStep scanStepIndex;
 } SettingsEEPROM;
 
 
@@ -2654,7 +2653,7 @@ void LoadSettings()
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
     settings.dbMax = eepromData.dbMax;
-  
+    settings.scanStepIndex = eepromData.scanStepIndex;
     for (int i = 0; i < 32; i++) {
       BPRssiTriggerLevelDn[i] = eepromData.BPRssiTriggerLevelDn[i];
       BPRssiTriggerLevelUp[i] = eepromData.BPRssiTriggerLevelUp[i];
@@ -2689,6 +2688,7 @@ void SaveSettings()
   eepromData.dbMax = settings.dbMax;
   eepromData.DelayRssi = DelayRssi;
   eepromData.PttEmission = PttEmission;
+  eepromData.scanStepIndex = settings.scanStepIndex;
   for (int i = 0; i < 32; i++) { 
       eepromData.BPRssiTriggerLevelDn[i] = BPRssiTriggerLevelDn[i];
       eepromData.BPRssiTriggerLevelUp[i] = BPRssiTriggerLevelUp[i];
