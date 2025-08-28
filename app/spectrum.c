@@ -34,6 +34,7 @@ uint32_t gScanRangeStop;                        // 5
 //int16_t settings.rssiTriggerLevelUp   = 20;                // 9
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
+bool gForceModulation = 0;
 bool classic = 1;
 uint8_t SlIndex = 1;
 //int16_t settings.rssiTriggerLevelUp   = 20;
@@ -462,13 +463,14 @@ uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
 
 static void DeInitSpectrum(bool ComeBack) {
   
-  //RestoreRegisters();
+  RestoreRegisters();
   gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   SetState(SPECTRUM);
   if(!ComeBack) {
     uint8_t Spectrum_state = 0; //Spectrum Not Active
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
+    SYSTEM_DelayMs(50);
     }
     
   else {
@@ -476,6 +478,7 @@ static void DeInitSpectrum(bool ComeBack) {
 	  Spectrum_state+=10;
     EEPROM_WriteBuffer(0x1D00, &Spectrum_state, 1);
     StorePtt_Toggle_Mode = Ptt_Toggle_Mode;
+    SYSTEM_DelayMs(50);
     Ptt_Toggle_Mode =0;
     }
 }
@@ -645,7 +648,7 @@ static void ToggleRX(bool on) {
         redrawScreen = true;
     }
     else if(on && appMode == SCAN_BAND_MODE) {
-            settings.modulationType = BParams[bl].modulationType;
+            if (!gForceModulation) settings.modulationType = BParams[bl].modulationType;
             RADIO_SetModulation(BParams[bl].modulationType);
             BK4819_InitAGC(settings.modulationType);
             redrawScreen = true;
@@ -709,7 +712,7 @@ static bool InitScan() {
                 settings.rssiTriggerLevelUp = BPRssiTriggerLevelUp[bl];
                 settings.rssiTriggerLevelDn = BPRssiTriggerLevelDn[bl];
                 scanInfo.measurementsCount = GetStepsCount();
-                settings.modulationType = BParams[bl].modulationType;
+                if (!gForceModulation) settings.modulationType = BParams[bl].modulationType;
                 nextBandToScanIndex = (nextBandToScanIndex + 1) % 32;
                 scanInitializedSuccessfully = true;
                 redrawStatus = true;
@@ -920,6 +923,8 @@ static void ToggleModulation() {
   RADIO_SetModulation(settings.modulationType);
   BK4819_InitAGC(settings.modulationType);
   redrawScreen = true;
+  if (appMode == SCAN_BAND_MODE)gForceModulation = 1;
+  redrawStatus = true;
   
 
 }
@@ -1860,11 +1865,11 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_1: //SKIP
         //settings.rssiTriggerLevelUp = peak.rssi;
-        rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-        rssiHistory[peak.i] = RSSI_MAX_VALUE;
-        ResetPeak();
+        //rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
+        //rssiHistory[peak.i] = RSSI_MAX_VALUE;
+        //ResetPeak();
         ToggleRX(false);
-        ResetScanStats();   
+        //ResetScanStats();   
      break;
      
      case KEY_7:
@@ -2644,7 +2649,7 @@ void LoadSettings()
   }
   settings.rssiTriggerLevelDn = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelUp = eepromData.Trigger;
-  settings.listenBw = eepromData.listenBw;
+  if (eepromData.listenBw >0 && eepromData.listenBw <7) settings.listenBw = eepromData.listenBw;
   if (gScanRangeStart ==0) //load only if not set
     {gScanRangeStart = eepromData.RangeStart;
     gScanRangeStop = eepromData.RangeStop;}
