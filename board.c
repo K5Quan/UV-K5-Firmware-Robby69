@@ -540,7 +540,6 @@ void BOARD_EEPROM_Init(void)
 
 	// 0E90..0E97
 	EEPROM_ReadBuffer(0x0E90, Data, 8);
-	gEeprom.BEEP_CONTROL                 = Data[0] & 1;
 	gEeprom.KEY_M_LONG_PRESS_ACTION      = ((Data[0] >> 1) < ACTION_OPT_LEN) ? (Data[0] >> 1) : ACTION_OPT_NONE;
 	gEeprom.KEY_1_SHORT_PRESS_ACTION     = (Data[1] < ACTION_OPT_LEN) ? Data[1] : ACTION_OPT_MONITOR;
 	gEeprom.KEY_1_LONG_PRESS_ACTION      = (Data[2] < ACTION_OPT_LEN) ? Data[2] : ACTION_OPT_FLASHLIGHT;
@@ -699,7 +698,7 @@ uint32_t BOARD_fetchChannelFrequency(const int channel)
 	}
 #endif
 
-void BOARD_FactoryReset(bool bIsAll)
+void BOARD_FactoryReset()
 {
 	uint16_t i;
 	uint8_t  Template[8];
@@ -708,24 +707,8 @@ void BOARD_FactoryReset(bool bIsAll)
 
 	for (i = 0x0C80; i < 0x1E00; i += 8)
 	{
-		if (
-			!(i >= 0x0EE0 && i < 0x0F18) &&         // ANI ID 
-			!(i >= 0x0F30 && i < 0x0F50) &&         // ENCRYPTION KEY + F LOCK + Scramble Enable
-			!(i >= 0x1C00 && i < 0x1E00) &&         //
-			!(i >= 0x0EB0 && i < 0x0ED0) &&         // Welcome strings
-			!(i >= 0x0EA0 && i < 0x0EA8) &&         // Voice Prompt
-			(bIsAll ||
-			(
-				!(i >= 0x0D60 && i < 0x0E28) &&     // MR Channel Attributes
-				!(i >= 0x0F18 && i < 0x0F30) &&     // Scan List
-				!(i >= 0x0F50 && i < 0x1C00) &&     // MR Channel Names
-				!(i >= 0x0E40 && i < 0x0E70) &&     // FM Channels
-				!(i >= 0x0E88 && i < 0x0E90)        // FM settings
-				))
-			)
-		{
 			EEPROM_WriteBuffer(i, Template, true);
-		}
+		
 	}
 
 }

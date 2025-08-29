@@ -22,7 +22,7 @@
 
 	#include "app/fm.h"
 
-#include "audio.h"
+
 #include "bsp/dp32g030/gpio.h"
 #include "dcs.h"
 #include "driver/backlight.h"
@@ -147,7 +147,7 @@ void FUNCTION_Select(FUNCTION_Type_t Function)
 							BK4819_TransmitTone(true, 1750);
 					#endif
 					SYSTEM_DelayMs(2);
-					AUDIO_AudioPathOn();
+					GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
 					gEnableSpeaker = true;
 					break;
 				}

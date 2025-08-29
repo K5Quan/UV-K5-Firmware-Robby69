@@ -27,7 +27,7 @@
 #include "app/main.h"
 #include "app/scanner.h"
 #include "app/spectrum.h"
-#include "audio.h"
+
 #include "board.h"
 #include "driver/bk4819.h"
 #include "frequencies.h"
@@ -38,35 +38,6 @@
 #include "ui/ui.h"
 #include <stdlib.h>
 
-/*void toggle_scan_range(void)
-{	// toggle the selected channels scanlist setting
-
-	SETTINGS_UpdateChannel(gTxVfo->CHANNEL_SAVE, gTxVfo, true);
-	gVfoConfigureMode = VFO_CONFIGURE;
-	gFlagResetVfos    = true;
-#ifdef ENABLE_SCAN_RANGES
-//Robby69 modification to use SCAN_RANGES for memories
-	if(!IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
-		gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-		gScanRangeStop = gEeprom.VfoInfo[!gEeprom.TX_VFO].freq_config_RX.Frequency;
-		if(gScanRangeStart > gScanRangeStop)
-			SWAP(gScanRangeStart, gScanRangeStop);
-		return;
-	}
-	if (IS_MR_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
-		//using offset to select stop frequency.
-		gScanRangeStart = gScanRangeStart ? 0 : gTxVfo->pRX->Frequency;
-		gScanRangeStop = gTxVfo->pTX->Frequency-gScanRangeStart; //TEST F DIRECT;
-		//if(gTxVfo->pRX->Frequency > gTxVfo->pTX->Frequency) //manage higher frequencies such as 860MHz with negative offset
-		//	gScanRangeStop = gTxVfo->pTX->Frequency;
-		if(gScanRangeStart > gScanRangeStop)
-			SWAP(gScanRangeStart, gScanRangeStop);
-		return;
-	}
-#endif
-	//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
-}*/
-
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
 	//uint8_t Band;
@@ -74,14 +45,9 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 	if (gScreenToDisplay == DISPLAY_MENU)
 	{
-//		if (beep)
-			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 		return;
 	}
 	
-//	if (beep)
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
-
 	switch (Key)
 	{
 		case KEY_0:
@@ -92,7 +58,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			if (!IS_FREQ_CHANNEL(gTxVfo->CHANNEL_SAVE)) {
 				gWasFKeyPressed = false;
 				gUpdateStatus   = true;
-				gBeepToPlay     = BEEP_1KHZ_60MS_OPTIONAL;
 
 #ifdef ENABLE_COPY_CHAN_TO_VFO
 				if (gEeprom.VFO_OPEN && !gCssBackgroundScan)
@@ -117,10 +82,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 						gUpdateDisplay = true;
 					}
 				}
-				else
-				{
-					gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
-				}
+				
 #endif
 				return;
 			}
@@ -142,10 +104,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 			gRequestDisplayScreen      = DISPLAY_MAIN;
 
-			if (beep)
-				gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
-
-			break;
 
 		case KEY_2:
 		//Nothing
@@ -154,10 +112,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 
 		case KEY_3:
 			COMMON_SwitchVFOMode();
-
-			if (beep)
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
-
 			break;
 
 		case KEY_4:
@@ -174,7 +128,6 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 			break;
 		
 		case KEY_7:
-			//if (++gTxVfo->SCANLIST > 15) gTxVfo->SCANLIST = 0;
 			break;
 
 		case KEY_8:
@@ -189,19 +142,13 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 				gEeprom.ScreenChannel[Vfo] = gEeprom.CHAN_1_CALL;
 				gRequestSaveVFO            = true;
 				gVfoConfigureMode          = VFO_CONFIGURE_RELOAD;
-				break;
 			}
-
-			if (beep)
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 			break;
+
 
 		default:
 			gUpdateStatus   = true;
 			gWasFKeyPressed = false;
-
-			if (beep)
-				gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 			break;
 	}
 }
@@ -233,7 +180,6 @@ static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 	if (bKeyPressed)
 	{	// key is pressed
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;  // beep when key is pressed
 		return;                                 // don't use the key till it's released
 	}
 
@@ -265,7 +211,6 @@ static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 			if (!RADIO_CheckValidChannel(Channel, false, 0))
 			{
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 				return;
 			}
 
@@ -292,7 +237,6 @@ static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			return;
 		}
 		gRequestDisplayScreen = DISPLAY_MAIN;
-		gBeepToPlay           = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 		return;
 	}
 
@@ -306,8 +250,6 @@ static void MAIN_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 {
 	if (!bKeyHeld && bKeyPressed)
 	{	// exit key pressed
-
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 
 		if (!gFmRadioMode)
 		{
@@ -331,7 +273,6 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 {
 	if (bKeyPressed && !bKeyHeld)
 		// menu key pressed
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 
 	if (bKeyHeld)
 	{	// menu key held down (long press)
@@ -400,11 +341,9 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 	{
 		if (gInputBoxIndex > 0)
 		{
-			gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 			return;
 		}
 
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 	}
 
 		{
@@ -416,7 +355,6 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 
 				if (RX_freq_check(frequency) < 0)
 				{	// frequency not allowed
-					gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 					return;
 				}
 
@@ -451,7 +389,6 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 	if (gFmRadioMode && Key != KEY_PTT && Key != KEY_EXIT)
 		{
 			if (!bKeyHeld && bKeyPressed)
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 			return;
 		}
 	switch (Key)
@@ -487,8 +424,7 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			GENERIC_Key_PTT(bKeyPressed);
 			break;
 		default:
-			if (!bKeyHeld && bKeyPressed)
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+			
 			break;
 	}
 }

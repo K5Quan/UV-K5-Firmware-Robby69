@@ -23,7 +23,7 @@
 
 #include "ARMCM0.h"
 #include "app/uart.h"
-#include "audio.h"
+
 #include "driver/keyboard.h"
 #include "driver/st7565.h"
 #include "misc.h"
@@ -61,8 +61,7 @@ void UI_DisplayLock(void)
 {
 	KEY_Code_t  Key;
 	KEY_Code_t  gKeyReadingLocal;
-	BEEP_Type_t Beep;
-
+	
 	gUpdateDisplay = true;
 
 	memset(gInputBox, 10, sizeof(gInputBox));
@@ -108,11 +107,7 @@ void UI_DisplayLock(void)
 						case KEY_9:
 							INPUTBOX_Append(Key - KEY_0);
 
-							if (gInputBoxIndex < 4)   // 4 frequency digits
-							{
-								Beep = BEEP_1KHZ_60MS_OPTIONAL;
-							}
-							else
+							if (gInputBoxIndex > 4)   // 4 frequency digits
 							{
 								uint32_t Password;
 
@@ -121,7 +116,6 @@ void UI_DisplayLock(void)
 
 								if ((gEeprom.POWER_ON_PASSWORD) == Password)
 								{
-									AUDIO_PlayBeep(BEEP_1KHZ_60MS_OPTIONAL);
 									gEeprom.PASSWORD_WRONG_ATTEMPTS = 0;
 									return;
 								}
@@ -134,10 +128,10 @@ void UI_DisplayLock(void)
 
 								memset(gInputBox, 10, sizeof(gInputBox));
 
-								Beep = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+							
 							}
 
-							AUDIO_PlayBeep(Beep);
+							
 
 							gUpdateDisplay = true;
 							break;
@@ -148,9 +142,6 @@ void UI_DisplayLock(void)
 								gInputBox[--gInputBoxIndex] = 10;
 								gUpdateDisplay = true;
 							}
-
-							AUDIO_PlayBeep(BEEP_1KHZ_60MS_OPTIONAL);
-
 						default:
 							break;
 					}

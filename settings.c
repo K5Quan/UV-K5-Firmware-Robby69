@@ -72,7 +72,6 @@ void SETTINGS_SaveSettings(void)
 	State[7] = gEeprom.VFO_OPEN;
 	EEPROM_WriteBuffer(0x0E78, State, true);
 
-	State[0] = gEeprom.BEEP_CONTROL;
 	State[0] |= gEeprom.KEY_M_LONG_PRESS_ACTION << 1;
 	State[1] = gEeprom.KEY_1_SHORT_PRESS_ACTION;
 	State[2] = gEeprom.KEY_1_LONG_PRESS_ACTION;

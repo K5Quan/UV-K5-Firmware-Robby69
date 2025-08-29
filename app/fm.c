@@ -24,11 +24,12 @@
 #include "app/action.h"
 #include "app/fm.h"
 #include "app/generic.h"
-#include "audio.h"
+
 #include "driver/bk1080.h"
 #include "misc.h"
 #include "settings.h"
 #include "ui/ui.h"
+#include "driver/gpio.h"
 
 const uint16_t FM_RADIO_MAX_FREQ = 1080; // 108  Mhz
 const uint16_t FM_RADIO_MIN_FREQ = 875;  // was 87.5 Mhz
@@ -85,7 +86,7 @@ void FM_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 				Key_EXIT();
 				break;
 			default:
-				gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+				
 				break;
 		}
 	}

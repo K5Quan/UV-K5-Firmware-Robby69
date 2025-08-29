@@ -19,7 +19,7 @@
 
 #include <string.h>
 #include "app/fm.h"
-#include "audio.h"
+
 #include "bsp/dp32g030/gpio.h"
 #include "dcs.h"
 #include "driver/bk4819.h"
@@ -56,6 +56,7 @@ const char gModulationStr[][4] =
 };
 
 const char *bwNames[5] = {"25k", "12.5k", "8.33k", "6.25k", "5k"};
+
 
 bool RADIO_CheckValidChannel(uint16_t Channel, bool bCheckScanList, uint8_t VFO)
 {	// return true if the channel appears valid
@@ -487,7 +488,7 @@ void RADIO_SelectVfos(void)
 
 void RADIO_SetupRegisters(bool switchToForeground)
 {
-	AUDIO_AudioPathOff();
+	GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
 
 	gEnableSpeaker = false;
 
@@ -606,7 +607,7 @@ void RADIO_SetupRegisters(bool switchToForeground)
 void RADIO_SetTxParameters(void)
 {
 	
-	AUDIO_AudioPathOff();
+	GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
 
 	gEnableSpeaker = false;
 
@@ -736,7 +737,6 @@ void RADIO_PrepareTX(void)
 	if (State != VFO_STATE_NORMAL)
 	{	// TX not allowed
 		RADIO_SetVfoState(State);
-		AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 		return;
 	}
 

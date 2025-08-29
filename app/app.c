@@ -28,7 +28,7 @@
 #include "app/scanner.h"
 #include "app/uart.h"
 #include "ARMCM0.h"
-#include "audio.h"
+
 #include "board.h"
 #include "bsp/dp32g030/gpio.h"
 #include "driver/backlight.h"
@@ -432,11 +432,7 @@ void APP_Update(void)
 
 		gFlagEndTransmission = true;
 		APP_EndTransmission(true);
-
-		AUDIO_PlayBeep(BEEP_880HZ_60MS_TRIPLE_BEEP);
-
 		RADIO_SetVfoState(VFO_STATE_TIMEOUT);
-
 		GUI_DisplayScreen();
 	}
 
@@ -453,7 +449,7 @@ void APP_Update(void)
 //Robby69 auto start spectrum 
 	uint8_t Spectrum_state = 0; //Spectrum Not Active
   	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
-	if (Spectrum_state >0 && Spectrum_state <10)
+	if (Spectrum_state >0 && Spectrum_state <5)
 		APP_RunSpectrum(Spectrum_state);
 
 
@@ -530,7 +526,7 @@ void APP_Update(void)
 static void gobacktospectrum(void){
 	uint8_t Spectrum_state = 0; //Spectrum Not Active
 	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
-	if (Spectrum_state >10) //WAS SPECTRUM
+	if (Spectrum_state >10 && Spectrum_state <15) //WAS SPECTRUM
 		APP_RunSpectrum(Spectrum_state-10);
 }
 
@@ -729,7 +725,6 @@ void cancelUserInputModes(void)
 		gWasFKeyPressed     = false;
 		gInputBoxIndex      = 0;
 		gKeyInputCountdown  = 0;
-		gBeepToPlay         = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
 		gUpdateStatus       = true;
 		gUpdateDisplay      = true;
 	}
@@ -759,11 +754,6 @@ void APP_TimeSlice500ms(void)
 		{
 			cancelUserInputModes();
 
-			if (gBeepToPlay != BEEP_NONE)
-			{
-				AUDIO_PlayBeep(gBeepToPlay);
-				gBeepToPlay = BEEP_NONE;
-			}
 		}
 	}
 
@@ -937,7 +927,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 	if (Key == KEY_EXIT && !BACKLIGHT_IsOn() && gEeprom.BACKLIGHT_TIME > 0)
 	{	// just turn the light on for now so the user can see what's what
 		BACKLIGHT_TurnOn();
-		gBeepToPlay = BEEP_NONE;
 		return;
 	}
 
@@ -1010,7 +999,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		if(Key == KEY_EXIT && bKeyPressed && lowBatPopup) {
 			gLowBatteryConfirmed = true;
 			gUpdateDisplay = true;
-			AUDIO_PlayBeep(BEEP_1KHZ_60MS_OPTIONAL);
 			return;
 		}		
 
@@ -1022,7 +1010,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 			if (!bKeyHeld)
 			{	// keypad is locked, tell the user
-				AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 				gKeypadLocked  = 4;      // 2 seconds
 				gUpdateDisplay = true;
 				return;
@@ -1039,7 +1026,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 				return;
 
 			// keypad is locked, tell the user
-			AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 			gKeypadLocked  = 4;          // 2 seconds
 			gUpdateDisplay = true;
 			return;
@@ -1051,7 +1037,6 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 		if (gCssBackgroundScan)
 		{	// FREQ/CTCSS/DCS scanning
 			if (bKeyPressed && !bKeyHeld)
-				AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
 			return;
 		}
 	}
@@ -1159,19 +1144,14 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 				case DISPLAY_INVALID:
 				default:
-					gBeepToPlay = BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL;
+					
 					break;
 			}
 		}
 	}
 
 Skip:
-	if (gBeepToPlay != BEEP_NONE)
-	{
-		AUDIO_PlayBeep(gBeepToPlay);
-		gBeepToPlay = BEEP_NONE;
-	}
-
+	
 	if (gFlagAcceptSetting)
 	{
 		gMenuCountdown = menu_timeout_500ms;

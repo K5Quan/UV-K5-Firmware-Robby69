@@ -21,7 +21,7 @@
 #include <stdio.h>     // NULL
 
 #include "app/app.h"
-#include "audio.h"
+
 #include "bsp/dp32g030/gpio.h"
 #include "bsp/dp32g030/syscon.h"
 #include "board.h"

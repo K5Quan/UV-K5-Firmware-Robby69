@@ -42,80 +42,55 @@
 
 const t_menu_item MenuList[] =
 {
-//   text,     voice ID,                               menu ID
-	{"Step",   VOICE_ID_FREQUENCY_STEP,                MENU_STEP          },
-	{"Bandw",  VOICE_ID_CHANNEL_BANDWIDTH,             MENU_W_N           },
-	{"TxPwr",  VOICE_ID_POWER,                         MENU_TXP           }, // was "TXP"
-	{"RxDCS",  VOICE_ID_DCS,                           MENU_R_DCS         }, // was "R_DCS"
-	{"RxCTCS", VOICE_ID_CTCSS,                         MENU_R_CTCS        }, // was "R_CTCS"
-	{"TxDCS",  VOICE_ID_DCS,                           MENU_T_DCS         }, // was "T_DCS"
-	{"TxCTCS", VOICE_ID_CTCSS,                         MENU_T_CTCS        }, // was "T_CTCS"
-	{"TxODir", VOICE_ID_TX_OFFSET_FREQUENCY_DIRECTION, MENU_SFT_D         }, // was "SFT_D"
-	{"TxOffs", VOICE_ID_TX_OFFSET_FREQUENCY,           MENU_OFFSET        }, // was "OFFSET"
-	{"RxOffs", VOICE_ID_INVALID,                       MENU_RX_OFFSET     },
-	
-	{"BusyCL", VOICE_ID_BUSY_LOCKOUT,                  MENU_BCL           }, // was "BCL"
-
-	{"Demodu", VOICE_ID_INVALID,                       MENU_AM            }, // was "AM"
-	#ifdef ENABLE_SCANNER
-	{"ScList", VOICE_ID_INVALID,					   MENU_S_LIST        },
-	#endif
-	{"ChSave", VOICE_ID_MEMORY_CHANNEL,                MENU_MEM_CH        }, // was "MEM-CH"
-
-	{"Roger",  VOICE_ID_INVALID,                       MENU_ROGER         },
-	//{"TestRg", VOICE_ID_INVALID,                       MENU_TEST_RANGE    },  //Robby69 New menu
-	
-
-
-
-
-	{"BatVol", VOICE_ID_INVALID,                       MENU_VOL           }, // was "VOL"
-#ifdef ENABLE_PWRON_PASSWORD
-	{"Passwd", VOICE_ID_INVALID,                       MENU_PASSWORD      }, // power on password
-#endif
-#ifdef ENABLE_ENCRYPTION
-	{"EncKey", VOICE_ID_INVALID,                       MENU_ENC_KEY       }, // encryption key
-	{"MsgEnc", VOICE_ID_INVALID,                       MENU_MSG_ENC       }, // messenger encrypt outgoing messages
-#endif
-
-	{"Sql",    VOICE_ID_SQUELCH,                       MENU_SQL           },
-	{"Compnd", VOICE_ID_INVALID,                       MENU_COMPAND       },
+    //   text,     menu ID
+	{"Step",    MENU_STEP          },
+	{"Bandw",   MENU_W_N           },
+	{"TxPwr",   MENU_TXP           },
+	{"RxDCS",   MENU_R_DCS         },
+	{"RxCTCS",  MENU_R_CTCS        },
+	{"TxDCS",   MENU_T_DCS         },
+	{"TxCTCS",  MENU_T_CTCS        },
+	{"TxODir",  MENU_SFT_D         },
+	{"TxOffs",  MENU_OFFSET        },
+	{"RxOffs",  MENU_RX_OFFSET     },
+	{"BusyCL",  MENU_BCL           },
+	{"Demodu",  MENU_AM            },
+	{"ChSave",  MENU_MEM_CH        },
+	{"Roger",   MENU_ROGER         },
+	{"BatVol",  MENU_VOL           },
+	{"Sql",     MENU_SQL           },
+	{"Compnd",  MENU_COMPAND       },
 	// hidden menu items from here on
 	// enabled if pressing both the PTT and upper side button at power-on
-	{"F Lock", VOICE_ID_INVALID,                       MENU_F_LOCK        }, //Robby69 hidden menu start
-	{"ScraEn", VOICE_ID_INVALID,                       MENU_SCREN         }, // was "SCREN" 
-	{"Scramb", VOICE_ID_SCRAMBLER_ON,                  MENU_SCR           }, // was "SCR"
-	
-	{"ChDele", VOICE_ID_DELETE_CHANNEL,                MENU_DEL_CH        }, // was "DEL-CH"
-	{"ChName", VOICE_ID_INVALID,                       MENU_MEM_NAME      },	
-	{"F1Shrt",    VOICE_ID_INVALID,                    MENU_F1SHRT        },
-	{"F1Long",    VOICE_ID_INVALID,                    MENU_F1LONG        },
-	{"F2Shrt",    VOICE_ID_INVALID,                    MENU_F2SHRT        },
-	{"F2Long",    VOICE_ID_INVALID,                    MENU_F2LONG        },
-	{"M Long",    VOICE_ID_INVALID,                    MENU_MLONG         },
-	{"KeyLck", VOICE_ID_INVALID,                       MENU_AUTOLK        }, // was "AUTOLk"
-	{"TxTOut", VOICE_ID_TRANSMIT_OVER_TIME,            MENU_TOT           }, // was "TOT"
-	{"BatSav", VOICE_ID_SAVE_MODE,                     MENU_SAVE          }, // was "SAVE"
-	{"Mic",    VOICE_ID_INVALID,                       MENU_MIC           },	
-	{"POnMsg", VOICE_ID_INVALID,                       MENU_PONMSG        },
-	{"BatTxt", VOICE_ID_INVALID,                       MENU_BAT_TXT       },	
-	{"BackLt", VOICE_ID_INVALID,                       MENU_ABR           }, // was "ABR"
-	{"BLMin",  VOICE_ID_INVALID,                       MENU_ABR_MIN       },
-	{"BLMax",  VOICE_ID_INVALID,                       MENU_ABR_MAX       },
-	{"BltTRX", VOICE_ID_INVALID,                       MENU_ABR_ON_TX_RX  },
-	{"Beep",   VOICE_ID_BEEP_PROMPT,                   MENU_BEEP          },
-	{"SqTone", VOICE_ID_INVALID,                       MENU_SQL_TONE      }, // squelch tail tone used for RX/TX
-	{"1 Call", VOICE_ID_INVALID,                       MENU_1_CALL        },
-	
-#ifdef ENABLE_F_CAL_MENU
-	{"FrCali", VOICE_ID_INVALID,                       MENU_F_CALI        }, // reference xtal calibration
-#endif
-	{"BatCal", VOICE_ID_INVALID,                       MENU_BATCAL        }, // battery voltage calibration
-	{"BatTyp", VOICE_ID_INVALID,                       MENU_BATTYP        }, // battery type 1600/2200mAh
-	{"Reset",  VOICE_ID_INITIALISATION,                MENU_RESET         }, // might be better to move this to the hidden menu items ?
+	{"F Lock",  MENU_F_LOCK        },
+	{"ScraEn",  MENU_SCREN         }, 
+	{"Scramb",  MENU_SCR           }, 
+	{"ChDele",  MENU_DEL_CH        },
+	{"ChName",  MENU_MEM_NAME      },	
+	{"F1Shrt",  MENU_F1SHRT        },
+	{"F1Long",  MENU_F1LONG        },
+	{"F2Shrt",  MENU_F2SHRT        },
+	{"F2Long",  MENU_F2LONG        },
+	{"M Long",  MENU_MLONG         },
+	{"KeyLck",  MENU_AUTOLK        },
+	{"TxTOut",  MENU_TOT           },
+	{"BatSav",  MENU_SAVE          },
+	{"Mic",     MENU_MIC           },	
+	{"POnMsg",  MENU_PONMSG        },
+	{"BatTxt",  MENU_BAT_TXT       },	
+	{"BackLt",  MENU_ABR           },
+	{"BLMin",   MENU_ABR_MIN       },
+	{"BLMax",   MENU_ABR_MAX       },
+	{"BltTRX",  MENU_ABR_ON_TX_RX  },
+	{"SqTone",  MENU_SQL_TONE      },
+	{"1 Call",  MENU_1_CALL        },
+	{"BatCal",  MENU_BATCAL        },
+	{"BatTyp",  MENU_BATTYP        },
+	{"Reset",   MENU_RESET         },
 
-	{"",       VOICE_ID_INVALID,                       0xff               }  // end of list - DO NOT delete or move this this
+	{"",        0xff               }  // end of list - DO NOT delete or move this
 };
+
 
 const int CHANNEL_ONLY_SETTINGS[] = {
 	MENU_S_LIST,
@@ -192,7 +167,6 @@ const char gSubMenu_ROGER[][7] =
 
 const char gSubMenu_RESET[][4] =
 {
-	"VFO",
 	"ALL"
 };
 
@@ -505,7 +479,6 @@ void UI_DisplayMenu(void)
 				break;
 
 			case MENU_BCL:
-			case MENU_BEEP:
 			case MENU_S_LIST:
 				sprintf(String, "%d", gSubMenuSelection);
 				break;

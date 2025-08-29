@@ -22,13 +22,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "audio.h"     // VOICE_ID_t
 #include "settings.h"
 
 typedef struct {
 	const char  name[7];    // menu display area only has room for 6 characters
-	VOICE_ID_t  voice_id;
 	uint8_t     menu_id;
 } t_menu_item;
 
@@ -63,7 +60,6 @@ enum
 	MENU_ENC_KEY,
 	MENU_MSG_ENC,
 #endif
-	MENU_BEEP,
 	MENU_AUTOLK,
 	MENU_S_LIST,
 	MENU_SQL_TONE,
@@ -103,7 +99,7 @@ extern const char        gSubMenu_SAVE[5][4];
 extern const char        gSubMenu_TOT[11][7];
 extern const char        gSubMenu_PONMSG[4][8];
 extern const char        gSubMenu_ROGER[6][7];
-extern const char        gSubMenu_RESET[2][4];
+extern const char        gSubMenu_RESET[1][4];
 extern const char* const gSubMenu_F_LOCK[F_LOCK_LEN];
 extern const char        gSubMenu_BACKLIGHT[8][7];
 extern const char        gSubMenu_RX_TX[4][6];

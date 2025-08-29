@@ -21,7 +21,7 @@
 #include "app/generic.h"
 #include "app/menu.h"
 #include "app/scanner.h"
-#include "audio.h"
+
 #include "driver/bk4819.h"
 #include "frequencies.h"
 #include "misc.h"

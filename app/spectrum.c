@@ -2,7 +2,7 @@
 #include "scanner.h"
 #include "driver/backlight.h"
 #include "driver/eeprom.h"   // EEPROM_ReadBuffer()
-#include "audio.h"
+
 #include "ui/helper.h"
 #include "common.h"
 #include "action.h"
@@ -26,14 +26,15 @@
 uint8_t DelayRssi = 4;                          // 1
 uint8_t PttEmission = 0;                        // 2
 uint16_t SpectrumDelay = 0;                     // 3
-uint32_t gScanRangeStart;                       // 4
-uint32_t gScanRangeStop;                        // 5
+uint32_t gScanRangeStart = 1400000;             // 4
+uint32_t gScanRangeStop = 13000000;             // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
 //int16_t settings.rssiTriggerLevelUp   = 20;                // 9
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
+//bool gMonitor = 0;
 bool gForceModulation = 0;
 bool classic = 1;
 uint8_t SlIndex = 1;
@@ -181,14 +182,23 @@ static uint32_t lastReceivingFreq = 0;
   static uint8_t validScanListIndices[MAX_VALID_SCANLISTS]; // stocke les index valides
 
 const RegisterSpec allRegisterSpecs[] = {
-    // Rejestry standardowe
     {"LNAs",  0x13, 8, 0b11,  1},
     {"LNA",   0x13, 5, 0b111, 1},
     {"PGA",   0x13, 0, 0b111, 1},
     {"MIX",   0x13, 3, 0b11,  1},
-
-    // Rejestry rozszerzone (hiddenRegisterSpecs z FAGCI)
     {"XTAL F Mode Select", 0x3C, 6, 0b11, 1},
+    {"OFF AF Rx de-emp", 0x2B, 8, 1, 1},
+    {"Gain after FM Demod", 0x43, 2, 1, 1},
+    //Saved values
+    {"RF Tx Deviation", 0x40, 0, 0xFFF, 10},
+    {"Compress AF Tx Ratio", 0x29, 14, 0b11, 1},
+    {"Compress AF Tx 0 dB", 0x29, 7, 0x7F, 1},
+    {"Compress AF Tx noise", 0x29, 0, 0x7F, 1},
+    {"MIC AGC Disable", 0x19, 15, 1, 1},
+    {"AFC Range Select", 0x73, 11, 0b111, 1},
+
+
+    /*
     {"IF step100x", 0x3D, 0, 0xFFFF, 100},
     {"IF step1x", 0x3D, 0, 0xFFFF, 1},
     {"RFfiltBW1.7-4.5khz ", 0x43, 12, 0b111, 1},
@@ -261,7 +271,6 @@ const RegisterSpec allRegisterSpecs[] = {
     {"BW Mode Selection", 0x43, 4, 0b11, 1},
     {"AF Output Inverse", 0x47, 13, 1, 1},
     {"AF ALC Disable", 0x4B, 5, 1, 1},
-    {"AFC Range Select", 0x73, 11, 0b111, 1},
     {"AGC Fix Mode", 0x7E, 15, 1, 1},
     {"AGC Fix Index", 0x7E, 12, 0b111, 1},
     {"Crystal vReg Bit", 0x1A, 12, 0b1111, 1},
@@ -273,8 +282,8 @@ const RegisterSpec allRegisterSpecs[] = {
     {"Exp AF Rx noise", 0x28, 0, 0x7F, 1},
     {"OFF AFRxHPF300 flt", 0x2B, 10, 1, 1},
     {"OFF AF RxLPF3K flt", 0x2B, 9, 1, 1},
-    {"OFF AF Rx de-emp", 0x2B, 8, 1, 1},
-    {"Gain after FM Demod", 0x43, 2, 1, 1},
+    
+    
     {"AF Rx Gain1", 0x48, 10, 0x11, 1},
     {"AF Rx Gain2", 0x48, 4, 0b111111, 1},
     {"AF DAC G after G1 G2", 0x48, 0, 0b1111, 1},
@@ -282,10 +291,8 @@ const RegisterSpec allRegisterSpecs[] = {
     {"300Hz AF Resp K Rx", 0x55, 0, 0xFFFF, 100},
     {"3kHz AF Resp K Rx", 0x75, 0, 0xFFFF, 100},
     {"DC Filt BW Rx IF In", 0x7E, 0, 0b111, 1},
-    {"MIC AGC Disable", 0x19, 15, 1, 1},
-    {"Compress AF Tx Ratio", 0x29, 14, 0b11, 1},
-    {"Compress AF Tx 0 dB", 0x29, 7, 0x7F, 1},
-    {"Compress AF Tx noise", 0x29, 0, 0x7F, 1},
+    
+
     {"OFF AFTxHPF300filter", 0x2B, 2, 1, 1},
     {"OFF AFTxLPF1filter", 0x2B, 1, 1, 1},
     {"OFF AFTxpre-emp flt", 0x2B, 0, 1, 1},
@@ -294,10 +301,10 @@ const RegisterSpec allRegisterSpecs[] = {
     {"PA Gain1 Tuning", 0x36, 3, 0b111, 1},
     {"PA Gain2 Tuning", 0x36, 0, 0b111, 1},
     {"RF TxDeviation ON", 0x40, 12, 1, 1},
-    {"RF Tx Deviation", 0x40, 0, 0xFFF, 10},
+    
     {"AFTxLPF2fltBW1.7-4.5khz", 0x43, 6, 0b111, 1},
     {"300Hz AF Resp K Tx", 0x44, 0, 0xFFFF, 100},
-    {"300Hz AF Resp K Tx", 0x45, 0, 0xFFFF, 100},
+    {"300Hz AF Resp K Tx", 0x45, 0, 0xFFFF, 100},*/
 };
 
 #define STILL_REGS_MAX_LINES 3
@@ -581,9 +588,9 @@ static void ToggleAudio(bool on) {
   }
   audioState = on;
   if (on) {
-    AUDIO_AudioPathOn();
+    GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
   } else {
-    AUDIO_AudioPathOff();
+    GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
   }
 }
 
@@ -636,9 +643,10 @@ static void ResetReceivingState() {
 }
 
 static void ToggleRX(bool on) {
+    if(!on && gMonitor) return;
+
     isListening = on;
     BACKLIGHT_TurnOn();
-    
     // automatically switch modulation & bw if known channel
     if (on && isKnownChannel) {
         settings.modulationType = channelModulation;
@@ -707,8 +715,8 @@ static bool InitScan() {
                 scanInfo.f = BParams[bl].Startfrequency;
                 scanInfo.scanStep = scanStepValues[BParams[bl].scanStep];
                 settings.scanStepIndex = BParams[bl].scanStep; 
-                gScanRangeStart = BParams[bl].Startfrequency;
-                gScanRangeStop = BParams[bl].Stopfrequency;
+                if(BParams[bl].Startfrequency>0) gScanRangeStart = BParams[bl].Startfrequency;
+                if(BParams[bl].Stopfrequency>0)  gScanRangeStop = BParams[bl].Stopfrequency;
                 settings.rssiTriggerLevelUp = BPRssiTriggerLevelUp[bl];
                 settings.rssiTriggerLevelDn = BPRssiTriggerLevelDn[bl];
                 scanInfo.measurementsCount = GetStepsCount();
@@ -2001,14 +2009,15 @@ break;
     //Free
     break;
   
-    case KEY_6:    //Free
+    case KEY_6:    //Next Mode
     Spectrum_state++;
       if(Spectrum_state > 4) Spectrum_state = 0;
+      SYSTEM_DelayMs(2000);
       APP_RunSpectrum(Spectrum_state);
     break;
   
-  case KEY_SIDE2: //Free
-    gAutoTriggerLevel=!gAutoTriggerLevel;
+  case KEY_SIDE2: //AutoTrigger
+      gAutoTriggerLevel=!gAutoTriggerLevel;
   break;
 
   case KEY_PTT:
@@ -2033,7 +2042,7 @@ break;
           currentFreq = selectedFreq;
           fMeasure = selectedFreq;
           SetF(fMeasure);
-      } else {SetF(peak.f);}
+      } else {SetF(Last_Tuned_Freq);}
 
       SetState(STILL);
       menuState = 0;
@@ -2136,31 +2145,37 @@ void OnKeyDownStill(KEY_Code_t key) {
         redrawScreen = true;
       }
     break;
-  case KEY_STAR:
-    UpdateRssiTriggerLevel(true);
-    break;
-  case KEY_F:
-    UpdateRssiTriggerLevel(false);
-    break;
-  case KEY_5:
-    FreqInput();
-    break;
-  case KEY_0:
-    break;
-  case KEY_6:
-    break;
-  case KEY_SIDE1:
-    break;
-  case KEY_SIDE2:
-    ToggleBacklight();
-    break;
-  case KEY_PTT:
-    ExitAndCopyToVfo();
-    break;
-  case KEY_MENU:
-      stillEditRegs = !stillEditRegs;
-    redrawScreen = true;
-    break;
+    case KEY_STAR:
+      UpdateRssiTriggerLevel(true);
+      break;
+    case KEY_F:
+      UpdateRssiTriggerLevel(false);
+      break;
+    case KEY_5:
+      FreqInput();
+      break;
+    case KEY_0:
+      break;
+    case KEY_6:
+      break;
+    case KEY_7: //Save registers
+      break;
+    
+      
+    case KEY_SIDE1:// Monitor in STILL
+        gMonitor = !gMonitor;
+        if(gMonitor) ToggleRX(1);
+      break;
+    case KEY_SIDE2:
+      ToggleBacklight();
+      break;
+    case KEY_PTT:
+      ExitAndCopyToVfo();
+      break;
+    case KEY_MENU:
+        stillEditRegs = !stillEditRegs;
+      redrawScreen = true;
+      break;
   case KEY_EXIT:
       if (stillEditRegs) {
         stillEditRegs = false;
@@ -2168,6 +2183,7 @@ void OnKeyDownStill(KEY_Code_t key) {
         break;
       }
       SetState(SPECTRUM);
+      gMonitor = 0; 
       SpectrumDelay = 0; //Prevent coming back to still directly
       RelaunchScan();
     break;
@@ -2202,21 +2218,9 @@ static void RenderSpectrum() {
 
 void DrawMeter(int line) {
   const uint8_t METER_PAD_LEFT = 3;
-
-/*  for (int i = 0; i < 121; i++) {
-    if (i % 10 == 0) {
-      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b01110000;
-    } else if (i % 5 == 0) {
-      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b00110000;
-    } else {
-      gFrameBuffer[line][i + METER_PAD_LEFT] = 0b00010000;
-    }
-  }*/
-
   uint8_t x = Rssi2PX(scanInfo.rssi, 0, 121);
   for (int i = 0; i < x; ++i) {
     if (i % 5) {
-      //if (!classic && !ShowHistory)gFrameBuffer[line-1][i + METER_PAD_LEFT] |= 0b11111111;
       gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b11111111;
     }
   }
@@ -2649,26 +2653,25 @@ void LoadSettings()
   settings.rssiTriggerLevelDn = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelUp = eepromData.Trigger;
   if (eepromData.listenBw >0 && eepromData.listenBw <7) settings.listenBw = eepromData.listenBw;
-  if (gScanRangeStart ==0) //load only if not set
-    {gScanRangeStart = eepromData.RangeStart;
-    gScanRangeStop = eepromData.RangeStop;}
-    settings.dbMax = eepromData.dbMax;
-    settings.scanStepIndex = eepromData.scanStepIndex;
-    for (int i = 0; i < 32; i++) {
+  if (eepromData.RangeStart > 1400000) gScanRangeStart = eepromData.RangeStart;
+  if (eepromData.RangeStop > 1400000) gScanRangeStop = eepromData.RangeStop;
+  settings.dbMax = eepromData.dbMax;
+  settings.scanStepIndex = eepromData.scanStepIndex;
+  for (int i = 0; i < 32; i++) {
       BPRssiTriggerLevelDn[i] = eepromData.BPRssiTriggerLevelDn[i];
       BPRssiTriggerLevelUp[i] = eepromData.BPRssiTriggerLevelUp[i];
       settings.bandEnabled[i] = (eepromData.bandListFlags >> i) & 0x01;
     }
-    DelayRssi = eepromData.DelayRssi;
-    if (DelayRssi > 12) DelayRssi =12;
-    if (PttEmission > 1) PttEmission =0;
-    PttEmission = eepromData.PttEmission;
-    validScanListCount = 0;
-    ChannelAttributes_t att;
-    for (int i = 0; i < 200; i++) {
-      att = gMR_ChannelAttributes[i];
-      if (att.scanlist > validScanListCount) {validScanListCount = att.scanlist;}
-    }
+  DelayRssi = eepromData.DelayRssi;
+  if (DelayRssi > 12) DelayRssi =12;
+  if (PttEmission > 1) PttEmission =0;
+  PttEmission = eepromData.PttEmission;
+  validScanListCount = 0;
+  ChannelAttributes_t att;
+  for (int i = 0; i < 200; i++) {
+    att = gMR_ChannelAttributes[i];
+    if (att.scanlist > validScanListCount) {validScanListCount = att.scanlist;}
+  }
 
   }
 

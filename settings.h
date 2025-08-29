@@ -114,7 +114,6 @@ typedef struct {
 	uint8_t               SQUELCH_LEVEL;
 	uint8_t               TX_TIMEOUT_TIMER;
 	bool                  KEY_LOCK;
-	bool                  BEEP_CONTROL;
 	uint8_t               CHANNEL_DISPLAY_MODE;
 	bool                  VFO_OPEN;
 

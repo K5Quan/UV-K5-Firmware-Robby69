@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.2.2
+VERSION_STRING := V5.2.3
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -121,7 +121,6 @@ OBJS += app/scanner.o
 ifeq ($(ENABLE_UART),1)
 	OBJS += app/uart.o
 endif
-OBJS += audio.o
 OBJS += bitmaps.o
 OBJS += board.o
 OBJS += dcs.o

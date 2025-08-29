@@ -158,19 +158,10 @@ void BATTERY_TimeSlice500ms(void)
 		if (gCurrentFunction != FUNCTION_TRANSMIT)
 		{	// not transmitting
 
-			if (lowBatteryCountdown < lowBatteryPeriod)
-			{
-				if (lowBatteryCountdown == lowBatteryPeriod-1 && !gLowBatteryConfirmed)
-					AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP);
-			}
-			else
+			if (lowBatteryCountdown > lowBatteryPeriod)
 			{
 				lowBatteryCountdown = 0;
 
-
-				if(!gLowBatteryConfirmed) {
-					AUDIO_PlayBeep(BEEP_500HZ_60MS_DOUBLE_BEEP);
-				}
 				if (gBatteryDisplayLevel == 0)
 				{
 					gReducedService = true;

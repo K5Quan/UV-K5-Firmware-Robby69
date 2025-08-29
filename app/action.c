@@ -24,7 +24,7 @@
 #include "app/common.h"
 #include "app/fm.h"
 #include "app/scanner.h"
-#include "audio.h"
+
 #include "bsp/dp32g030/gpio.h"
 #include "driver/bk1080.h"
 
@@ -197,9 +197,6 @@ void ACTION_Handle(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 	}
 
 	// held or released beyond this point
-
-	if(!(bKeyHeld && !bKeyPressed)) // don't beep on released after hold
-		gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
 
 	if (bKeyHeld || bKeyPressed) // held
 	{

@@ -19,7 +19,7 @@
 
 #include <stdio.h>   // NULL
 
-#include "audio.h"
+
 #include "bk4819.h"
 #include "bsp/dp32g030/gpio.h"
 #include "bsp/dp32g030/portcon.h"
@@ -37,6 +37,14 @@
 static uint16_t gBK4819_GpioOutState;
 
 bool gRxIdleMode;
+
+void AUDIO_AudioPathOn(void) {
+	GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
+}
+
+void AUDIO_AudioPathOff(void) {
+	GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
+}
 
 __inline uint16_t scale_freq(const uint16_t freq)
 {
@@ -846,7 +854,7 @@ void BK4819_PlaySingleTone(const unsigned int tone_Hz, const unsigned int delay,
 	
 	if (play_speaker)
 	{
-		AUDIO_AudioPathOn();
+		GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
 		BK4819_SetAF(BK4819_AF_BEEP);
 	}
 	else
@@ -866,7 +874,7 @@ void BK4819_PlaySingleTone(const unsigned int tone_Hz, const unsigned int delay,
 
 	if (play_speaker)
 	{
-		AUDIO_AudioPathOff();
+		GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
 		BK4819_SetAF(BK4819_AF_MUTE);
 	}
 	
