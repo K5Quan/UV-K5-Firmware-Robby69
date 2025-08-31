@@ -1882,12 +1882,14 @@ static void OnKeyDown(uint8_t key) {
     break;
 
      case KEY_1: //SKIP
-        settings.rssiTriggerLevelUp = peak.rssi;
-        rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-        rssiHistory[peak.i] = RSSI_MAX_VALUE;
-        ResetPeak();
+        //settings.rssiTriggerLevelUp = peak.rssi;
+        //rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
+        //rssiHistory[peak.i] = RSSI_MAX_VALUE;
+        //ResetPeak();
+        gIsPeak = false;
         ToggleRX(false);
-        ResetScanStats();   
+        NextScanStep();
+
      break;
      
      case KEY_7:
@@ -2435,8 +2437,8 @@ static void UpdateScan() {
   UpdatePeakInfo();
   if (gIsPeak) {
     // Signal detected or resumed
-    ToggleRX(true);
     TuneToPeak();
+    ToggleRX(true);
     if (SpectrumDelay)SetState(STILL);
     return;
   }
@@ -2487,8 +2489,8 @@ static void Tick() {
     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
       if (gIsPeak) {
-        ToggleRX(true);
         TuneToPeak();
+        ToggleRX(true);
         if (SpectrumDelay)SetState(STILL);
 		    return;
       }
