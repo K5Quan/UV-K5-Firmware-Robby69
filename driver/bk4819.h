@@ -70,6 +70,7 @@ typedef enum BK4819_CssScanResult_t BK4819_CssScanResult_t;
 
 // radio is asleep, not listening
 extern bool gRxIdleMode;
+extern uint16_t regs_cache[128];
 
 void AUDIO_AudioPathOn(void);
 void AUDIO_AudioPathOff(void) ;
