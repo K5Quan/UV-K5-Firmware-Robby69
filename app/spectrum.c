@@ -9,6 +9,7 @@
 #include "bands.h"
 //#include "debugging.h"
 
+
 #ifdef ENABLE_SCREENSHOT
   #include "screenshot.h"
 #endif
@@ -775,8 +776,20 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
+static uint8_t GetNoise() {
+
+  return BK4819_ReadRegister(0x65) & 0b1111111;
+}
+
 bool gIsPeak = false;
-bool gAutoTriggerLevel = false;
+//bool gAutoTriggerLevel = false;
+
+void UpdateNoise(){
+	const uint16_t NOISLVL = 70; //65-72
+	if( GetNoise() > (NOISLVL - 1) ) gIsPeak = false;		
+
+}
+
 
 static void Measure()
 {
@@ -785,7 +798,7 @@ static void Measure()
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint16_t rssi2;
-    static uint16_t MaxRssi = 0;
+    //static uint16_t MaxRssi = 0;
     //static uint16_t MinRssi = 1000;
     
     if (isFirst) {
@@ -803,9 +816,9 @@ static void Measure()
         }
     }
 
-    if (gIsPeak && isListening && rssi < settings.rssiTriggerLevelDn){
-      gIsPeak = false;
-      MaxRssi = 0;
+    if (isListening){
+      UpdateNoise();
+      //MaxRssi = 0;
       //MinRssi = 1000;
     }
     if (!gIsPeak || !isListening)
@@ -813,12 +826,12 @@ static void Measure()
     else if (rssi < previousRssi)
         previousRssi = rssi;
 
-    if (gAutoTriggerLevel) {
+    /* if (gAutoTriggerLevel) {
       if (rssi > MaxRssi) MaxRssi = rssi;
       //if (rssi < MinRssi) MinRssi = rssi;
       settings.rssiTriggerLevelDn = (MaxRssi*7)/10;
       //char str[64] = "";sprintf(str, "%d %d %d\r\n", MaxRssi,MinRssi, settings.rssiTriggerLevelDn);LogUart(str);
-    }
+    } */
 
     if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
@@ -1135,8 +1148,9 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  if (gAutoTriggerLevel)len = sprintf(&String[pos],"A U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
-  else len = sprintf(&String[pos],"U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
+  //if (gAutoTriggerLevel)len = sprintf(&String[pos],"A U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
+  //else 
+  len = sprintf(&String[pos],"U%d %dms %s ", settings.rssiTriggerLevelUp,DelayRssi, gModulationStr[settings.modulationType]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1470,16 +1484,12 @@ static void DrawNums() {
   
 }
 
-static void DrawRssiTriggerLevel() {
+/* static void DrawRssiTriggerLevel() {
   uint8_t y;
   y = Rssi2Y(settings.rssiTriggerLevelDn);
   for (uint8_t x = 0; x < 128; x += 4) {PutPixel(x, y, true);}
   
-/*  if (ShowHistory) { 
-    y = Rssi2Y(settings.rssiTriggerLevelDnH);
-    for (uint8_t x = 0; x < 128; x += 6) {PutPixel(x, y, true);}
-  }*/
-}
+} */
 
 static void DrawArrow(uint8_t x) {
   for (signed i = -2; i <= 2; ++i) {
@@ -1506,9 +1516,9 @@ static void NextScanStep() {
       if (scanInfo.i <= GetStepsCount())
       {
       int currentChannel = scanChannel[scanInfo.i];
-      if (!gAutoTriggerLevel) {
+      /* if (!gAutoTriggerLevel) {
         settings.rssiTriggerLevelDn = SLRssiTriggerLevelDn[ScanListNumber[scanInfo.i]];
-      }
+      } */
       settings.rssiTriggerLevelUp = SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]];
       
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
@@ -1872,12 +1882,12 @@ static void OnKeyDown(uint8_t key) {
     break;
 
      case KEY_1: //SKIP
-        //settings.rssiTriggerLevelUp = peak.rssi;
-        //rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-        //rssiHistory[peak.i] = RSSI_MAX_VALUE;
-        //ResetPeak();
+        settings.rssiTriggerLevelUp = peak.rssi;
+        rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
+        rssiHistory[peak.i] = RSSI_MAX_VALUE;
+        ResetPeak();
         ToggleRX(false);
-        //ResetScanStats();   
+        ResetScanStats();   
      break;
      
      case KEY_7:
@@ -2017,7 +2027,7 @@ break;
     break;
   
   case KEY_SIDE2: //AutoTrigger
-      gAutoTriggerLevel=!gAutoTriggerLevel;
+      //gAutoTriggerLevel=!gAutoTriggerLevel;
   break;
 
   case KEY_PTT:
@@ -2210,7 +2220,7 @@ static void RenderSpectrum() {
     DrawArrow(128u * (peak.i-1) / GetStepsCount());
     UpdateDBMaxAuto();
     DrawSpectrum();
-    DrawRssiTriggerLevel();
+    //DrawRssiTriggerLevel();
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
@@ -2510,6 +2520,7 @@ static void Tick() {
     redrawStatus = false;
     statuslineUpdateTimer = 0;
   }
+  //if (redrawScreen && gNextTimeslice_200ms) {
   if (redrawScreen) {
     Render();
     redrawScreen = false;
