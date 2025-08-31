@@ -78,7 +78,7 @@ void UI_DisplayLock(void)
 		if (gEeprom.PASSWORD_WRONG_ATTEMPTS >= PASSWORD_MAX_RETRIES)
 		{	
 			Render(true);
-			BOARD_FactoryReset(true);
+			BOARD_FactoryReset();
 			return;
 		}
 		if (gKeyReadingLocal == Key)

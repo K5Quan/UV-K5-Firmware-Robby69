@@ -128,6 +128,9 @@ u8 FreqChannel_B;
 
 #seekto 0xe90;
 
+u8 keyM_longpress_action:7,
+    button_beep:1;
+
 u8 key1_shortpress_action;
 u8 key1_longpress_action;
 u8 key2_shortpress_action;
@@ -1242,6 +1245,10 @@ class UVK5Radio(chirp_common.CloneModeRadio):
             # VFO Open
             elif elname == "freq_mode_allowed":
                 _mem.freq_mode_allowed = int(element.value)
+
+             # Beep control
+            elif elname == "button_beep":
+                _mem.button_beep = int(element.value)
 
             # Scan resume mode
             elif elname == "scan_resume_mode":

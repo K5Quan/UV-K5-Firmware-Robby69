@@ -698,17 +698,22 @@ uint32_t BOARD_fetchChannelFrequency(const int channel)
 	}
 #endif
 
+
 void BOARD_FactoryReset()
 {
 	uint16_t i;
 	uint8_t  Template[8];
-
 	memset(Template, 0xFF, sizeof(Template));
 
 	for (i = 0x0C80; i < 0x1E00; i += 8)
 	{
+		if (
+			!(i >= 0x0EB0 && i < 0x0ED0)         // Welcome strings
+			
+			)
+		{
 			EEPROM_WriteBuffer(i, Template, true);
-		
+		}
 	}
 
 }

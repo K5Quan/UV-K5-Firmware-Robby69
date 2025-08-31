@@ -520,7 +520,7 @@ void MENU_AcceptSetting(void)
 			return;
 
 		case MENU_RESET:
-			BOARD_FactoryReset(gSubMenuSelection);
+			BOARD_FactoryReset();
 			return;
 
 		case MENU_F_LOCK: {
