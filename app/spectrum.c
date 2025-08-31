@@ -801,7 +801,7 @@ static void Measure()
     static bool isFirst = true;
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    //uint16_t rssi2;
+    uint16_t rssi2;
     //static uint16_t MaxRssi = 0;
     //static uint16_t MinRssi = 1000;
     
@@ -812,12 +812,12 @@ static void Measure()
     }
 
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-        //SYSTEM_DelayMs(50);
-        //rssi2 = scanInfo.rssi = GetRssi();
-        //if (!gIsPeak && rssi2 > rssi+10) {
+        SYSTEM_DelayMs(5);
+        rssi2 = scanInfo.rssi = GetRssi();
+        if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
           FillfreqHistory(true);
-        //}
+        }
     } 
 
 
@@ -2454,6 +2454,7 @@ static void UpdateScan() {
 
 static void UpdateStill() {
   //Measure();
+  scanInfo.rssi = GetRssi();
   UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
