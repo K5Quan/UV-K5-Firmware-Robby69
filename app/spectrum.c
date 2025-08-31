@@ -1156,7 +1156,7 @@ static void DrawStatus() {
   } 
   //if (gAutoTriggerLevel)len = sprintf(&String[pos],"A U%d/D%d %dms %s ", settings.rssiTriggerLevelUp,settings.rssiTriggerLevelDn,DelayRssi, gModulationStr[settings.modulationType]);
   //else 
-  len = sprintf(&String[pos],"U%d %dms %s ", settings.rssiTriggerLevelUp,DelayRssi, gModulationStr[settings.modulationType]);
+  len = sprintf(&String[pos],"U%d %dms %s %s ", settings.rssiTriggerLevelUp,DelayRssi, gModulationStr[settings.modulationType],bwNames[settings.listenBw]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -1866,25 +1866,28 @@ static void OnKeyDown(uint8_t key) {
   switch (key) {
 
       case KEY_STAR:
-         UpdateRssiTriggerLevel(true);
+         //UpdateRssiTriggerLevel(true);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp + 5);
+          if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
+          if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
       break;
      
      case KEY_F:
-        UpdateRssiTriggerLevel(false);
+        //UpdateRssiTriggerLevel(false);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp - 5);
+          if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
+          if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
      break;
 
      case KEY_3:
+        ToggleListeningBW(1);
         //UpdateDBMax(true);
-        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp + 5);
-        if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
-        if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+        
      break;
      
      case KEY_9:
         //UpdateDBMax(false);
-        settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp - 5);
-        if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
-        if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+        ToggleModulation();
     break;
 
      case KEY_1: //SKIP
@@ -2133,6 +2136,7 @@ void OnKeyDownStill(KEY_Code_t key) {
   switch (key) {
   case KEY_3:
     //UpdateDBMax(true);
+
     break;
   case KEY_9:
     //UpdateDBMax(false);
