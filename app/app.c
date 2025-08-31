@@ -57,9 +57,6 @@
 #include "ui/ui.h"
 #include "driver/systick.h"
 
-#ifdef ENABLE_ENCRYPTION
-	#include "helper/crypto.h"
-#endif
 #ifdef ENABLE_SCREENSHOT
     #include "screenshot.h"
 #endif
@@ -734,13 +731,6 @@ void cancelUserInputModes(void)
 void APP_TimeSlice500ms(void)
 {
 	bool exit_menu = false;
-
-	#ifdef ENABLE_ENCRYPTION
-		if(gRecalculateEncKey){
-			CRYPTO_Generate256BitKey(gEeprom.ENC_KEY, gEncryptionKey, sizeof(gEeprom.ENC_KEY));
-			gRecalculateEncKey = false;
-		}
-	#endif
 
 	// Skipped authentic device check
 

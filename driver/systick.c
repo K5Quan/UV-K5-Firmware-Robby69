@@ -32,6 +32,13 @@ void SYSTICK_Init(void)
 
 void SYSTICK_DelayUs(uint32_t Delay)
 {
+	if(!Delay){
+		__asm volatile ( "nop \n" ); 
+		__asm volatile ( "nop \n" );
+		__asm volatile ( "nop \n" );
+		__asm volatile ( "nop \n" );
+		return; 
+	}//8-6mhz	
 	const uint32_t ticks    = Delay * gTickMultiplier;
 	uint32_t       i        = 0;
 	uint32_t       Start    = SysTick->LOAD;

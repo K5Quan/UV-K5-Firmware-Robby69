@@ -121,7 +121,7 @@ KEY_Code_t KEYBOARD_Poll(void)
 		{
 			uint16_t reg2;
 
-			SYSTICK_DelayUs(1);
+			SYSTICK_DelayUs(0);
 
 			reg2 = GPIOA->DATA;
 			if (reg != reg2)
@@ -146,7 +146,13 @@ KEY_Code_t KEYBOARD_Poll(void)
 		if (Key != KEY_INVALID)
 			break;
 	}
-
+	if(Key == KEY_INVALID){
+		  GPIO_ClearBit(&GPIOA->DATA, GPIOA_PIN_KEYBOARD_6);
+		  GPIOA->DATA |= (1U << GPIOA_PIN_KEYBOARD_4) |
+						 (1U << GPIOA_PIN_KEYBOARD_5) |
+						 (1U << GPIOA_PIN_KEYBOARD_7);
+		  return Key;
+	}
 	// Create I2C stop condition since we might have toggled I2C pins
 	// This leaves GPIOA_PIN_KEYBOARD_4 and GPIOA_PIN_KEYBOARD_5 high
 	I2C_Stop();

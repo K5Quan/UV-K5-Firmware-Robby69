@@ -36,9 +36,6 @@
 #include "ui/inputbox.h"
 #include "ui/menu.h"
 #include "ui/ui.h"
-#ifdef ENABLE_ENCRYPTION
-	#include "helper/crypto.h"
-#endif
 
 const t_menu_item MenuList[] =
 {
@@ -483,11 +480,6 @@ void UI_DisplayMenu(void)
 				sprintf(String, "%d", gSubMenuSelection);
 				break;
 
-
-#ifdef ENABLE_ENCRYPTION
-				case MENU_MSG_ENC:
-#endif
-
 			case MENU_SCREN:
 				strcpy(String, gSubMenu_OFF_ON[gSubMenuSelection]);
 				break;
@@ -548,38 +540,6 @@ void UI_DisplayMenu(void)
 				already_printed = true;
 				break;
 			}
-			#ifdef ENABLE_ENCRYPTION
-				case MENU_ENC_KEY:
-				{
-					if (!gIsInSubMenu)
-					{	// show placeholder in main menu
-						strcpy(String, "****");
-						UI_PrintString(String, menu_item_x1, menu_item_x2, 2, 8);
-					}
-					else
-					{	// show the key being edited
-						if (edit_index != -1 || gAskForConfirmation) {
-							UI_PrintString(edit, (menu_item_x1 -2), 0, 2, 8);
-							// show the cursor
-							if(edit_index < 10)
-								UI_PrintString(     "^", (menu_item_x1 -2) + (8 * edit_index), 0, 4, 8);  
-						}
-						else{
-							strcpy(String, "hashed value");
-							UI_PrintStringSmall(String, 20, 0, 5);
-
-							memset(String, 0, sizeof(String));
-							
-							CRYPTO_DisplayHash(gEeprom.ENC_KEY, String, sizeof(gEeprom.ENC_KEY));
-							UI_PrintString(String, (menu_item_x1 -2), 0, 2, 8);
-						}			
-					}
-
-					already_printed = true;
-					break;
-				}
-			#endif
-
 
 			case MENU_SAVE:
 				strcpy(String, gSubMenu_SAVE[gSubMenuSelection]);
@@ -710,9 +670,6 @@ void UI_DisplayMenu(void)
 
 	if ((UI_MENU_GetCurrentMenuId() == MENU_RESET    ||
 	     UI_MENU_GetCurrentMenuId() == MENU_MEM_CH   ||
-		 #ifdef ENABLE_ENCRYPTION
-			UI_MENU_GetCurrentMenuId() == MENU_ENC_KEY  ||
-		 #endif
 	     UI_MENU_GetCurrentMenuId() == MENU_MEM_NAME ||
 	     UI_MENU_GetCurrentMenuId() == MENU_DEL_CH) && gAskForConfirmation)
 	{	// display confirmation

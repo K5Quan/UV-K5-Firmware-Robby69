@@ -140,7 +140,7 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              rssiTriggerLevelDn: 150,
 							               backlightAlwaysOn: false,
                              bw: BK4819_FILTER_BW_WIDE,
-                             listenBw: BK4819_FILTER_BW_NARROW,
+                             listenBw: BK4819_FILTER_BW_NARROWEST,
                              modulationType: false,
                              dbMin: -128,
                              dbMax: 10,
@@ -784,10 +784,14 @@ static uint8_t GetNoise() {
 bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
-void UpdateNoise(){
-	const uint16_t NOISLVL = 70; //65-72
-	if( GetNoise() > (NOISLVL - 1) ) gIsPeak = false;		
+void UpdateNoiseOff(){
+	const uint16_t NOISLVL = 69; //65-72
+	if( GetNoise() > (NOISLVL) ) gIsPeak = false;		
+}
 
+void UpdateNoiseOn(){
+	const uint16_t NOISLVL = 60; //65-72
+	if( GetNoise() < (NOISLVL) ) gIsPeak = true;		
 }
 
 
@@ -797,7 +801,7 @@ static void Measure()
     static bool isFirst = true;
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    uint16_t rssi2;
+    //uint16_t rssi2;
     //static uint16_t MaxRssi = 0;
     //static uint16_t MinRssi = 1000;
     
@@ -808,16 +812,18 @@ static void Measure()
     }
 
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-        SYSTEM_DelayMs(50);
-        rssi2 = scanInfo.rssi = GetRssi();
-        if (!gIsPeak && rssi2 > rssi+10) {
+        //SYSTEM_DelayMs(50);
+        //rssi2 = scanInfo.rssi = GetRssi();
+        //if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
           FillfreqHistory(true);
-        }
-    }
+        //}
+    } 
+
+
 
     if (isListening){
-      UpdateNoise();
+      UpdateNoiseOff();
       //MaxRssi = 0;
       //MinRssi = 1000;
     }
@@ -2236,9 +2242,9 @@ void DrawMeter(int line) {
       gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b11111111;
     }
   }
-  x = Rssi2PX(settings.rssiTriggerLevelDn, 0, 121);
+/*   x = Rssi2PX(settings.rssiTriggerLevelDn, 0, 121);
   if (!classic)gFrameBuffer[line-1][METER_PAD_LEFT + x] = 0b11111111;
-  gFrameBuffer[line][METER_PAD_LEFT + x] = 0b11111111;
+  gFrameBuffer[line][METER_PAD_LEFT + x] = 0b11111111; */
 }
 
 static void RenderStill() {
@@ -2447,7 +2453,8 @@ static void UpdateScan() {
 }
 
 static void UpdateStill() {
-  Measure();
+  //Measure();
+  UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
 
@@ -2666,6 +2673,7 @@ void LoadSettings()
   settings.rssiTriggerLevelDn = eepromData.rssiTriggerLevel;
   settings.rssiTriggerLevelUp = eepromData.Trigger;
   if (eepromData.listenBw >0 && eepromData.listenBw <7) settings.listenBw = eepromData.listenBw;
+
   if (eepromData.RangeStart > 1400000) gScanRangeStart = eepromData.RangeStart;
   if (eepromData.RangeStop > 1400000) gScanRangeStop = eepromData.RangeStop;
   settings.dbMax = eepromData.dbMax;

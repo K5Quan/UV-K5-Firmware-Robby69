@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.2.5
+VERSION_STRING := V5.2.6
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -35,7 +35,6 @@ ENABLE_SPECTRUM                         := 1
 ENABLE_BYP_RAW_DEMODULATORS             := 0
 ENABLE_BLMIN_TMP_OFF                    := 0
 ENABLE_SPECTRUM_SHOW_CHANNEL_NAME       := 1
-ENABLE_ENCRYPTION                       := 0
 ENABLE_SCANNER							:= 1
 ENABLE_FR_BAND							:= 1
 ENABLE_PL_BAND							:= 0
@@ -154,10 +153,6 @@ OBJS += ui/welcome.o
 OBJS += version.o
 OBJS += main.o
 
-ifeq ($(ENABLE_ENCRYPTION),1)
-	OBJS += external/chacha/chacha.o
-	OBJS += helper/crypto.o
-endif
 
 ifeq ($(OS), Windows_NT)
 	TOP := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -325,9 +320,6 @@ ifeq ($(ENABLE_SPECTRUM_SHOW_CHANNEL_NAME),1)
 	CFLAGS  += -DENABLE_SPECTRUM_SHOW_CHANNEL_NAME
 endif
 
-ifeq ($(ENABLE_ENCRYPTION),1)
-	CFLAGS  += -DENABLE_ENCRYPTION
-endif
 ifeq ($(ENABLE_SCANNER),1)
 	CFLAGS  += -DENABLE_SCANNER
 endif
