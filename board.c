@@ -700,7 +700,7 @@ void BOARD_FactoryReset()
 	uint8_t  Template[8];
 	memset(Template, 0xFF, sizeof(Template));
 
-	for (i = 0x0C80; i < 0x1E00; i += 8)
+	for (i = 0x0000; i < 0x1E00; i += 8)
 	{
 		if (
 			!(i >= 0x0EB0 && i < 0x0ED0)         // Welcome strings

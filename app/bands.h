@@ -13,6 +13,8 @@ static const bandparameters BParams[32] = {
     {"DMR UHF2",      46620000,         47000000,       S_STEP_12_5kHz,   MODULATION_FM}, //Pocsag FR removed 466-466.2
     {"REMOTE CT",     43200000,         43400000,       S_STEP_0_5kHz,    MODULATION_FM}, //Remote control search
     {"MARINE",        15550000,         16202500,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"CB40",           2696500,          2740500,       S_STEP_10_0kHz,   MODULATION_AM},
+    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
     {"SRD868",        86800000,         87000000,       S_STEP_6_25kHz,   MODULATION_FM},
     {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
     {"14MHz",          1400000,          1430000,       S_STEP_5_0kHz,    MODULATION_AM},
@@ -20,7 +22,6 @@ static const bandparameters BParams[32] = {
     {"18MHz",          1806800,          1816800,       S_STEP_1_0kHz,    MODULATION_AM},
     {"21MHz",          2100000,          2145000,       S_STEP_1_0kHz,    MODULATION_AM},
     {"24MHz",          2489000,          2499000,       S_STEP_1_0kHz,    MODULATION_AM},
-    {"CB",             2651500,          2830500,       S_STEP_5_0kHz,    MODULATION_AM},
     {"HAM 28MHz",      2800000,          2970000,       S_STEP_1_0kHz,    MODULATION_AM},
     {"HAM 50MHz",      5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"70 Mhz",         7000000,          7050000,       S_STEP_12_5kHz,   MODULATION_FM},
@@ -31,8 +32,7 @@ static const bandparameters BParams[32] = {
     {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"NOT USED",       1400000,        130000000,        S_STEP_500kHz,   MODULATION_FM},
     {"NOT USED",       1400000,        130000000,        S_STEP_100kHz,   MODULATION_FM},
-    {"NOT USED",      40000000,         50000000,        S_STEP_100kHz,   MODULATION_FM},
-    {"NOT USED",      14000000,         17000000,        S_STEP_100kHz,   MODULATION_FM}
+    {"NOT USED",      40000000,         50000000,        S_STEP_100kHz,   MODULATION_FM}
     }; 
 #endif
 

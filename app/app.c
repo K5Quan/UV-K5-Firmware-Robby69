@@ -1197,7 +1197,7 @@ Skip:
 		if (gFlagResetVfos)
 		{
 			RADIO_ConfigureChannel(0, gVfoConfigureMode);
-			RADIO_ConfigureChannel(1, gVfoConfigureMode);
+			//RADIO_ConfigureChannel(1, gVfoConfigureMode);
 		}
 		else
 			RADIO_ConfigureChannel(gEeprom.TX_VFO, gVfoConfigureMode);
@@ -1212,7 +1212,7 @@ Skip:
 
 	if (gFlagReconfigureVfos)
 	{
-		RADIO_SelectVfos();
+		//RADIO_SelectVfos();
 
 		RADIO_SetupRegisters(true);
 

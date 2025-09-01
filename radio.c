@@ -479,10 +479,7 @@ void RADIO_ApplyTxOffset(VFO_Info_t *pInfo)
 
 void RADIO_SelectVfos(void)
 {
-	// if crossband without DW is used then RX_VFO is the opposite to the TX_VFO
-	
 	gTxVfo = &gEeprom.VfoInfo[gEeprom.TX_VFO];
-
 	gCurrentVfo = gTxVfo;
 }
 

@@ -69,7 +69,7 @@ void ACTION_Power(void)
 void ACTION_Monitor(void)
 {
 	if (gCurrentFunction != FUNCTION_MONITOR) { // enable the monitor
-		RADIO_SelectVfos();
+		//RADIO_SelectVfos();
 
 		RADIO_SetupRegisters(true);
 		APP_StartListening(FUNCTION_MONITOR);
@@ -122,7 +122,7 @@ void ACTION_Monitor(void)
 
 			gMonitor = false;
 
-			RADIO_SelectVfos();
+			//RADIO_SelectVfos();
 			RADIO_SetupRegisters(true);
 
 			FM_Start();
