@@ -1212,7 +1212,7 @@ Skip:
 
 	if (gFlagReconfigureVfos)
 	{
-		//RADIO_SelectVfos();
+		RADIO_SelectVfos();
 
 		RADIO_SetupRegisters(true);
 

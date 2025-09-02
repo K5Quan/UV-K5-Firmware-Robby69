@@ -364,8 +364,8 @@ void SetState(State state) {
 // Radio functions
 
 static void ToggleAFBit(bool on) {
-  uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
-  //uint32_t reg = regs_cache[BK4819_REG_47];
+  //uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
+  uint32_t reg = regs_cache[BK4819_REG_47];
   reg &= ~(1 << 8);
   if (on)
     reg |= on << 8;
@@ -397,40 +397,34 @@ static void RestoreRegisters() {
 }
 
 static void ToggleAFDAC(bool on) {
-  uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
-  //uint32_t Reg = regs_cache[BK4819_REG_30];
+  //uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
+  uint32_t Reg = regs_cache[BK4819_REG_30];
   Reg &= ~(1 << 9);
   if (on)
     Reg |= (1 << 9);
   BK4819_WriteRegister(BK4819_REG_30, Reg);
 }
 
-static void SetF(uint32_t f) {
+/* static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_SetFrequency(fMeasure + gEeprom.RX_OFFSET);
   BK4819_PickRXFilterPathBasedOnFrequency(fMeasure);
   uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
-}
+} */
 
-/* static void SetF(uint32_t f, bool precise) {//RX Only!
+static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
-
   uint16_t reg;
   const uint16_t regrx = (isListening) ? 0xBFF1 : 0xBDF1; //afdac bit
-
-  if (precise) {
  reg = 0x3FF0; // reset rx-dsp bit <0> and vco bit <15>
-  } else {
- reg = regrx & ~BK4819_REG_30_ENABLE_VCO_CALIB; //vco calib
-  }
-  
+ //reg = regrx & ~BK4819_REG_30_ENABLE_VCO_CALIB; //vco calib TURBO
   BK4819_WriteRegister(BK4819_REG_30, reg);//reset
   BK4819_WriteRegister(BK4819_REG_30, regrx);//rx
-} */
+}
 
 static void ResetInterrupts()
 {
@@ -798,11 +792,6 @@ static void UpdatePeakInfo() {
 }
 
 static uint8_t GetNoise() {
- //if(isListening){
-  //SetF(scanInfo.f, precise);
-  //SYSTEM_DelayMs( (precise) ? 14 : 4 );
- //}
- 
  return BK4819_ReadRegister(0x65) & 0b1111111;
 }
 
@@ -811,15 +800,15 @@ bool gIsPeak = false;
 
 void UpdateNoiseOff(){
 	const uint16_t NOISLVL = 69; //65-72
-	if( GetNoise() > NOISLVL) gIsPeak = false;		
+	if( GetNoise() > NOISLVL) {
+     gIsPeak = false;
+  }		
 }
 
 void UpdateNoiseOn(){
 	const uint16_t NOISLVL = 60;
-	//if( GetNoise() < settings.rssiTriggerLevelUp) { 
 	if( GetNoise() < NOISLVL) { 
     gIsPeak = true;
-    FillfreqHistory(true);
   }
 }
 
@@ -829,7 +818,7 @@ static void Measure()
     static bool isFirst = true;
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    //uint16_t rssi2;
+    uint16_t rssi2;
     
     if (isFirst) {
         previousRssi = rssi;
@@ -837,14 +826,15 @@ static void Measure()
         isFirst      = false;
     }
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-      //  SYSTEM_DelayMs(50);
-      //  rssi2 = scanInfo.rssi = GetRssi();
-      //  if (!gIsPeak && rssi2 > rssi+10) {
+        SYSTEM_DelayMs(50);
+        rssi2 = scanInfo.rssi = GetRssi();
+        if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
+          FillfreqHistory(true);
+        }
     } 
 
    if (isListening) UpdateNoiseOff();
-   //else UpdateNoiseOn();
 
    if (!gIsPeak || !isListening)
         previousRssi = rssi;
@@ -879,16 +869,6 @@ static void UpdateScanInfo() {
     redrawScreen = true;
   }
 }
-
-/*static void UpdateDBMax(bool inc) {
-    if (inc && settings.dbMax <= 100) {settings.dbMax += 5;} 
-      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
-           else {return;}
-  settings.dbMax = ((settings.dbMax + (settings.dbMax >= 0 ? 2 : -2)) / 5) * 5;
-  redrawStatus = true;
-  redrawScreen = true;
-  SYSTEM_DelayMs(20);
-} */
 
 static void UpdateScanStep(bool inc) {
 if (inc) {
@@ -2453,14 +2433,6 @@ static void UpdateListening() {
   Measure(); 
   peak.rssi = scanInfo.rssi;
   redrawScreen = true;
-  
-  /*if (StopSpectrum > 0 && StopSpectrum <61000) { //65000 locks still mode
-      StopSpectrum-=20;
-      redrawStatus = true;
-      SYSTEM_DelayMs(1);
-      if (StopSpectrum ==0) gIsPeak = 0; 
-      }
-  */
   if (gIsPeak) {return;}
   ToggleRX(false);
   WaitSpectrum = SpectrumDelay;
