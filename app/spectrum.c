@@ -701,7 +701,7 @@ static void ToggleRX(bool on) {
 // Scan info
 static void ResetScanStats() {
   //scanInfo.rssi = 0;
-  //scanInfo.rssiMax = 0;
+  scanInfo.rssiMax = 0; //Temp
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
 }
@@ -816,6 +816,9 @@ static void Measure()
 {
     static int16_t previousRssi = 0;
     static bool isFirst = true;
+    static uint32_t stableFreq = 0;     // dernière fréquence vue
+    static uint16_t stableCount = 0;    // compteur de stabilité
+
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
     uint16_t rssi2;
@@ -824,24 +827,39 @@ static void Measure()
         previousRssi = rssi;
         gIsPeak      = false;
         isFirst      = false;
+        stableFreq   = scanInfo.f;
+        stableCount  = 0;
     }
+
+    // --- Détection classique du peak ---
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-        SYSTEM_DelayMs(50);
+        SYSTEM_DelayMs(10);
         rssi2 = scanInfo.rssi = GetRssi();
-        if (!gIsPeak && rssi2 > rssi+10) {
-          gIsPeak     = true;
-          FillfreqHistory(true);
+        if (!gIsPeak && rssi2 > rssi + 10) {
+            gIsPeak = true;
+            
         }
-    } 
+    }
 
-   if (isListening) UpdateNoiseOff();
+    // --- Détection par stabilité de fréquence ---
+    if (scanInfo.f == stableFreq) {
+        if (++stableCount >= 3000) {    // 100 passages = seuil
+            FillfreqHistory(true);
+            stableCount = 0;           // reset pour éviter répétition trop rapide
+        }
+    } else {
+        stableFreq = scanInfo.f;
+        stableCount = 0;
+    }
 
-   if (!gIsPeak || !isListening)
+    if (isListening) UpdateNoiseOff();
+
+    if (!gIsPeak || !isListening)
         previousRssi = rssi;
-   else if (rssi < previousRssi)
+    else if (rssi < previousRssi)
         previousRssi = rssi;
 
-   if (scanInfo.measurementsCount > 128) {
+    if (scanInfo.measurementsCount > 128) {
         if (rssiHistory[idx] < rssi || isListening)
             rssiHistory[idx] = rssi;
         rssiHistory[(idx + 1) % 128] = 0;
@@ -849,6 +867,7 @@ static void Measure()
     }
     rssiHistory[scanInfo.i] = rssi;
 }
+
 
 
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
@@ -1828,7 +1847,8 @@ static void OnKeyDown(uint8_t key) {
 
       case KEY_STAR:
          //UpdateRssiTriggerLevel(true);
-          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp + 5);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 15 ? settings.rssiTriggerLevelUp + 5 : settings.rssiTriggerLevelUp + 1);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
           redrawStatus = true;
@@ -1836,7 +1856,8 @@ static void OnKeyDown(uint8_t key) {
      
      case KEY_F:
         //UpdateRssiTriggerLevel(false);
-          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp - 5);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 15 ? settings.rssiTriggerLevelUp - 1 : settings.rssiTriggerLevelUp -5);
+          settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
           redrawStatus = true;
@@ -2028,7 +2049,7 @@ break;
           currentFreq = selectedFreq;
           fMeasure = selectedFreq;
           SetF(fMeasure);
-      } else {SetF(Last_Tuned_Freq);}
+      } else {if (scanInfo.f != Last_Tuned_Freq)SetF(Last_Tuned_Freq);}
 
       SetState(STILL);
       menuState = 0;
@@ -2482,14 +2503,14 @@ static void Tick() {
     }
   }
   
-/*   if (gNextTimeslice_display) {
+  if (gNextTimeslice_display) {
     gNextTimeslice_display = 0;
     latestScanListName[0] = '\0';
     RenderStatus();
     Render();
     return;
-  } */
-  if (redrawStatus) {
+  } 
+/*   if (redrawStatus) {
     latestScanListName[0] = '\0';
     RenderStatus();
     redrawStatus = false;
@@ -2498,7 +2519,7 @@ static void Tick() {
   if (redrawScreen) {
     Render();
     redrawScreen = false;
-  } 
+  }  */
 }
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {

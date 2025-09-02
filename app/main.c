@@ -321,7 +321,7 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 {
 	uint8_t Channel = gEeprom.ScreenChannel[gEeprom.TX_VFO];
-
+            
 	if (bKeyHeld || !bKeyPressed)
 	{
 		if (gInputBoxIndex > 0)
@@ -360,7 +360,7 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 
 				gTxVfo->freq_config_RX.Frequency = frequency;
 				BK4819_SetFrequency(frequency);
-				BK4819_RX_TurnOn();
+				//BK4819_RX_TurnOn();
 				gRequestSaveChannel = 1;
 				return;
 			}
