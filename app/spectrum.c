@@ -39,7 +39,7 @@ uint32_t gScanRangeStop = 13000000;             // 5
 //bool gSqMode = 0;
 bool gForceModulation = 0;
 bool classic = 1;
-uint8_t SlIndex = 1;
+uint8_t SlIndex = 0;
 //int16_t settings.rssiTriggerLevelUp   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
@@ -405,26 +405,26 @@ static void ToggleAFDAC(bool on) {
   BK4819_WriteRegister(BK4819_REG_30, Reg);
 }
 
-static void SetF(uint32_t f) {
+/* static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_SetFrequency(fMeasure + gEeprom.RX_OFFSET);
   BK4819_PickRXFilterPathBasedOnFrequency(fMeasure);
   uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
-}
+} */
 
-/* static void SetF(uint32_t f) {
+static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
   uint16_t reg;
   const uint16_t regrx = (isListening) ? 0xBFF1 : 0xBDF1; //afdac bit
- reg = 0x3FF0; // reset rx-dsp bit <0> and vco bit <15>
+  reg = 0x3FF0; // reset rx-dsp bit <0> and vco bit <15>
  //reg = regrx & ~BK4819_REG_30_ENABLE_VCO_CALIB; //vco calib TURBO
   BK4819_WriteRegister(BK4819_REG_30, reg);//reset
   BK4819_WriteRegister(BK4819_REG_30, regrx);//rx
-} */
+}
 
 static void ResetInterrupts()
 {
@@ -701,7 +701,7 @@ static void ToggleRX(bool on) {
 // Scan info
 static void ResetScanStats() {
   //scanInfo.rssi = 0;
-  scanInfo.rssiMax = 0; //Temp
+  //scanInfo.rssiMax = 0; //Temp
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
 }
@@ -772,7 +772,7 @@ static void RelaunchScan() {
     ToggleRX(false);
     preventKeypress = true;
     scanInfo.rssiMin = 150;
-    //scanInfo.rssiMax = 0;
+    scanInfo.rssiMax = 0;
     //  Reset receiving state when relaunching scan
     ResetReceivingState();
 }
@@ -799,7 +799,7 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 69; //65-72
+	const uint16_t NOISLVL = 70; //65-72
 	if( GetNoise() > NOISLVL) {
      gIsPeak = false;
   }		
@@ -882,7 +882,7 @@ static void UpdateScanInfo() {
   
   if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < RSSI_MAX_VALUE) {
     scanInfo.rssiMax = scanInfo.rssi;
-    settings.dbMax = Rssi2DBm(scanInfo.rssiMax+20);
+    settings.dbMax = Rssi2DBm(scanInfo.rssiMax);
     scanInfo.fPeak = scanInfo.f;
     scanInfo.iPeak = scanInfo.i;
     redrawScreen = true;
@@ -2201,6 +2201,14 @@ void OnKeyDownStill(KEY_Code_t key) {
   }
 }
 
+static void DrawTrigger() {
+  uint8_t high = Rssi2Y(scanInfo.rssiMin+20+settings.rssiTriggerLevelUp);
+  uint8_t low = Rssi2Y(scanInfo.rssiMin+20);
+  for (uint8_t x = 0; x < 5; x ++) {
+    PutPixel(x, high, true);
+    PutPixel(x, low, true);
+  }
+}
 
 static void RenderFreqInput() {
   UI_PrintString(freqInputString, 2, 127, 0, 8);
@@ -2219,6 +2227,7 @@ static void RenderSpectrum() {
     DrawArrow(128u * (peak.i-1) / GetStepsCount());
     //UpdateDBMaxAuto();
     DrawSpectrum();
+    DrawTrigger();
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
