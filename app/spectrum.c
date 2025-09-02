@@ -36,7 +36,7 @@ uint32_t gScanRangeStop = 13000000;             // 5
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 //bool gMonitor = 0;
-//bool turbo = 1;
+//bool gSqMode = 0;
 bool gForceModulation = 0;
 bool classic = 1;
 uint8_t SlIndex = 1;
@@ -346,7 +346,7 @@ KEY_Code_t GetKey() {
   return btn;
 }
 
-static int clamp(int v, int min, int max) {
+static int16_t clamp(int16_t v, int16_t min, int16_t max) {
   return v <= min ? min : (v >= max ? max : v);
 }
 
@@ -411,6 +411,7 @@ static void ToggleAFDAC(bool on) {
 } */
 
 static void SetF(uint32_t f, bool precise) {//RX Only!
+  fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
 
@@ -661,14 +662,6 @@ static void ResetReceivingState() {
     //lastReceivingFreq = 0;
 }
 
-static void UpdateDBMaxAuto() {
-  if (scanInfo.rssiMax > 0) settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax+30), -160, 160);
-  if (scanInfo.rssiMin > 0) settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,160);
-  //char str[64] = "";sprintf(str, "%d %d %d %d\r\n", settings.dbMax, scanInfo.rssiMax, settings.dbMin ,scanInfo.rssiMin );LogUart(str);
-  redrawStatus = true;
-  redrawScreen = true;
-}
-
 static void ToggleRX(bool on) {
     if(!on && gMonitor) return;
     isListening = on;
@@ -709,8 +702,8 @@ static void ToggleRX(bool on) {
 
 // Scan info
 static void ResetScanStats() {
-  //scanInfo.rssi = 0;
-  scanInfo.rssiMax = 0;
+  scanInfo.rssi = 0;
+  //scanInfo.rssiMax = 0;
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
 }
@@ -780,8 +773,8 @@ static void RelaunchScan() {
     InitScan();
     ToggleRX(false);
     preventKeypress = true;
-    scanInfo.rssiMin = RSSI_MAX_VALUE;
-    
+    scanInfo.rssiMin = 150;
+    //scanInfo.rssiMax = 0;
     //  Reset receiving state when relaunching scan
     ResetReceivingState();
 }
@@ -805,6 +798,7 @@ static uint8_t GetNoise() {
   //SetF(scanInfo.f, precise);
   //SYSTEM_DelayMs( (precise) ? 14 : 4 );
  //}
+ 
  return BK4819_ReadRegister(0x65) & 0b1111111;
 }
 
@@ -812,13 +806,17 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 69; //65-72
+	const uint16_t NOISLVL = 65; //65-72
 	if( GetNoise() > NOISLVL) gIsPeak = false;		
 }
 
 void UpdateNoiseOn(){
-	const uint16_t NOISLVL = 60; //65-72
-	if( GetNoise(0) < (NOISLVL) ) gIsPeak = true;		
+	const uint16_t NOISLVL = 60;
+	//if( GetNoise() < settings.rssiTriggerLevelUp) { 
+	if( GetNoise() < NOISLVL) { 
+    gIsPeak = true;
+    FillfreqHistory(true);
+  }
 }
 
 static void Measure()
@@ -827,19 +825,23 @@ static void Measure()
     static bool isFirst = true;
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
+    uint16_t rssi2;
     
     if (isFirst) {
         previousRssi = rssi;
         gIsPeak      = false;
         isFirst      = false;
     }
-
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
+        SYSTEM_DelayMs(50);
+        rssi2 = scanInfo.rssi = GetRssi();
+        if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
-          FillfreqHistory(true);
+        }
     } 
 
    if (isListening) UpdateNoiseOff();
+   //else UpdateNoiseOn();
 
    if (!gIsPeak || !isListening)
         previousRssi = rssi;
@@ -859,17 +861,19 @@ static void Measure()
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void UpdateScanInfo() {
-  if (scanInfo.rssi > scanInfo.rssiMax) {
+  
+  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 20) {
+    scanInfo.rssiMin = scanInfo.rssi;
+    settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
+    redrawScreen = true;
+  }
+  
+  if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < 300) {
     scanInfo.rssiMax = scanInfo.rssi;
+    settings.dbMax = Rssi2DBm(scanInfo.rssiMax+20);
     scanInfo.fPeak = scanInfo.f;
     scanInfo.iPeak = scanInfo.i;
-  }
-  // add attenuation offset to prevent noise floor lowering when attenuated rx is over
-  // essentially we measure non-attenuated lowest rssi
-  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
-    scanInfo.rssiMin = scanInfo.rssi;
-    //settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
-    redrawStatus = true;
+    redrawScreen = true;
   }
 }
 
@@ -1066,19 +1070,19 @@ static void Blacklist() {
 // Draw things
 
 // applied x2 to prevent initial rounding
-uint8_t Rssi2PX(uint16_t rssi, uint8_t pxMin, uint8_t pxMax) {
-  const int DB_MIN = settings.dbMin << 1;
-  const int DB_MAX = settings.dbMax << 1;
-  const int DB_RANGE = DB_MAX - DB_MIN;
+uint16_t Rssi2PX(uint16_t rssi, uint16_t pxMin, uint16_t pxMax) {
+  const int16_t DB_MIN = settings.dbMin << 1;
+  const int16_t DB_MAX = settings.dbMax << 1;
+  const int16_t DB_RANGE = DB_MAX - DB_MIN;
 
-  const uint8_t PX_RANGE = pxMax - pxMin;
+  const int16_t PX_RANGE = pxMax - pxMin;
 
   int dbm = clamp(rssi - (160 << 1), DB_MIN, DB_MAX);
 
   return ((dbm - DB_MIN) * PX_RANGE + DB_RANGE / 2) / DB_RANGE + pxMin;
 }
 
-uint8_t Rssi2Y(uint16_t rssi) {
+int16_t Rssi2Y(uint16_t rssi) {
   return DrawingEndY - Rssi2PX(rssi, 0, DrawingEndY);
 }
 
@@ -1844,6 +1848,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 250 ? 0 : settings.rssiTriggerLevelUp + 5);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+          redrawStatus = true;
       break;
      
      case KEY_F:
@@ -1851,6 +1856,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0 ? 250 : settings.rssiTriggerLevelUp - 5);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+          redrawStatus = true;
      break;
 
      case KEY_3:
@@ -1861,9 +1867,8 @@ static void OnKeyDown(uint8_t key) {
      
      case KEY_9:
         //UpdateDBMax(false);
-        ToggleModulation();
-        UpdateDBMaxAuto();
-        //turbo = !turbo;
+        //ToggleModulation();
+        //gSqMode = !gSqMode;
 
     break;
 
@@ -2010,7 +2015,7 @@ break;
     case KEY_6:    //Next Mode
     Spectrum_state++;
       if(Spectrum_state > 4) Spectrum_state = 0;
-      SYSTEM_DelayMs(2000);
+      //SYSTEM_DelayMs(2000);
       APP_RunSpectrum(Spectrum_state);
     break;
   
@@ -2210,7 +2215,6 @@ static void RenderSpectrum() {
     DrawArrow(128u * (peak.i-1) / GetStepsCount());
     //UpdateDBMaxAuto();
     DrawSpectrum();
-    //DrawRssiTriggerLevel();
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
@@ -2219,7 +2223,6 @@ static void RenderSpectrum() {
 void DrawMeter(int line) {
   const uint8_t METER_PAD_LEFT = 3;
   uint8_t x = Rssi2PX(scanInfo.rssi, 0, 121);
-  
   for (int i = 0; i < x; ++i) {
     if (i % 5) {
       gFrameBuffer[line][i + METER_PAD_LEFT] |= 0b11111111;
@@ -2238,9 +2241,9 @@ static void RenderStill() {
       }
  
   classic=1;
-  memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-  DrawF(fMeasure);
+  
   DrawMeter(2);
+  DrawF(fMeasure);
   
   classic = previousclassic;
 
@@ -2436,7 +2439,6 @@ static void UpdateScan() {
 
 static void UpdateStill() {
   Measure();
-  //scanInfo.rssi = GetRssi();
   UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
@@ -2506,22 +2508,23 @@ static void Tick() {
     }
   }
   
-  if (gNextTimeslice_100ms) {
+/*   if (gNextTimeslice_display) {
+    gNextTimeslice_display = 0;
     latestScanListName[0] = '\0';
     RenderStatus();
     Render();
-  }
-/*   if (redrawStatus || ++statuslineUpdateTimer > 4096) {
+    return;
+  } */
+  if (redrawStatus) {
     latestScanListName[0] = '\0';
     RenderStatus();
     redrawStatus = false;
-    statuslineUpdateTimer = 0;
   }
   
   if (redrawScreen) {
     Render();
     redrawScreen = false;
-  } */
+  } 
 }
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
