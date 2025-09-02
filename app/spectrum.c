@@ -346,7 +346,11 @@ KEY_Code_t GetKey() {
   return btn;
 }
 
-static int16_t clamp(int16_t v, int16_t min, int16_t max) {
+/* static int16_t clamp(int16_t v, int16_t min, int16_t max) {
+  return v <= min ? min : (v >= max ? max : v);
+} */
+
+static int clamp(int v, int min, int max) {
   return v <= min ? min : (v >= max ? max : v);
 }
 
@@ -360,8 +364,8 @@ void SetState(State state) {
 // Radio functions
 
 static void ToggleAFBit(bool on) {
-  //uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
-  uint32_t reg = regs_cache[BK4819_REG_47];
+  uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
+  //uint32_t reg = regs_cache[BK4819_REG_47];
   reg &= ~(1 << 8);
   if (on)
     reg |= on << 8;
@@ -393,24 +397,24 @@ static void RestoreRegisters() {
 }
 
 static void ToggleAFDAC(bool on) {
-  //uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
-  uint32_t Reg = regs_cache[BK4819_REG_30];
+  uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
+  //uint32_t Reg = regs_cache[BK4819_REG_30];
   Reg &= ~(1 << 9);
   if (on)
     Reg |= (1 << 9);
   BK4819_WriteRegister(BK4819_REG_30, Reg);
 }
 
-/* static void SetF(uint32_t f) {
+static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_SetFrequency(fMeasure + gEeprom.RX_OFFSET);
   BK4819_PickRXFilterPathBasedOnFrequency(fMeasure);
   uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
-} */
+}
 
-static void SetF(uint32_t f, bool precise) {//RX Only!
+/* static void SetF(uint32_t f, bool precise) {//RX Only!
   fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
@@ -426,7 +430,7 @@ static void SetF(uint32_t f, bool precise) {//RX Only!
   
   BK4819_WriteRegister(BK4819_REG_30, reg);//reset
   BK4819_WriteRegister(BK4819_REG_30, regrx);//rx
-}
+} */
 
 static void ResetInterrupts()
 {
@@ -475,7 +479,7 @@ static void TuneToPeak() {
   scanInfo.f = Last_Tuned_Freq = peak.f;
   scanInfo.rssi = peak.rssi;
   scanInfo.i = peak.i;
-  SetF(scanInfo.f,1);
+  SetF(scanInfo.f);
 }
 
 uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
@@ -702,7 +706,7 @@ static void ToggleRX(bool on) {
 
 // Scan info
 static void ResetScanStats() {
-  scanInfo.rssi = 0;
+  //scanInfo.rssi = 0;
   //scanInfo.rssiMax = 0;
   scanInfo.iPeak = 0;
   scanInfo.fPeak = 0;
@@ -806,7 +810,7 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 65; //65-72
+	const uint16_t NOISLVL = 69; //65-72
 	if( GetNoise() > NOISLVL) gIsPeak = false;		
 }
 
@@ -825,7 +829,7 @@ static void Measure()
     static bool isFirst = true;
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    uint16_t rssi2;
+    //uint16_t rssi2;
     
     if (isFirst) {
         previousRssi = rssi;
@@ -833,11 +837,10 @@ static void Measure()
         isFirst      = false;
     }
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-        SYSTEM_DelayMs(50);
-        rssi2 = scanInfo.rssi = GetRssi();
-        if (!gIsPeak && rssi2 > rssi+10) {
+      //  SYSTEM_DelayMs(50);
+      //  rssi2 = scanInfo.rssi = GetRssi();
+      //  if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
-        }
     } 
 
    if (isListening) UpdateNoiseOff();
@@ -862,13 +865,13 @@ static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void UpdateScanInfo() {
   
-  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 20) {
+  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
     scanInfo.rssiMin = scanInfo.rssi;
     settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
     redrawScreen = true;
   }
   
-  if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < 300) {
+  if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < RSSI_MAX_VALUE) {
     scanInfo.rssiMax = scanInfo.rssi;
     settings.dbMax = Rssi2DBm(scanInfo.rssiMax+20);
     scanInfo.fPeak = scanInfo.f;
@@ -923,7 +926,7 @@ static void UpdateCurrentFreqStill(bool inc) {
   } else if (!inc && f > RX_freq_min()) {
     f -= offset;
   }
-  SetF(f,1);
+  SetF(f);
   redrawScreen = true;
 }
 
@@ -2038,14 +2041,14 @@ break;
         uint32_t selectedFreq = freqHistory[historyListIndex+1];
         currentFreq = selectedFreq;
         fMeasure = selectedFreq;
-        SetF(fMeasure,1);
+        SetF(fMeasure);
       }
       else if (historyListIndex < validCount && ShowHistory) {
           uint32_t selectedFreq = freqHistory[indexFd];
           currentFreq = selectedFreq;
           fMeasure = selectedFreq;
-          SetF(fMeasure,1);
-      } else {SetF(Last_Tuned_Freq,1);}
+          SetF(fMeasure);
+      } else {SetF(Last_Tuned_Freq);}
 
       SetState(STILL);
       menuState = 0;
@@ -2407,8 +2410,7 @@ static void Scan() {
   && !IsBlacklisted(scanInfo.i)
 
   ) {
-    //SetF(scanInfo.f,turbo);
-    SetF(scanInfo.f,1);
+    SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
   }
@@ -2438,7 +2440,7 @@ static void UpdateScan() {
 }
 
 static void UpdateStill() {
-  Measure();
+  //Measure();
   UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
