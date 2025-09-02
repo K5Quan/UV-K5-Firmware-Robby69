@@ -364,8 +364,8 @@ void SetState(State state) {
 // Radio functions
 
 static void ToggleAFBit(bool on) {
-  //uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
-  uint32_t reg = regs_cache[BK4819_REG_47];
+  uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
+  //uint32_t reg = regs_cache[BK4819_REG_47];
   reg &= ~(1 << 8);
   if (on)
     reg |= on << 8;
@@ -397,24 +397,24 @@ static void RestoreRegisters() {
 }
 
 static void ToggleAFDAC(bool on) {
-  //uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
-  uint32_t Reg = regs_cache[BK4819_REG_30];
+  uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
+  //uint32_t Reg = regs_cache[BK4819_REG_30];
   Reg &= ~(1 << 9);
   if (on)
     Reg |= (1 << 9);
   BK4819_WriteRegister(BK4819_REG_30, Reg);
 }
 
-/* static void SetF(uint32_t f) {
+static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_SetFrequency(fMeasure + gEeprom.RX_OFFSET);
   BK4819_PickRXFilterPathBasedOnFrequency(fMeasure);
   uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
   BK4819_WriteRegister(BK4819_REG_30, 0);
   BK4819_WriteRegister(BK4819_REG_30, reg);
-} */
+}
 
-static void SetF(uint32_t f) {
+/* static void SetF(uint32_t f) {
   fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
@@ -424,7 +424,7 @@ static void SetF(uint32_t f) {
  //reg = regrx & ~BK4819_REG_30_ENABLE_VCO_CALIB; //vco calib TURBO
   BK4819_WriteRegister(BK4819_REG_30, reg);//reset
   BK4819_WriteRegister(BK4819_REG_30, regrx);//rx
-}
+} */
 
 static void ResetInterrupts()
 {
