@@ -357,9 +357,10 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 				{	// frequency not allowed
 					return;
 				}
-
+				
 				gTxVfo->freq_config_RX.Frequency = frequency;
 				BK4819_SetFrequency(frequency);
+				
 				//BK4819_RX_TurnOn();
 				gRequestSaveChannel = 1;
 				return;

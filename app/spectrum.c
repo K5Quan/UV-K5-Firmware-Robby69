@@ -82,7 +82,7 @@ uint8_t refresh = 0;
 #define F_MAX frequencyBandTable[ARRAY_SIZE(frequencyBandTable) - 1].upper
 #define Bottom_print 51 //Robby69
 Mode appMode;
-#define UHF_NOISE_FLOOR 20
+#define UHF_NOISE_FLOOR 0
 
 uint8_t scanChannel[MR_CHANNEL_LAST + 3];
 uint8_t ScanListNumber[MR_CHANNEL_LAST + 3];
@@ -93,7 +93,6 @@ void ToggleScanList();
 static void LoadSettings();
 static void SaveSettings();
 const uint16_t RSSI_MAX_VALUE = 65535;
-static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[100];
 static char StringC[10];
@@ -372,30 +371,6 @@ static void ToggleAFBit(bool on) {
   BK4819_WriteRegister(BK4819_REG_47, reg);
 }
 
-static void BackupRegisters() {
-  R30 = BK4819_ReadRegister(BK4819_REG_30);
-  R37 = BK4819_ReadRegister(BK4819_REG_37);
-  R3D = BK4819_ReadRegister(BK4819_REG_3D);
-  R43 = BK4819_ReadRegister(BK4819_REG_43);
-  R47 = BK4819_ReadRegister(BK4819_REG_47);
-  R48 = BK4819_ReadRegister(BK4819_REG_48);
-  R7E = BK4819_ReadRegister(BK4819_REG_7E);
-  R02 = BK4819_ReadRegister(BK4819_REG_02);
-  R3F = BK4819_ReadRegister(BK4819_REG_3F);
-}
-
-static void RestoreRegisters() {
-  BK4819_WriteRegister(BK4819_REG_30, R30);
-  BK4819_WriteRegister(BK4819_REG_37, R37);
-  BK4819_WriteRegister(BK4819_REG_3D, R3D);
-  BK4819_WriteRegister(BK4819_REG_43, R43);
-  BK4819_WriteRegister(BK4819_REG_47, R47);
-  BK4819_WriteRegister(BK4819_REG_48, R48);
-  BK4819_WriteRegister(BK4819_REG_7E, R7E);
-  BK4819_WriteRegister(BK4819_REG_02, R02);
-  BK4819_WriteRegister(BK4819_REG_3F, R3F);
-}
-
 static void ToggleAFDAC(bool on) {
   uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
   //uint32_t Reg = regs_cache[BK4819_REG_30];
@@ -437,7 +412,7 @@ static void ResetInterrupts()
 static void ResetPeak() {
     peak.t = 0;
     peak.rssi = 0;
-    peak.f = 0; // DODAJ TO
+    //peak.f = 0; // DODAJ TO
     peak.i = 0; // ORAZ TO (jeśli peak.i jest używane jako indeks w danych szczytu)
 }
 
@@ -487,8 +462,8 @@ uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
 
 static void DeInitSpectrum(bool ComeBack) {
   
-  RestoreRegisters();
-  gVfoConfigureMode = VFO_CONFIGURE;
+  
+  //gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   SetState(SPECTRUM);
   if(!ComeBack) {
@@ -508,8 +483,7 @@ static void DeInitSpectrum(bool ComeBack) {
 }
 
 static void ExitAndCopyToVfo() {
-  RestoreRegisters();
-
+  
 
   switch (currentState) {
     case HISTORY_LIST: 
@@ -703,7 +677,7 @@ static void ResetScanStats() {
   //scanInfo.rssi = 0;
   //scanInfo.rssiMax = 0; //Temp
   scanInfo.iPeak = 0;
-  scanInfo.fPeak = 0;
+  //scanInfo.fPeak = 0;
 }
 
 bool SingleBandCheck(void) {
@@ -799,17 +773,13 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 70; //65-72
-	if( GetNoise() > NOISLVL) {
-     gIsPeak = false;
-  }		
+	const uint16_t NOISLVL = 72; //65-72
+	if( GetNoise() > NOISLVL) {gIsPeak = false;}		
 }
 
 void UpdateNoiseOn(){
 	const uint16_t NOISLVL = 60;
-	if( GetNoise() < NOISLVL) { 
-    gIsPeak = true;
-  }
+	if( GetNoise() < NOISLVL) {gIsPeak = true;}
 }
 
 static void Measure()
@@ -821,7 +791,6 @@ static void Measure()
 
     uint8_t idx = CurrentScanIndex();
     uint16_t rssi = scanInfo.rssi = GetRssi();
-    uint16_t rssi2;
     
     if (isFirst) {
         previousRssi = rssi;
@@ -833,14 +802,11 @@ static void Measure()
 
     // --- Détection classique du peak ---
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-        SYSTEM_DelayMs(10);
-        rssi2 = scanInfo.rssi = GetRssi();
-        if (!gIsPeak && rssi2 > rssi + 10) {
-            gIsPeak = true;
-            
-        }
+      gIsPeak = true;
+      SYSTEM_DelayMs(200);
+      UpdateNoiseOff();
     }
-
+    
     // --- Détection par stabilité de fréquence ---
     if (scanInfo.f == stableFreq) {
         if (++stableCount >= 3000) {    // 100 passages = seuil
@@ -1147,7 +1113,13 @@ static void DrawStatus() {
       pos += len;
     break;
   } 
-  len = sprintf(&String[pos],"U%d %dms %s %s ", settings.rssiTriggerLevelUp,DelayRssi, gModulationStr[settings.modulationType],bwNames[settings.listenBw]);
+
+  len = sprintf(&String[pos],"U%d %dms ", settings.rssiTriggerLevelUp,DelayRssi);
+  pos += len;  // Move position forward
+
+  if(gForceModulation) {len = sprintf(&String[pos],"!");pos += len;}
+
+  len = sprintf(&String[pos],"%s %s ", gModulationStr[settings.modulationType],bwNames[settings.listenBw]);
   pos += len;  // Move position forward
   
   if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
@@ -2224,7 +2196,7 @@ static void RenderStatus() {
 static void RenderSpectrum() {
   if(classic){
     DrawNums();
-    DrawArrow(128u * (peak.i-1) / GetStepsCount());
+    //DrawArrow(128u * (peak.i-1) / GetStepsCount());
     //UpdateDBMaxAuto();
     DrawSpectrum();
     DrawTrigger();
@@ -2481,7 +2453,7 @@ static void Tick() {
     // if a lot of steps then it takes long time
     // we don't want to wait for whole scan
     // listening has it's own timer
-    if(GetStepsCount()>128 && !isListening) {
+/*     if(GetStepsCount()>128 && !isListening) {
       UpdatePeakInfo();
       if (gIsPeak) {
         TuneToPeak();
@@ -2491,7 +2463,7 @@ static void Tick() {
       }
       redrawScreen = true;
       preventKeypress = false;
-    }
+    } */
   }
 
   if (!preventKeypress) {
@@ -2512,6 +2484,8 @@ static void Tick() {
     }
   }
   
+  DrawArrow(128u * (peak.i-1) / GetStepsCount());
+
   if (gNextTimeslice_display) {
     gNextTimeslice_display = 0;
     latestScanListName[0] = '\0';
@@ -2549,7 +2523,6 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
     currentFreq = initialFreq = gScanRangeStart;
   }
    if(appMode==FREQUENCY_MODE) {currentFreq = initialFreq = gTxVfo->pRX->Frequency;}
-  BackupRegisters();
   ResetInterrupts();
 
   // turn of GREEN LED if spectrum was started during active RX
@@ -2707,7 +2680,8 @@ void SaveSettings()
     }
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
-    EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
+    {EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
+    SYSTEM_DelayMs(20);}
   
 }
 
