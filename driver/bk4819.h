@@ -139,7 +139,7 @@ void     BK4819_EnableCTCSS(void);
 
 uint16_t BK4819_GetRSSI(void);
 uint8_t  BK4819_GetGlitchIndicator(void);
-uint8_t  BK4819_GetExNoiceIndicator(void);
+uint8_t  BK4819_GetExNoiseIndicator(void);
 uint16_t BK4819_GetVoiceAmplitudeOut(void);
 uint8_t  BK4819_GetAfTxRx(void);
 

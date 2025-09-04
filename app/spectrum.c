@@ -32,7 +32,6 @@ uint32_t gScanRangeStop = 13000000;             // 5
 //Step                                          // 6
 //ListenBW                                      // 7
 //Modulation                                    // 8
-//int16_t settings.rssiTriggerLevelUp   = 20;                // 9
 #define PARAMETER_COUNT 8
 ////////////////////////////////////////////////////////////////////
 //bool gMonitor = 0;
@@ -40,7 +39,6 @@ uint32_t gScanRangeStop = 13000000;             // 5
 bool gForceModulation = 0;
 bool classic = 1;
 uint8_t SlIndex = 0;
-//int16_t settings.rssiTriggerLevelUp   = 20;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 //uint16_t StopSpectrum = 0;
@@ -139,14 +137,13 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              bw: BK4819_FILTER_BW_WIDE,
                              listenBw: BK4819_FILTER_BW_NARROWEST,
                              modulationType: false,
-                             dbMin: -128,
-                             dbMax: 10,
+                             dbMin: -120,
+                             dbMax: -50,
                              scanList: S_SCAN_LIST_ALL,
                              scanListEnabled: {0},
                              bandEnabled: {0}
                             };
 
-uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
@@ -380,17 +377,7 @@ static void ToggleAFDAC(bool on) {
   BK4819_WriteRegister(BK4819_REG_30, Reg);
 }
 
-/* static void SetF(uint32_t f) {
-  fMeasure = f;
-  BK4819_SetFrequency(fMeasure + gEeprom.RX_OFFSET);
-  BK4819_PickRXFilterPathBasedOnFrequency(fMeasure);
-  uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
-  BK4819_WriteRegister(BK4819_REG_30, 0);
-  BK4819_WriteRegister(BK4819_REG_30, reg);
-} */
-
 static void SetF(uint32_t f) {
-  fMeasure = f;
   BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
   uint16_t reg;
@@ -445,9 +432,11 @@ uint32_t GetFEnd() {
 	return (currentFreq + (GetBW() >> 1));} //robby69
 
 static void TuneToPeak() {
-  scanInfo.f = Last_Tuned_Freq = peak.f;
+  if (peak.f < 1400000 || peak.f > 130000000) return;
+  scanInfo.f = peak.f;
+  Last_Tuned_Freq = peak.f;
   scanInfo.rssi = peak.rssi;
-  scanInfo.i = peak.i;
+  if(peak.i > 0) scanInfo.i = peak.i;
   SetF(scanInfo.f);
 }
 
@@ -568,7 +557,7 @@ uint16_t GetRssi(void) {
         if(test) rssi = test;
   }
     
-    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
+    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(scanInfo.f) > BAND4_174MHz)) {
         rssi += UHF_NOISE_FLOOR;
       }
   return rssi;
@@ -677,7 +666,7 @@ static void ResetScanStats() {
   //scanInfo.rssi = 0;
   //scanInfo.rssiMax = 0; //Temp
   scanInfo.iPeak = 0;
-  //scanInfo.fPeak = 0;
+  scanInfo.fPeak = 0;
 }
 
 bool SingleBandCheck(void) {
@@ -765,21 +754,18 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
-static uint8_t GetNoise() {
- return BK4819_ReadRegister(0x65) & 0b1111111;
-}
-
 bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 72; //65-72
-	if( GetNoise() > NOISLVL) {gIsPeak = false;}		
+	const uint16_t NOISLVL = 69; //65-72
+	if( BK4819_GetExNoiseIndicator() > NOISLVL) {gIsPeak = false;}		
+  //if( BK4819_GetExNoiseIndicator() > settings.rssiTriggerLevelUp) {gIsPeak = false;}		
 }
 
 void UpdateNoiseOn(){
 	const uint16_t NOISLVL = 60;
-	if( GetNoise() < NOISLVL) {gIsPeak = true;}
+	if( BK4819_GetExNoiseIndicator() < NOISLVL) {gIsPeak = true;}
 }
 
 static void Measure()
@@ -802,9 +788,11 @@ static void Measure()
 
     // --- Détection classique du peak ---
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
+    //if (!gIsPeak && rssi > previousRssi + 10) {
       gIsPeak = true;
-      SYSTEM_DelayMs(200);
+      SYSTEM_DelayMs(20);
       UpdateNoiseOff();
+      //UpdateNoiseOff();
     }
     
     // --- Détection par stabilité de fréquence ---
@@ -848,7 +836,9 @@ static void UpdateScanInfo() {
   
   if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < RSSI_MAX_VALUE) {
     scanInfo.rssiMax = scanInfo.rssi;
-    settings.dbMax = Rssi2DBm(scanInfo.rssiMax);
+    if (scanInfo.rssiMax-scanInfo.rssiMin >30)
+        settings.dbMax = Rssi2DBm(scanInfo.rssiMax);
+    else scanInfo.rssiMax=scanInfo.rssiMin +30;
     scanInfo.fPeak = scanInfo.f;
     scanInfo.iPeak = scanInfo.i;
     redrawScreen = true;
@@ -885,7 +875,7 @@ static void UpdateCurrentFreq(bool inc) {
 
 static void UpdateCurrentFreqStill(bool inc) {
   uint8_t offset = modulationTypeTuneSteps[settings.modulationType];
-  uint32_t f = fMeasure;
+  uint32_t f = scanInfo.f;
   if (inc && f < F_MAX) {
     f += offset;
   } else if (!inc && f > RX_freq_min()) {
@@ -1783,11 +1773,7 @@ static void OnKeyDown(uint8_t key) {
                           }
                       }
                       break;
-                  /*case 8: // settings.rssiTriggerLevelUp
-                      settings.rssiTriggerLevelUp = isKey3 ?
-                                (settings.rssiTriggerLevelUp >= 500 ? 0 : settings.rssiTriggerLevelUp + 5) :
-                                (settings.rssiTriggerLevelUp <= 0 ? 500 : settings.rssiTriggerLevelUp - 5);
-                      break;*/
+
               }
             
               if (isKey3 || redrawNeeded) { //TO REMOVE MAYBE
@@ -1849,13 +1835,10 @@ static void OnKeyDown(uint8_t key) {
     break;
 
      case KEY_1: //SKIP
-        //settings.rssiTriggerLevelUp = peak.rssi;
-        //rssiHistory[CurrentScanIndex()] = RSSI_MAX_VALUE;
-        //rssiHistory[peak.i] = RSSI_MAX_VALUE;
-        //ResetPeak();
         gIsPeak = false;
-        ToggleRX(false);
-        NextScanStep();
+        RelaunchScan();
+        //ToggleRX(false);
+        //NextScanStep();
 
      break;
      
@@ -2013,14 +1996,14 @@ break;
       if (currentState == HISTORY_LIST) {
         uint32_t selectedFreq = freqHistory[historyListIndex+1];
         currentFreq = selectedFreq;
-        fMeasure = selectedFreq;
-        SetF(fMeasure);
+        scanInfo.f = selectedFreq;
+        SetF(selectedFreq);
       }
       else if (historyListIndex < validCount && ShowHistory) {
           uint32_t selectedFreq = freqHistory[indexFd];
           currentFreq = selectedFreq;
-          fMeasure = selectedFreq;
-          SetF(fMeasure);
+          scanInfo.f= selectedFreq;
+          SetF(selectedFreq);
       } else {if (scanInfo.f != Last_Tuned_Freq)SetF(Last_Tuned_Freq);}
 
       SetState(STILL);
@@ -2173,14 +2156,14 @@ void OnKeyDownStill(KEY_Code_t key) {
   }
 }
 
-static void DrawTrigger() {
+/* static void DrawTrigger() {
   uint8_t high = Rssi2Y(scanInfo.rssiMin+20+settings.rssiTriggerLevelUp);
   uint8_t low = Rssi2Y(scanInfo.rssiMin+20);
   for (uint8_t x = 0; x < 5; x ++) {
     PutPixel(x, high, true);
     PutPixel(x, low, true);
   }
-}
+} */
 
 static void RenderFreqInput() {
   UI_PrintString(freqInputString, 2, 127, 0, 8);
@@ -2196,10 +2179,9 @@ static void RenderStatus() {
 static void RenderSpectrum() {
   if(classic){
     DrawNums();
-    //DrawArrow(128u * (peak.i-1) / GetStepsCount());
-    //UpdateDBMaxAuto();
     DrawSpectrum();
-    DrawTrigger();
+    //DrawTrigger();
+    //DrawArrow(128u * (peak.i-1) / GetStepsCount());
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
@@ -2226,14 +2208,16 @@ static void RenderStill() {
       }
  
   classic=1;
-  
-  DrawMeter(2);
-  DrawF(fMeasure);
+  if (gNextTimeslice_display) {
+      DrawMeter(2);
+      DrawF(scanInfo.f);
+      gNextTimeslice_display = 0;
+  }
   
   classic = previousclassic;
 
   sLevelAttributes sLevelAtt;
-  sLevelAtt = GetSLevelAttributes(scanInfo.rssi, fMeasure);
+  sLevelAtt = GetSLevelAttributes(scanInfo.rssi, scanInfo.f);
 
   if(sLevelAtt.over > 0)
     sprintf(String, "S%2d+%2d", sLevelAtt.sLevel, sLevelAtt.over);
@@ -2616,7 +2600,6 @@ typedef struct {
     uint8_t SLRssiTriggerLevelUp[15];
     uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
     uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
-    uint8_t rssiTriggerLevel;
     int16_t Trigger;
     int8_t dbMax;
     uint32_t RangeStart;
@@ -2800,9 +2783,6 @@ static void GetParametersText(uint8_t index, char *buffer) {
             sprintf(buffer, "Modulation: %s", gModulationStr[settings.modulationType]);
             break;
         
-        /*case 8:
-            sprintf(buffer, "TriggerUp: %d", settings.rssiTriggerLevelUp);
-            break;*/
         default:
             // Gestion d'un index inattendu (optionnel)
             buffer[0] = '\0';
