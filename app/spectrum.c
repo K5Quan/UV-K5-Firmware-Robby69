@@ -38,7 +38,7 @@ uint32_t gScanRangeStop = 13000000;             // 5
 //bool gSqMode = 0;
 bool gForceModulation = 0;
 bool classic = 1;
-uint8_t SlIndex = 0;
+uint8_t SlIndex = 1;
 bool Key_1_pressed = 0;
 uint16_t WaitSpectrum = 0; 
 //uint16_t StopSpectrum = 0;
@@ -758,7 +758,7 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 69; //65-72
+	const uint16_t NOISLVL = 72; //65-72
 	if( BK4819_GetExNoiseIndicator() > NOISLVL) {gIsPeak = false;}		
   //if( BK4819_GetExNoiseIndicator() > settings.rssiTriggerLevelUp) {gIsPeak = false;}		
 }
@@ -788,18 +788,20 @@ static void Measure()
 
     // --- Détection classique du peak ---
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-    //if (!gIsPeak && rssi > previousRssi + 10) {
-      gIsPeak = true;
-      SYSTEM_DelayMs(20);
-      UpdateNoiseOff();
-      //UpdateNoiseOff();
+/*         SYSTEM_DelayMs(15);
+        uint16_t rssi2 = scanInfo.rssi = GetRssi();
+        if (rssi2 > rssi + 10) {
+          gIsPeak     = true;
+        } */
+       gIsPeak     = true;
     }
-    
+
     // --- Détection par stabilité de fréquence ---
     if (scanInfo.f == stableFreq) {
         if (++stableCount >= 3000) {    // 100 passages = seuil
             FillfreqHistory(true);
             stableCount = 0;           // reset pour éviter répétition trop rapide
+            
         }
     } else {
         stableFreq = scanInfo.f;
@@ -836,9 +838,7 @@ static void UpdateScanInfo() {
   
   if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < RSSI_MAX_VALUE) {
     scanInfo.rssiMax = scanInfo.rssi;
-    if (scanInfo.rssiMax-scanInfo.rssiMin >30)
-        settings.dbMax = Rssi2DBm(scanInfo.rssiMax);
-    else scanInfo.rssiMax=scanInfo.rssiMin +30;
+    settings.dbMax = Rssi2DBm(scanInfo.rssiMax+30);
     scanInfo.fPeak = scanInfo.f;
     scanInfo.iPeak = scanInfo.i;
     redrawScreen = true;
@@ -1853,36 +1853,35 @@ static void OnKeyDown(uint8_t key) {
 
      case KEY_8:
 
-if ((ShowHistory) && (kbd.counter == 16)) { //(long press):
-    memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0]));
-    memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0]));
-    indexFd = 1;
-    indexFs = 1;
-    
-    // DODAJ TO: Reset receiving state when history is cleared
-    ResetReceivingState();
-    
-    // Jeśli jesteśmy w trybie HISTORY_LIST, wyjdź z niego
-    if (currentState == HISTORY_LIST) {
-        SetState(SPECTRUM);
-        historyListActive = false;
-        historyListIndex = 0;
-        historyScrollOffset = 0;
-    }
-    
-    // Wymuś pełne odświeżenie ekranu
-    redrawScreen = true;
-    redrawStatus = true;
-    ShowHistory = false;
-    PopUpclear = 1;
+        if ((ShowHistory) && (kbd.counter == 16)) { //(long press):
+            memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0]));
+            memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0]));
+            indexFd = 1;
+            indexFs = 1;
 
-}
-else ShowHistory = !ShowHistory;
-redrawStatus = true;
-break;
+            // DODAJ TO: Reset receiving state when history is cleared
+            ResetReceivingState();
+
+            // Jeśli jesteśmy w trybie HISTORY_LIST, wyjdź z niego
+            if (currentState == HISTORY_LIST) {
+                SetState(SPECTRUM);
+                historyListActive = false;
+                historyListIndex = 0;
+                historyScrollOffset = 0;
+            }
+
+            // Wymuś pełne odświeżenie ekranu
+            redrawScreen = true;
+            redrawStatus = true;
+            ShowHistory = false;
+            PopUpclear = 1;       
+        }
+      else ShowHistory = !ShowHistory;
+      redrawStatus = true;
+      break;
 
       
-    case KEY_UP:
+    case KEY_UP: //SL +
     redrawScreen = true;
     if (currentState == HISTORY_LIST) {
         if (historyListIndex > 0) {
@@ -2181,7 +2180,7 @@ static void RenderSpectrum() {
     DrawNums();
     DrawSpectrum();
     //DrawTrigger();
-    //DrawArrow(128u * (peak.i-1) / GetStepsCount());
+    DrawArrow(128u * (peak.i-1) / GetStepsCount());
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
@@ -2208,11 +2207,8 @@ static void RenderStill() {
       }
  
   classic=1;
-  if (gNextTimeslice_display) {
-      DrawMeter(2);
-      DrawF(scanInfo.f);
-      gNextTimeslice_display = 0;
-  }
+  DrawMeter(2);
+  DrawF(scanInfo.f);
   
   classic = previousclassic;
 
@@ -2407,7 +2403,7 @@ static void UpdateScan() {
 
 static void UpdateStill() {
   //Measure();
-  UpdateNoiseOn();
+  if(!isListening) UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
   peak.rssi = scanInfo.rssi;
@@ -2468,8 +2464,6 @@ static void Tick() {
     }
   }
   
-  DrawArrow(128u * (peak.i-1) / GetStepsCount());
-
   if (gNextTimeslice_display) {
     gNextTimeslice_display = 0;
     latestScanListName[0] = '\0';
@@ -2477,16 +2471,6 @@ static void Tick() {
     Render();
     return;
   } 
-/*   if (redrawStatus) {
-    latestScanListName[0] = '\0';
-    RenderStatus();
-    redrawStatus = false;
-  }
-  
-  if (redrawScreen) {
-    Render();
-    redrawScreen = false;
-  }  */
 }
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
