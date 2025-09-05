@@ -399,14 +399,11 @@ static void ToggleAFDAC(bool on) {
 }
 
 static void SetF(uint32_t f) {
-  BK4819_PickRXFilterPathBasedOnFrequency(f);
   BK4819_SetFrequency(f);
-  uint16_t reg;
-  const uint16_t regrx = (isListening) ? 0xBFF1 : 0xBDF1; //afdac bit
-  reg = 0x3FF0; // reset rx-dsp bit <0> and vco bit <15>
- //reg = regrx & ~BK4819_REG_30_ENABLE_VCO_CALIB; //vco calib TURBO
-  BK4819_WriteRegister(BK4819_REG_30, reg);//reset
-  BK4819_WriteRegister(BK4819_REG_30, regrx);//rx
+  BK4819_PickRXFilterPathBasedOnFrequency(f);
+  uint16_t reg = BK4819_ReadRegister(BK4819_REG_30);
+  BK4819_WriteRegister(BK4819_REG_30, 0);
+  BK4819_WriteRegister(BK4819_REG_30, reg);
 }
 
 static void ResetInterrupts()
@@ -779,9 +776,8 @@ bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
-	const uint16_t NOISLVL = 72; //65-72
-	if( BK4819_GetExNoiseIndicator() > NOISLVL) {gIsPeak = false;}		
-  //if( BK4819_GetExNoiseIndicator() > settings.rssiTriggerLevelUp) {gIsPeak = false;}		
+	const uint16_t NOISLVL = 69; //65-72
+	if( BK4819_GetExNoiseIndicator() > NOISLVL) {gIsPeak = false;}
 }
 
 void UpdateNoiseOn(){
@@ -845,22 +841,38 @@ static void Measure()
 
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
+static void UpdateDBMaxAuto() {
+  if (scanInfo.rssiMax > 0) settings.dbMax = clamp(Rssi2DBm(scanInfo.rssiMax+20), -160, 160);
+  if (scanInfo.rssiMin > 0) settings.dbMin = clamp(Rssi2DBm(scanInfo.rssiMin),-160,160);
+  //char str[64] = "";sprintf(str, "%d %d %d %d\r\n", settings.dbMax, scanInfo.rssiMax, settings.dbMin ,scanInfo.rssiMin );LogUart(str);
+  redrawStatus = true;
+  redrawScreen = true;
+}
+
 static void UpdateScanInfo() {
-  
-  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
-    scanInfo.rssiMin = scanInfo.rssi;
-    settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
-    redrawScreen = true;
-  }
-  
-  if (scanInfo.rssi > scanInfo.rssiMax && scanInfo.rssi < RSSI_MAX_VALUE) {
+  if (scanInfo.rssi > scanInfo.rssiMax) {
     scanInfo.rssiMax = scanInfo.rssi;
-    settings.dbMax = Rssi2DBm(scanInfo.rssiMax+30);
     scanInfo.fPeak = scanInfo.f;
     scanInfo.iPeak = scanInfo.i;
-    redrawScreen = true;
+  }
+  // add attenuation offset to prevent noise floor lowering when attenuated rx is over
+  // essentially we measure non-attenuated lowest rssi
+  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
+    scanInfo.rssiMin = scanInfo.rssi;
+    //settings.dbMin = Rssi2DBm(scanInfo.rssiMin);
+    redrawStatus = true;
   }
 }
+
+/*static void UpdateDBMax(bool inc) {
+    if (inc && settings.dbMax <= 100) {settings.dbMax += 5;} 
+      else if (!inc && settings.dbMax > settings.dbMin) {settings.dbMax -= 5;} 
+           else {return;}
+  settings.dbMax = ((settings.dbMax + (settings.dbMax >= 0 ? 2 : -2)) / 5) * 5;
+  redrawStatus = true;
+  redrawScreen = true;
+  SYSTEM_DelayMs(20);
+} */
 
 static void UpdateScanStep(bool inc) {
 if (inc) {
@@ -2188,6 +2200,7 @@ static void RenderSpectrum() {
     DrawSpectrum();
     //DrawTrigger();
     DrawArrow(128u * (peak.i-1) / GetStepsCount());
+    UpdateDBMaxAuto();
   }
   //DrawF(peak.f); 
   DrawF(scanInfo.f); 
@@ -2410,7 +2423,8 @@ static void UpdateScan() {
 
 static void UpdateStill() {
   //Measure();
-  if(!isListening) UpdateNoiseOn();
+  scanInfo.rssi = GetRssi();
+  UpdateNoiseOn();
   redrawScreen = true;
   preventKeypress = false;
   peak.rssi = scanInfo.rssi;
@@ -2435,11 +2449,26 @@ static void Tick() {
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
     gNextTimeslice_500ms = false;
+
+
+    // if a lot of steps then it takes long time
+    // we don't want to wait for whole scan
+    // listening has it's own timer
+    if(GetStepsCount()>128 && !isListening) {
+      UpdatePeakInfo();
+      if (gIsPeak) {
+        TuneToPeak();
+        ToggleRX(true);
+        if (SpectrumDelay)SetState(STILL);
+		    return;
+      }
+      redrawScreen = true;
+      preventKeypress = false;
+    }
   }
 
-  if (!preventKeypress && gNextTimeslice_keys) {
+  if (!preventKeypress) {
     HandleUserInput();
-    gNextTimeslice_keys = 0;
   }
   if (newScanStart) {
     ResetPeak();
@@ -2455,14 +2484,17 @@ static void Tick() {
       UpdateStill();
     }
   }
-  
-  if (gNextTimeslice_display) {
-    gNextTimeslice_display = 0;
+  if (redrawStatus || ++statuslineUpdateTimer > 4096) {
     latestScanListName[0] = '\0';
     RenderStatus();
+    redrawStatus = false;
+    statuslineUpdateTimer = 0;
+  }
+  //if (redrawScreen && gNextTimeslice_200ms) {
+  if (redrawScreen) {
     Render();
-    return;
-  } 
+    redrawScreen = false;
+  }
 }
 
 void APP_RunSpectrum(uint8_t Spectrum_state) {
