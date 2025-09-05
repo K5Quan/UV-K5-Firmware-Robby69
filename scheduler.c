@@ -70,9 +70,9 @@ void SystickHandler(void)
 
 	if ((gGlobalSysTickCounter & 3) == 0) {
 		gNextTimeslice40ms = true;
-		gNextTimeslice_keys = true;
 	}
-
+	gNextTimeslice_keys = true; //10ms
+	
 	DECREMENT(gFoundCDCSSCountdown_10ms);
 
 	DECREMENT(gFoundCTCSSCountdown_10ms);
@@ -87,10 +87,6 @@ void SystickHandler(void)
 		if (gCurrentFunction != FUNCTION_MONITOR && gCurrentFunction != FUNCTION_TRANSMIT && gCurrentFunction != FUNCTION_RECEIVE)
 			DECREMENT_AND_TRIGGER(gDualWatchCountdown_10ms, gScheduleDualWatch);
 
-
-
 	DECREMENT_AND_TRIGGER(gTailNoteEliminationCountdown_10ms, gFlagTailNoteEliminationComplete);
-
-	
 	DECREMENT(boot_counter_10ms);
 }
