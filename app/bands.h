@@ -1,8 +1,7 @@
 #ifdef ENABLE_FR_BAND
 static const bandparameters BParams[32] = {
     // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
-    {"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
-    {"AIR 8.33k",     11800000,         13600000,       S_STEP_8_33kHz,   MODULATION_AM},
+    {"AIR 8.33k",     11800000,         13700000,       S_STEP_8_33kHz,   MODULATION_AM},
     {"AIR MIL1",      22500000,         24107500,       S_STEP_25_0kHz,   MODULATION_AM},
     {"AIR MIL2",      33540000,         33970000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"PMR 446",       44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
@@ -30,6 +29,7 @@ static const bandparameters BParams[32] = {
     {"HAM 430M",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"1240MHz",      124000000,        130000000,       S_STEP_25_0kHz,   MODULATION_FM},
     {"SATCOM",        24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"AIR 25k",       11800000,         13700000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"NOT USED",       1400000,        130000000,        S_STEP_500kHz,   MODULATION_FM},
     {"NOT USED",       1400000,        130000000,        S_STEP_100kHz,   MODULATION_FM},
     {"NOT USED",      40000000,         50000000,        S_STEP_100kHz,   MODULATION_FM}

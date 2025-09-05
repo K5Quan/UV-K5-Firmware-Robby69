@@ -62,14 +62,16 @@ void SystickHandler(void)
 		DECREMENT(gSerialConfigCountDown_500ms);
 	}
 	
-	if ((gGlobalSysTickCounter % 20) == 0)
+	if ((gGlobalSysTickCounter % 15) == 0)
 	{
 		gNextTimeslice_display = true;
 		DECREMENT_AND_TRIGGER(gTxTimerCountdown_100ms, gTxTimeoutReached2);
 	} 
 
-	if ((gGlobalSysTickCounter & 3) == 0)
+	if ((gGlobalSysTickCounter & 3) == 0) {
 		gNextTimeslice40ms = true;
+		gNextTimeslice_keys = true;
+	}
 
 	DECREMENT(gFoundCDCSSCountdown_10ms);
 

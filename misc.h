@@ -275,6 +275,7 @@ extern uint8_t               gShowChPrefix;
 extern volatile uint8_t      gFoundCDCSSCountdown_10ms;
 extern volatile uint8_t      gFoundCTCSSCountdown_10ms;
 extern volatile bool         gNextTimeslice40ms;
+extern volatile bool         gNextTimeslice_keys;
 
 extern volatile bool         gFlagTailNoteEliminationComplete;
 extern volatile uint8_t      gVFOStateResumeCountdown_500ms;

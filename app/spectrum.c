@@ -91,6 +91,7 @@ void ToggleScanList();
 static void LoadSettings();
 static void SaveSettings();
 const uint16_t RSSI_MAX_VALUE = 65535;
+static uint16_t R30, R37, R3D, R43, R47, R48, R7E, R02, R3F;
 static uint32_t initialFreq;
 static char String[100];
 static char StringC[10];
@@ -342,10 +343,6 @@ KEY_Code_t GetKey() {
   return btn;
 }
 
-/* static int16_t clamp(int16_t v, int16_t min, int16_t max) {
-  return v <= min ? min : (v >= max ? max : v);
-} */
-
 static int clamp(int v, int min, int max) {
   return v <= min ? min : (v >= max ? max : v);
 }
@@ -366,6 +363,30 @@ static void ToggleAFBit(bool on) {
   if (on)
     reg |= on << 8;
   BK4819_WriteRegister(BK4819_REG_47, reg);
+}
+
+static void BackupRegisters() {
+  R30 = BK4819_ReadRegister(BK4819_REG_30);
+  R37 = BK4819_ReadRegister(BK4819_REG_37);
+  R3D = BK4819_ReadRegister(BK4819_REG_3D);
+  R43 = BK4819_ReadRegister(BK4819_REG_43);
+  R47 = BK4819_ReadRegister(BK4819_REG_47);
+  R48 = BK4819_ReadRegister(BK4819_REG_48);
+  R7E = BK4819_ReadRegister(BK4819_REG_7E);
+  R02 = BK4819_ReadRegister(BK4819_REG_02);
+  R3F = BK4819_ReadRegister(BK4819_REG_3F);
+}
+
+static void RestoreRegisters() {
+  BK4819_WriteRegister(BK4819_REG_30, R30);
+  BK4819_WriteRegister(BK4819_REG_37, R37);
+  BK4819_WriteRegister(BK4819_REG_3D, R3D);
+  BK4819_WriteRegister(BK4819_REG_43, R43);
+  BK4819_WriteRegister(BK4819_REG_47, R47);
+  BK4819_WriteRegister(BK4819_REG_48, R48);
+  BK4819_WriteRegister(BK4819_REG_7E, R7E);
+  BK4819_WriteRegister(BK4819_REG_02, R02);
+  BK4819_WriteRegister(BK4819_REG_3F, R3F);
 }
 
 static void ToggleAFDAC(bool on) {
@@ -451,8 +472,8 @@ uint16_t GetRandomChannelFromRSSI(uint16_t maxChannels) {
 
 static void DeInitSpectrum(bool ComeBack) {
   
-  
-  //gVfoConfigureMode = VFO_CONFIGURE;
+  RestoreRegisters();
+  gVfoConfigureMode = VFO_CONFIGURE;
   isInitialized = false;
   SetState(SPECTRUM);
   if(!ComeBack) {
@@ -472,7 +493,7 @@ static void DeInitSpectrum(bool ComeBack) {
 }
 
 static void ExitAndCopyToVfo() {
-  
+  RestoreRegisters();
 
   switch (currentState) {
     case HISTORY_LIST: 
@@ -786,29 +807,25 @@ static void Measure()
         stableCount  = 0;
     }
 
-    // --- Détection classique du peak ---
     if (!gIsPeak && rssi > previousRssi + settings.rssiTriggerLevelUp) {
-/*         SYSTEM_DelayMs(15);
+        SYSTEM_DelayMs(5);
         uint16_t rssi2 = scanInfo.rssi = GetRssi();
-        if (rssi2 > rssi + 10) {
+        if (!gIsPeak && rssi2 > rssi+10) {
           gIsPeak     = true;
-        } */
-       gIsPeak     = true;
+        } 
     }
 
-    // --- Détection par stabilité de fréquence ---
     if (scanInfo.f == stableFreq) {
-        if (++stableCount >= 3000) {    // 100 passages = seuil
+        if (++stableCount >= 3000) {  
             FillfreqHistory(true);
-            stableCount = 0;           // reset pour éviter répétition trop rapide
-            
+            stableCount = 0;
         }
     } else {
         stableFreq = scanInfo.f;
         stableCount = 0;
     }
 
-    if (isListening) UpdateNoiseOff();
+    if (isListening){UpdateNoiseOff();}
 
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
@@ -821,9 +838,9 @@ static void Measure()
         rssiHistory[(idx + 1) % 128] = 0;
         return;
     }
+
     rssiHistory[scanInfo.i] = rssi;
 }
-
 
 
 static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
@@ -1829,9 +1846,7 @@ static void OnKeyDown(uint8_t key) {
      
      case KEY_9:
         //UpdateDBMax(false);
-        //ToggleModulation();
-        //gSqMode = !gSqMode;
-
+        ToggleModulation();
     break;
 
      case KEY_1: //SKIP
@@ -2155,14 +2170,6 @@ void OnKeyDownStill(KEY_Code_t key) {
   }
 }
 
-/* static void DrawTrigger() {
-  uint8_t high = Rssi2Y(scanInfo.rssiMin+20+settings.rssiTriggerLevelUp);
-  uint8_t low = Rssi2Y(scanInfo.rssiMin+20);
-  for (uint8_t x = 0; x < 5; x ++) {
-    PutPixel(x, high, true);
-    PutPixel(x, low, true);
-  }
-} */
 
 static void RenderFreqInput() {
   UI_PrintString(freqInputString, 2, 127, 0, 8);
@@ -2428,26 +2435,11 @@ static void Tick() {
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
     gNextTimeslice_500ms = false;
-
-
-    // if a lot of steps then it takes long time
-    // we don't want to wait for whole scan
-    // listening has it's own timer
-/*     if(GetStepsCount()>128 && !isListening) {
-      UpdatePeakInfo();
-      if (gIsPeak) {
-        TuneToPeak();
-        ToggleRX(true);
-        if (SpectrumDelay)SetState(STILL);
-		    return;
-      }
-      redrawScreen = true;
-      preventKeypress = false;
-    } */
   }
 
-  if (!preventKeypress) {
+  if (!preventKeypress && gNextTimeslice_keys) {
     HandleUserInput();
+    gNextTimeslice_keys = 0;
   }
   if (newScanStart) {
     ResetPeak();
@@ -2491,6 +2483,7 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
     currentFreq = initialFreq = gScanRangeStart;
   }
    if(appMode==FREQUENCY_MODE) {currentFreq = initialFreq = gTxVfo->pRX->Frequency;}
+  BackupRegisters();
   ResetInterrupts();
 
   // turn of GREEN LED if spectrum was started during active RX
