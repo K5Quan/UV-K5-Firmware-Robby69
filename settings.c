@@ -280,7 +280,7 @@ void SETTINGS_UpdateChannel(uint8_t channel, const VFO_Info_t *pVFO, bool keep)
 }
 
 void SETTINGS_SetVfoFrequency(uint32_t frequency) {
-	const uint8_t Vfo = gEeprom.TX_VFO;
+	const uint8_t Vfo = 0;
 	// clamp the frequency entered to some valid value
 	if (frequency < RX_freq_min())
 	{

@@ -92,7 +92,7 @@ static void CheckForIncoming(void)
 				FUNCTION_Select(FUNCTION_INCOMING);
 				//gUpdateDisplay = true;
 
-				UpdateRSSI(gEeprom.TX_VFO);
+				UpdateRSSI(0);
 				gUpdateRSSI = true;
 			}
 			return;
@@ -103,7 +103,7 @@ static void CheckForIncoming(void)
 		FUNCTION_Select(FUNCTION_INCOMING);
 		//gUpdateDisplay = true;
 
-		UpdateRSSI(gEeprom.TX_VFO);
+		UpdateRSSI(0);
 		gUpdateRSSI = true;
 	}
 }
@@ -289,7 +289,7 @@ static void HandleFunction(void)
 
 void APP_StartListening(FUNCTION_Type_t Function)
 {
-	const unsigned int chan = gEeprom.TX_VFO;
+	const unsigned int chan = 0;
 	if (gFmRadioMode)
 		BK1080_Init(0, false);
 
@@ -357,7 +357,9 @@ uint32_t APP_SetFrequencyByStep(VFO_Info_t *pInfo, int8_t direction)
 
 static void CheckRadioInterrupts(void)
 {
-	while (BK4819_ReadRegister(BK4819_REG_0C) & 1u)
+	
+	int safety = 100; // max 100 interruptions
+	while ((BK4819_ReadRegister(BK4819_REG_0C) & 1u) && --safety > 0) 
 	{	// BK chip interrupt request
 
 		uint16_t interrupt_status_bits;
@@ -503,7 +505,7 @@ void APP_Update(void)
 		if ( gCssBackgroundScan || gUpdateRSSI)
 		{	// dual watch mode off or scanning or rssi update request
 
-			UpdateRSSI(gEeprom.TX_VFO);
+			UpdateRSSI(0);
 
 			// go back to sleep
 
@@ -865,7 +867,7 @@ void APP_TimeSlice500ms(void)
 	}
 
 	if (gCurrentFunction != FUNCTION_POWER_SAVE && gCurrentFunction != FUNCTION_TRANSMIT)
-		UpdateRSSI(gEeprom.TX_VFO);
+		UpdateRSSI(0);
 
 	if (!gPttIsPressed && gVFOStateResumeCountdown_500ms > 0)
 	{
@@ -944,7 +946,7 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 		if (gFlagSaveChannel)
 		{
-			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, gEeprom.TX_VFO, gTxVfo, gFlagSaveChannel);
+			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, 0, gTxVfo, gFlagSaveChannel);
 			gFlagSaveChannel = false;
 
 			if (gVfoConfigureMode == VFO_CONFIGURE_NONE)
@@ -1176,7 +1178,7 @@ Skip:
 	{
 		if (!bKeyHeld)
 		{
-			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, gEeprom.TX_VFO, gTxVfo, gRequestSaveChannel);
+			SETTINGS_SaveChannel(gTxVfo->CHANNEL_SAVE, 0, gTxVfo, gRequestSaveChannel);
 
 				if (gVfoConfigureMode == VFO_CONFIGURE_NONE)  // 'if' is so as we don't wipe out previously setting this variable elsewhere
 					gVfoConfigureMode = VFO_CONFIGURE;
@@ -1194,14 +1196,8 @@ Skip:
 
 	if (gVfoConfigureMode != VFO_CONFIGURE_NONE)
 	{
-		if (gFlagResetVfos)
-		{
-			RADIO_ConfigureChannel(0, gVfoConfigureMode);
-			RADIO_ConfigureChannel(1, gVfoConfigureMode);
-		}
-		else
-			RADIO_ConfigureChannel(gEeprom.TX_VFO, gVfoConfigureMode);
-
+		RADIO_ConfigureChannel(0, gVfoConfigureMode);
+		
 		if (gRequestDisplayScreen == DISPLAY_INVALID)
 			gRequestDisplayScreen = DISPLAY_MAIN;
 

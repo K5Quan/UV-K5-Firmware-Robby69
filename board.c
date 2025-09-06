@@ -564,7 +564,7 @@ void BOARD_EEPROM_Init(void)
 	EEPROM_ReadBuffer(0x0EA8, Data, 8);
 	gEeprom.ROGER                          = (Data[1] <  7) ? Data[1] : ROGER_MODE_OFF;
 	// Data[2] empty slot
-	gEeprom.TX_VFO                         = 0;
+	
 	gEeprom.BATTERY_TYPE                   = (Data[4] < BATTERY_TYPE_UNKNOWN) ? Data[4] : BATTERY_TYPE_1600_MAH;
 	gEeprom.SQL_TONE                       = (Data[5] <  ARRAY_SIZE(CTCSS_Options)) ? Data[5] : 50;
 	// 0ED0..0ED7

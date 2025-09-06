@@ -175,7 +175,7 @@ volatile uint8_t  gFoundCDCSSCountdown_10ms;
 volatile uint8_t  gFoundCTCSSCountdown_10ms;
 
 volatile bool     gNextTimeslice40ms;
-volatile bool	  gNextTimeslice_keys;
+volatile bool	  gNextTimeslice_10ms;
 
 volatile bool     gFlagTailNoteEliminationComplete;
 volatile bool gScheduleFM;

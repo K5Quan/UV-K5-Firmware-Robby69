@@ -41,7 +41,7 @@
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
 	//uint8_t Band;
-	uint8_t Vfo = gEeprom.TX_VFO;
+	uint8_t Vfo = 0;
 
 	if (gScreenToDisplay == DISPLAY_MENU)
 	{
@@ -63,7 +63,7 @@ static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 				if (gEeprom.VFO_OPEN && !gCssBackgroundScan)
 				{
 
-					const uint8_t vfo = gEeprom.TX_VFO;
+					const uint8_t vfo = 0;
 
 					if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo]))
 					{	// copy channel to VFO, then swap to the VFO
@@ -186,7 +186,7 @@ static void MAIN_Key_DIGITS(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 	if (!gWasFKeyPressed)
 	{	// F-key wasn't pressed
 
-		const uint8_t Vfo = gEeprom.TX_VFO;
+		const uint8_t Vfo = 0;
 
 		gKeyInputCountdown = key_input_timeout_500ms;
 
@@ -320,7 +320,7 @@ static void MAIN_Key_MENU(const bool bKeyPressed, const bool bKeyHeld)
 
 static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 {
-	uint8_t Channel = gEeprom.ScreenChannel[gEeprom.TX_VFO];
+	uint8_t Channel = gEeprom.ScreenChannel[0];
             
 	if (bKeyHeld || !bKeyPressed)
 	{
@@ -373,8 +373,8 @@ static void MAIN_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction)
 			if (Channel == Next)
 				return;
 
-			gEeprom.MrChannel[gEeprom.TX_VFO]     = Next;
-			gEeprom.ScreenChannel[gEeprom.TX_VFO] = Next;
+			gEeprom.MrChannel[0]     = Next;
+			gEeprom.ScreenChannel[0] = Next;
 
 
 		}

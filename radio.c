@@ -479,7 +479,7 @@ void RADIO_ApplyTxOffset(VFO_Info_t *pInfo)
 
 void RADIO_SelectVfos(void)
 {
-	gTxVfo = &gEeprom.VfoInfo[gEeprom.TX_VFO];
+	gTxVfo = &gEeprom.VfoInfo[0];
 	gCurrentVfo = gTxVfo;
 }
 

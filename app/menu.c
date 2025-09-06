@@ -397,7 +397,7 @@ void MENU_AcceptSetting(void)
 			#if 0
 				gEeprom.MrChannel[0] = gSubMenuSelection;
 			#else
-				gEeprom.MrChannel[gEeprom.TX_VFO] = gSubMenuSelection;
+				gEeprom.MrChannel[0] = gSubMenuSelection;
 			#endif
 			gRequestSaveChannel = 2;
 			gVfoConfigureMode   = VFO_CONFIGURE_RELOAD;
@@ -678,11 +678,11 @@ void MENU_ShowCurrentSetting(void)
 
 		case MENU_MEM_CH:
 			//todo: in vfo mode select last empty channel slot
-			gSubMenuSelection = gEeprom.MrChannel[gEeprom.TX_VFO];
+			gSubMenuSelection = gEeprom.MrChannel[0];
 			break;
 
 		case MENU_MEM_NAME:
-			gSubMenuSelection = gEeprom.MrChannel[gEeprom.TX_VFO];
+			gSubMenuSelection = gEeprom.MrChannel[0];
 			break;
 
 		case MENU_SAVE:
@@ -753,7 +753,7 @@ void MENU_ShowCurrentSetting(void)
 			#if 0
 				gSubMenuSelection = RADIO_FindNextChannel(gEeprom.MrChannel[0], 1, false, 1);
 			#else
-				gSubMenuSelection = RADIO_FindNextChannel(gEeprom.MrChannel[gEeprom.TX_VFO], 1, false, 1);
+				gSubMenuSelection = RADIO_FindNextChannel(gEeprom.MrChannel[0], 1, false, 1);
 			#endif
 			break;
 

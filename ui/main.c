@@ -241,13 +241,13 @@ void UI_DisplayMain(void)
 			if ((gCurrentFunction == FUNCTION_RECEIVE ||
 			     gCurrentFunction == FUNCTION_MONITOR ||
 			     gCurrentFunction == FUNCTION_INCOMING) &&
-			     gEeprom.TX_VFO == vfo_num)
+			     0 == vfo_num)
 			{UI_PrintStringSmallBold("RX", 0, 0, line+2);}
 		}
 
 		if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
 		{	// channel mode
-			const bool inputting = (gInputBoxIndex == 0 || gEeprom.TX_VFO != vfo_num) ? false : true;
+			const bool inputting = (gInputBoxIndex == 0 || 0 != vfo_num) ? false : true;
 			if (!inputting)
 				sprintf(String, "M%u", gEeprom.ScreenChannel[vfo_num] + 1);
 			else
@@ -400,7 +400,7 @@ void UI_DisplayMain(void)
 
 		if (rx) {
 			center_line = CENTER_LINE_RSSI;
-			DisplayRSSIBar(gCurrentRSSI[gEeprom.TX_VFO], false);
+			DisplayRSSIBar(gCurrentRSSI[0], false);
 		}
 	}
 

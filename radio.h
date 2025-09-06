@@ -125,12 +125,12 @@ typedef struct VFO_Info_t
 } VFO_Info_t;
 
 // Settings of the main VFO that is selected by the user
-// The pointer follows gEeprom.TX_VFO index
+// The pointer follows 0 index
 extern VFO_Info_t    *gTxVfo;
 
 // Settings of the actual VFO that is now used for RX,
 // It is being alternated by dual watch, and flipped by crossband
-// The pointer follows gEeprom.TX_VFO
+// The pointer follows 0
 extern VFO_Info_t    *gTxVfo;
 
 // Equal to gTxVfo unless dual watch changes it on incomming transmition (this can only happen when XB off and DW on)

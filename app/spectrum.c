@@ -141,7 +141,6 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
                              bandEnabled: {0}
                             };
 
-uint32_t fMeasure = 0;
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
@@ -353,14 +352,6 @@ void SetState(State state) {
 
 // Radio functions
 
-static void ToggleAFBit(bool on) {
-  uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
-  reg &= ~(1 << 8);
-  if (on)
-    reg |= on << 8;
-  BK4819_WriteRegister(BK4819_REG_47, reg);
-}
-
 static void BackupRegisters() {
   R30 = BK4819_ReadRegister(BK4819_REG_30);
   R37 = BK4819_ReadRegister(BK4819_REG_37);
@@ -385,8 +376,18 @@ static void RestoreRegisters() {
   BK4819_WriteRegister(BK4819_REG_3F, R3F);
 }
 
+static void ToggleAFBit(bool on) {
+  //uint16_t reg = BK4819_ReadRegister(BK4819_REG_47);
+  uint32_t reg = regs_cache[BK4819_REG_47]; //KARINA mod
+  reg &= ~(1 << 8);
+  if (on)
+    reg |= on << 8;
+  BK4819_WriteRegister(BK4819_REG_47, reg);
+}
+
 static void ToggleAFDAC(bool on) {
-  uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
+  //uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
+  uint32_t Reg = regs_cache[BK4819_REG_30]; //KARINA mod
   Reg &= ~(1 << 9);
   if (on)
     Reg |= (1 << 9);
@@ -445,9 +446,11 @@ uint32_t GetFEnd() {
 	return (currentFreq + (GetBW() >> 1));} //robby69
 
 static void TuneToPeak() {
-  scanInfo.f = Last_Tuned_Freq = peak.f;
+  if (peak.f < 1400000 || peak.f > 130000000) return;
+  scanInfo.f = peak.f;
+  Last_Tuned_Freq = peak.f;
   scanInfo.rssi = peak.rssi;
-  scanInfo.i = peak.i;
+  if(peak.i > 0) scanInfo.i = peak.i;
   SetF(scanInfo.f);
 }
 
@@ -506,8 +509,8 @@ if (historyListActive == true){
           rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[randomChannel]].Frequency;
           SETTINGS_SetVfoFrequency(rndfreq);
           //SETTINGS_UpdateChannel(scanChannel[randomChannel],gTxVfo,1);
-          gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[randomChannel];
-			    gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[randomChannel];
+          gEeprom.MrChannel[0]     = scanChannel[randomChannel];
+			    gEeprom.ScreenChannel[0] = scanChannel[randomChannel];
           //gVfoConfigureMode = VFO_CONFIGURE;
 	        //gFlagResetVfos    = true;
           gTxVfo->Modulation = MODULATION_FM;
@@ -567,7 +570,7 @@ uint16_t GetRssi(void) {
         if(test) rssi = test;
   }
     
-    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(fMeasure) > BAND4_174MHz)) {
+    if ((appMode == CHANNEL_MODE) && (FREQUENCY_GetBand(scanInfo.f) > BAND4_174MHz)) {
         rssi += UHF_NOISE_FLOOR;
       }
   return rssi;
@@ -585,47 +588,31 @@ static void ToggleAudio(bool on) {
   }
 }
 
-void FillfreqHistory(bool count) {
-    // Validate frequency range
+void FillfreqHistory() {
     if (scanInfo.f == 0 || scanInfo.f >= 130000000) {
         return;
     }
 
-    // Check if we've already recorded this frequency
     for (uint8_t i = 1; i <= FMaxNumb; i++) {
         if (freqHistory[i] == scanInfo.f) {
-            // Found existing frequency
-            
-            // New counting logic: increment if:
-            // 1. count is true AND
-            // 2. (This is a different frequency OR we weren't receiving before on any frequency)
-            if (count && (lastReceivingFreq != scanInfo.f || !wasReceiving)) {
+            if ((lastReceivingFreq != scanInfo.f || !wasReceiving)) {
                 freqCount[i]++;
-                // Update state to indicate we're now receiving on this frequency
                 wasReceiving = true;
                 lastReceivingFreq = scanInfo.f;
             }
-            
-            indexFd = i; // Set current display index
-            return; // Exit early since we found it
+            indexFd = i;
+            return;
         }
     }
-
-    // If we get here, it's a new frequency
     freqHistory[indexFs] = scanInfo.f;
-    freqCount[indexFs] = 1; // Start count at 1 for new detections
-    indexFd = indexFs; // Set current display index
+    freqCount[indexFs] = 1; 
+    indexFd = indexFs;
     
-    // Advance storage index with wrap-around
     if (++indexFs > FMaxNumb) {
         indexFs = 1;
     }
-    
-    // Update state for new frequency
-    if (count) {
-        wasReceiving = true;
-        lastReceivingFreq = scanInfo.f;
-    }
+    wasReceiving = true;
+    lastReceivingFreq = scanInfo.f;
 }
 
 static void ResetReceivingState() {
@@ -763,22 +750,17 @@ static void UpdatePeakInfo() {
     UpdatePeakInfoForce();
 }
 
-static uint8_t GetNoise() {
-
-  return BK4819_ReadRegister(0x65) & 0b1111111;
-}
-
 bool gIsPeak = false;
 //bool gAutoTriggerLevel = false;
 
 void UpdateNoiseOff(){
 	const uint16_t NOISLVL = 69; //65-72
-	if( GetNoise() > (NOISLVL) ) gIsPeak = false;		
+  if( BK4819_GetExNoiseIndicator() > NOISLVL) {gIsPeak = false;}		
 }
 
 void UpdateNoiseOn(){
 	const uint16_t NOISLVL = 60; //65-72
-	if( GetNoise() < (NOISLVL) ) gIsPeak = true;		
+	if( BK4819_GetExNoiseIndicator() < NOISLVL) {gIsPeak = true;}
 }
 
 
@@ -804,7 +786,7 @@ static void Measure()
     } 
 
     if (scanInfo.f == stableFreq) {
-        if (++stableCount >= 3000) {  
+        if (++stableCount >= 100) {  //1s
             FillfreqHistory(true);
             stableCount = 0;
         }
@@ -813,9 +795,8 @@ static void Measure()
         stableCount = 0;
     }
 
-    if (isListening){
-      UpdateNoiseOff();
-    }
+    if (isListening) UpdateNoiseOff();
+
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
     else if (rssi < previousRssi)
@@ -837,7 +818,7 @@ static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 static void UpdateDBMaxAuto() {
   static uint8_t z = 2;
     if (scanInfo.rssiMax > 0) {
-        int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 30), -160, 160);
+        int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 20), -160, 160);
 
         if (newDbMax > settings.dbMax + z) {
             settings.dbMax = settings.dbMax + z;   // montée limitée
@@ -899,7 +880,7 @@ static void UpdateCurrentFreq(bool inc) {
 
 static void UpdateCurrentFreqStill(bool inc) {
   uint8_t offset = modulationTypeTuneSteps[settings.modulationType];
-  uint32_t f = fMeasure;
+  uint32_t f = scanInfo.f;
   if (inc && f < F_MAX) {
     f += offset;
   } else if (!inc && f > RX_freq_min()) {
@@ -1251,7 +1232,6 @@ static void BuildEnabledScanLists(char *buf, size_t buflen) {
 }
 
 static void DrawF(uint32_t f) {
-    // --- Popups ---
     if (HandlePopup()) return;
     if (f == 0) return;
 
@@ -1270,70 +1250,52 @@ static void DrawF(uint32_t f) {
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = (channelFd != -1);
+    memmove(rxChannelName, channelName, sizeof(rxChannelName));
 
-    // --- Buffers affichage ---
+    // Buffers
     char line1[19] = "";
     char line2[19] = "";
     char line3[19] = "";
 
-    // ============================================================
-    //                        LOGIQUE
-    // ============================================================
-    if (isListening) {
-        // ---- Cas listening + code détecté ----
-        if (refresh > 1 && StringCode[0]) {
-            if (isKnownChannel) {
-                // Nom + Code si ça tient
-                if (strlen(channelName) + 1 + strlen(StringCode) <= (classic ? 18 : 15)) {
-                    snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
-                } else {
-                    strncpy(line1, channelName, sizeof(line1)-1);
-                    strncpy(line2, StringCode, sizeof(line2)-1);
-                }
-            } else {
-                snprintf(line1, sizeof(line1), "%s %s", freqStr, StringCode);
-            }
-        }
-        // ---- Cas listening sans code ----
-        else if (isKnownChannel) {
-                strncpy(line1, channelName, sizeof(line1)-1);
-                strncpy(line2, freqStr, sizeof(line2)-1);
-            }
-        else {
-            strncpy(line1, freqStr, sizeof(line1)-1);
-        }
-    }
-    else {
-        // ---- Pas en listening ----
-        if (appMode == SCAN_BAND_MODE) {
-            snprintf(line1, sizeof(line1), "B%u:%s", bl + 1, BParams[bl].BandName);
-        } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
-            if (enabledLists[0])
-                snprintf(line1, sizeof(line1), "SL%s", enabledLists);
-            else
-                snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
-        }
-
-        // Toujours afficher la fréquence
-        if (line1[0]) {
-                strncpy(line2, freqStr, sizeof(line2)-1);
-            }
-        else {
-            strncpy(line1, freqStr, sizeof(line1)-1);
-        }
+    // ------------------------------------------------------------
+    // line1 = fréquence + éventuel code
+    // ------------------------------------------------------------
+    strncpy(line1, freqStr, sizeof(line1)-1);
+    if (StringCode[0]) {
+        strncat(line1, " ", sizeof(line1)-strlen(line1)-1);
+        strncat(line1, StringCode, sizeof(line1)-strlen(line1)-1);
     }
 
-    // ---- Historique (si activé) ----
-    if (ShowHistory && f > 0 && indexFd > 0 && (!refresh || classic)) {
-        if (line2[0])
-            formatHistory(line3, indexFd, channelFd, f);
+    // ------------------------------------------------------------
+    // line2 = scanlist/band + channelName aligné col 4
+    // ------------------------------------------------------------
+    char prefix[8] = "";
+    if (appMode == SCAN_BAND_MODE) {
+        snprintf(prefix, sizeof(prefix), "B%u ", bl + 1);
+    } else if (appMode == CHANNEL_MODE) {
+        if (enabledLists[0])
+            snprintf(prefix, sizeof(prefix), "SL%s ", enabledLists);
         else
-            formatHistory(line2, indexFd, channelFd, f);
+            snprintf(prefix, sizeof(prefix), "ALL ");
     }
 
-    // ============================================================
-    //                        AFFICHAGE
-    // ============================================================
+    // toujours forcer channelName à partir de la colonne 4
+    if (isKnownChannel && channelName[0]) {
+        snprintf(line2, sizeof(line2), "%-3s%s", prefix, channelName);
+    } else {
+        snprintf(line2, sizeof(line2), "%s", prefix);
+    }
+
+    // ------------------------------------------------------------
+    // line3 = historique si actif
+    // ------------------------------------------------------------
+    if (ShowHistory && f > 0 && indexFd > 0 && (!refresh || classic)) {
+        formatHistory(line3, indexFd, channelFd, f);
+    }
+
+    // ------------------------------------------------------------
+    // AFFICHAGE
+    // ------------------------------------------------------------
     if (classic) {
         UI_PrintStringSmallBold(line1, 1, 1, 0); ArrowLine = 1;
         if (line2[0]) { UI_PrintStringSmallBold(line2, 1, 1, 1); ArrowLine = 2; }
@@ -1345,7 +1307,6 @@ static void DrawF(uint32_t f) {
         UI_PrintString(line3, 1, 128, 4, 8);
     }
 }
-
 
 void LookupChannelInfo() {
     if (lastPeakFrequency == peak.f) 
@@ -1845,19 +1806,14 @@ if ((ShowHistory) && (kbd.counter == 16)) { //(long press):
     indexFd = 1;
     indexFs = 1;
     
-    // DODAJ TO: Reset receiving state when history is cleared
     ResetReceivingState();
-    
     
     if (historyListActive == true) {
         //SetState(SPECTRUM);
-        historyListActive = false;
+        //historyListActive = false;
         historyListIndex = 0;
         historyScrollOffset = 0;
     }
-    
-    // Wymuś pełne odświeżenie ekranu
-    
     
     ShowHistory = false;
     PopUpclear = 1;
@@ -1986,7 +1942,6 @@ break;
           Last_Tuned_Freq = freqHistory[indexFd];
       } 
       currentFreq = Last_Tuned_Freq;
-      fMeasure = Last_Tuned_Freq;
       scanInfo.f = Last_Tuned_Freq;
       SetF(Last_Tuned_Freq);
       SetState(STILL);
@@ -2142,6 +2097,7 @@ static void RenderStatus() {
 }
 
 static void RenderSpectrum() {
+  
     if (classic) {
         DrawNums();
         DrawArrow(128u * (scanInfo.i - 1) / GetStepsCount());
@@ -2162,22 +2118,13 @@ void DrawMeter(int line) {
 }
 
 static void RenderStill() {
-  static bool previousclassic;
-  previousclassic = classic;
-  if (WaitSpectrum > 150 && WaitSpectrum <61000) { //65000 locks still mode
-      WaitSpectrum -= 150;
-      }
-  if (WaitSpectrum < 200) SetState(SPECTRUM); 
-  
   classic=1;
   DrawF(scanInfo.f);
   settings.dbMax = -20; 
   settings.dbMin = -140;
   DrawMeter(2);
-  classic = previousclassic;
-
   sLevelAttributes sLevelAtt;
-  sLevelAtt = GetSLevelAttributes(scanInfo.rssi, fMeasure);
+  sLevelAtt = GetSLevelAttributes(scanInfo.rssi, scanInfo.f);
 
   if(sLevelAtt.over > 0)
     sprintf(String, "S%2d+%2d", sLevelAtt.sLevel, sLevelAtt.over);
@@ -2350,7 +2297,7 @@ static void UpdateScan() {
     // Signal detected or resumed
     TuneToPeak();
     ToggleRX(true);
-    if (SpectrumDelay)SetState(STILL);
+    //if (SpectrumDelay)SetState(STILL);
     return;
   }
   newScanStart = true;
@@ -2361,31 +2308,30 @@ static void UpdateStill() {
   //Measure();
   scanInfo.rssi = GetRssi();
   UpdateNoiseOn();
-  
-  
-
   peak.rssi = scanInfo.rssi;
   ToggleRX(gIsPeak);
+  
 }
 
-static void UpdateListening() {
-  
-  Measure(); 
-  peak.rssi = scanInfo.rssi;
-  
-  
-  /*if (StopSpectrum > 0 && StopSpectrum <61000) { //65000 locks still mode
-      StopSpectrum-=20;
-      
-      SYSTEM_DelayMs(1);
-      if (StopSpectrum ==0) gIsPeak = 0; 
-      }
-  */
-  if (gIsPeak) {return;}
-  ToggleRX(false);
-  WaitSpectrum = SpectrumDelay;
-  ResetScanStats();
+static void UpdateListening(void) { // called every 10ms
+    Measure();
+    peak.rssi = scanInfo.rssi;
+    if (gIsPeak) {
+        WaitSpectrum = SpectrumDelay;   // reset timer
+        return;
+    }
+    if (WaitSpectrum > 61000) {
+        return;
+    }
+    if (WaitSpectrum > 10) {
+        WaitSpectrum -= 10;
+        return;
+    }
+    // timer écoulé
+    ToggleRX(false);
+    ResetScanStats();
 }
+
 
 static void Tick() {
   if (gNextTimeslice_500ms) {
@@ -2404,7 +2350,7 @@ static void Tick() {
       if (gIsPeak) {
         TuneToPeak();
         ToggleRX(true);
-        if (SpectrumDelay)SetState(STILL);
+        //if (SpectrumDelay)SetState(STILL);
 		    return;
       }
       
@@ -2412,9 +2358,10 @@ static void Tick() {
     } */
   }
 
-  if (gNextTimeslice_keys) {
+  if (gNextTimeslice_10ms) {
     HandleUserInput();
-    gNextTimeslice_keys = 0;
+    gNextTimeslice_10ms = 0;
+    if (isListening) UpdateListening(); 
   }
 
   if (newScanStart) {
@@ -2422,9 +2369,7 @@ static void Tick() {
     InitScan();
     newScanStart = false;
   }
-  if (isListening && currentState != FREQ_INPUT) {
-    UpdateListening();
-  } else {
+  if (!isListening) {
     if (currentState == SPECTRUM) {
       UpdateScan();
     } else if (currentState == STILL) {
@@ -2436,7 +2381,6 @@ static void Tick() {
     latestScanListName[0] = '\0';
     RenderStatus();
     Render();
-    return;
   } 
 }
 

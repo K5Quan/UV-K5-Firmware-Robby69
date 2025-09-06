@@ -71,7 +71,7 @@ void SystickHandler(void)
 	if ((gGlobalSysTickCounter & 3) == 0) {
 		gNextTimeslice40ms = true;
 	}
-	gNextTimeslice_keys = true; //10ms
+	gNextTimeslice_10ms = true; //10ms
 	
 	DECREMENT(gFoundCDCSSCountdown_10ms);
 
