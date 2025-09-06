@@ -2314,7 +2314,9 @@ static void UpdateStill() {
 }
 
 static void UpdateListening(void) { // called every 10ms
-    Measure();
+    //Measure();
+    scanInfo.rssi = GetRssi();
+    UpdateNoiseOn();
     peak.rssi = scanInfo.rssi;
     if (gIsPeak) {
         WaitSpectrum = SpectrumDelay;   // reset timer
@@ -2323,8 +2325,8 @@ static void UpdateListening(void) { // called every 10ms
     if (WaitSpectrum > 61000) {
         return;
     }
-    if (WaitSpectrum > 10) {
-        WaitSpectrum -= 10;
+    if (WaitSpectrum > 150) {
+        WaitSpectrum -= 150;
         return;
     }
     // timer écoulé
@@ -2340,28 +2342,12 @@ static void Tick() {
 				if (!settings.backlightAlwaysOn)
 					BACKLIGHT_TurnOff();   // turn backlight off
     gNextTimeslice_500ms = false;
-
-
-/*     // if a lot of steps then it takes long time
-    // we don't want to wait for whole scan
-    // listening has it's own timer
-    if(GetStepsCount()>128 && !isListening) {
-      UpdatePeakInfo();
-      if (gIsPeak) {
-        TuneToPeak();
-        ToggleRX(true);
-        //if (SpectrumDelay)SetState(STILL);
-		    return;
-      }
-      
-      
-    } */
   }
 
   if (gNextTimeslice_10ms) {
     HandleUserInput();
     gNextTimeslice_10ms = 0;
-    if (isListening) UpdateListening(); 
+
   }
 
   if (newScanStart) {
@@ -2381,6 +2367,7 @@ static void Tick() {
     latestScanListName[0] = '\0';
     RenderStatus();
     Render();
+    if (isListening) UpdateListening(); 
   } 
 }
 
