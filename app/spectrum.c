@@ -1112,7 +1112,7 @@ static void DrawStatus() {
   len = sprintf(&String[pos],"U%d %dms %s %s ", settings.rssiTriggerLevelUp,DelayRssi, gModulationStr[settings.modulationType],bwNames[settings.listenBw]);
   pos += len;  // Move position forward
   
-  if (WaitSpectrum>0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
+  if (WaitSpectrum > 0 && WaitSpectrum <61000){len = sprintf(&String[pos],"%d", WaitSpectrum/1000);pos += len;}
   else if(WaitSpectrum > 61000){len = sprintf(&String[pos],"oo");pos += len;} //locked
   
   //if (StopSpectrum>0 && StopSpectrum <61000){len = sprintf(&String[pos],"%d", StopSpectrum/1000);pos += len;}
@@ -2314,8 +2314,8 @@ static void UpdateStill() {
 }
 
 static void UpdateListening(void) { // called every 10ms
-    //Measure();
-    scanInfo.rssi = GetRssi();
+    Measure();
+    //scanInfo.rssi = GetRssi();
     UpdateNoiseOn();
     peak.rssi = scanInfo.rssi;
     if (gIsPeak) {
@@ -2329,7 +2329,9 @@ static void UpdateListening(void) { // called every 10ms
         WaitSpectrum -= 150;
         return;
     }
+    
     // timer écoulé
+    WaitSpectrum = 0;
     ToggleRX(false);
     ResetScanStats();
 }
