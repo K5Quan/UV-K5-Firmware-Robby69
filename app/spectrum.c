@@ -385,6 +385,30 @@ static void ToggleAFBit(bool on) {
   BK4819_WriteRegister(BK4819_REG_47, reg);
 }
 
+static void BackupRegisters() {
+  R30 = BK4819_ReadRegister(BK4819_REG_30);
+  R37 = BK4819_ReadRegister(BK4819_REG_37);
+  R3D = BK4819_ReadRegister(BK4819_REG_3D);
+  R43 = BK4819_ReadRegister(BK4819_REG_43);
+  R47 = BK4819_ReadRegister(BK4819_REG_47);
+  R48 = BK4819_ReadRegister(BK4819_REG_48);
+  R7E = BK4819_ReadRegister(BK4819_REG_7E);
+  R02 = BK4819_ReadRegister(BK4819_REG_02);
+  R3F = BK4819_ReadRegister(BK4819_REG_3F);
+}
+
+static void RestoreRegisters() {
+  BK4819_WriteRegister(BK4819_REG_30, R30);
+  BK4819_WriteRegister(BK4819_REG_37, R37);
+  BK4819_WriteRegister(BK4819_REG_3D, R3D);
+  BK4819_WriteRegister(BK4819_REG_43, R43);
+  BK4819_WriteRegister(BK4819_REG_47, R47);
+  BK4819_WriteRegister(BK4819_REG_48, R48);
+  BK4819_WriteRegister(BK4819_REG_7E, R7E);
+  BK4819_WriteRegister(BK4819_REG_02, R02);
+  BK4819_WriteRegister(BK4819_REG_3F, R3F);
+}
+
 static void ToggleAFDAC(bool on) {
   //uint32_t Reg = BK4819_ReadRegister(BK4819_REG_30);
   uint32_t Reg = regs_cache[BK4819_REG_30]; //KARINA mod
@@ -509,8 +533,13 @@ if (historyListActive == true){
           rndfreq = gMR_ChannelFrequencyAttributes[scanChannel[randomChannel]].Frequency;
           SETTINGS_SetVfoFrequency(rndfreq);
           //SETTINGS_UpdateChannel(scanChannel[randomChannel],gTxVfo,1);
+<<<<<<< Updated upstream
           gEeprom.MrChannel[0]     = scanChannel[randomChannel];
 			    gEeprom.ScreenChannel[0] = scanChannel[randomChannel];
+=======
+          gEeprom.MrChannel[gEeprom.TX_VFO]     = scanChannel[randomChannel];
+			    gEeprom.ScreenChannel[gEeprom.TX_VFO] = scanChannel[randomChannel];
+>>>>>>> Stashed changes
           //gVfoConfigureMode = VFO_CONFIGURE;
 	        //gFlagResetVfos    = true;
           gTxVfo->Modulation = MODULATION_FM;
@@ -786,7 +815,11 @@ static void Measure()
     } 
 
     if (scanInfo.f == stableFreq) {
+<<<<<<< Updated upstream
         if (++stableCount >= 100) {  //1s
+=======
+        if (++stableCount >= 3000) {  
+>>>>>>> Stashed changes
             FillfreqHistory(true);
             stableCount = 0;
         }
@@ -818,7 +851,11 @@ static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 static void UpdateDBMaxAuto() {
   static uint8_t z = 2;
     if (scanInfo.rssiMax > 0) {
+<<<<<<< Updated upstream
         int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 20), -160, 160);
+=======
+        int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 30), -160, 160);
+>>>>>>> Stashed changes
 
         if (newDbMax > settings.dbMax + z) {
             settings.dbMax = settings.dbMax + z;   // montée limitée
@@ -1232,6 +1269,10 @@ static void BuildEnabledScanLists(char *buf, size_t buflen) {
 }
 
 static void DrawF(uint32_t f) {
+<<<<<<< Updated upstream
+=======
+    // --- Popups ---
+>>>>>>> Stashed changes
     if (HandlePopup()) return;
     if (f == 0) return;
 
@@ -1250,13 +1291,19 @@ static void DrawF(uint32_t f) {
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = (channelFd != -1);
+<<<<<<< Updated upstream
     memmove(rxChannelName, channelName, sizeof(rxChannelName));
 
     // Buffers
+=======
+
+    // --- Buffers affichage ---
+>>>>>>> Stashed changes
     char line1[19] = "";
     char line2[19] = "";
     char line3[19] = "";
 
+<<<<<<< Updated upstream
     // ------------------------------------------------------------
     // line1 = fréquence + éventuel code
     // ------------------------------------------------------------
@@ -1296,6 +1343,66 @@ static void DrawF(uint32_t f) {
     // ------------------------------------------------------------
     // AFFICHAGE
     // ------------------------------------------------------------
+=======
+    // ============================================================
+    //                        LOGIQUE
+    // ============================================================
+    if (isListening) {
+        // ---- Cas listening + code détecté ----
+        if (refresh > 1 && StringCode[0]) {
+            if (isKnownChannel) {
+                // Nom + Code si ça tient
+                if (strlen(channelName) + 1 + strlen(StringCode) <= (classic ? 18 : 15)) {
+                    snprintf(line1, sizeof(line1), "%s %s", channelName, StringCode);
+                } else {
+                    strncpy(line1, channelName, sizeof(line1)-1);
+                    strncpy(line2, StringCode, sizeof(line2)-1);
+                }
+            } else {
+                snprintf(line1, sizeof(line1), "%s %s", freqStr, StringCode);
+            }
+        }
+        // ---- Cas listening sans code ----
+        else if (isKnownChannel) {
+                strncpy(line1, channelName, sizeof(line1)-1);
+                strncpy(line2, freqStr, sizeof(line2)-1);
+            }
+        else {
+            strncpy(line1, freqStr, sizeof(line1)-1);
+        }
+    }
+    else {
+        // ---- Pas en listening ----
+        if (appMode == SCAN_BAND_MODE) {
+            snprintf(line1, sizeof(line1), "B%u:%s", bl + 1, BParams[bl].BandName);
+        } else if (appMode == CHANNEL_MODE && currentState == SPECTRUM) {
+            if (enabledLists[0])
+                snprintf(line1, sizeof(line1), "SL%s", enabledLists);
+            else
+                snprintf(line1, sizeof(line1), "Scan Lists (ALL)");
+        }
+
+        // Toujours afficher la fréquence
+        if (line1[0]) {
+                strncpy(line2, freqStr, sizeof(line2)-1);
+            }
+        else {
+            strncpy(line1, freqStr, sizeof(line1)-1);
+        }
+    }
+
+    // ---- Historique (si activé) ----
+    if (ShowHistory && f > 0 && indexFd > 0 && (!refresh || classic)) {
+        if (line2[0])
+            formatHistory(line3, indexFd, channelFd, f);
+        else
+            formatHistory(line2, indexFd, channelFd, f);
+    }
+
+    // ============================================================
+    //                        AFFICHAGE
+    // ============================================================
+>>>>>>> Stashed changes
     if (classic) {
         UI_PrintStringSmallBold(line1, 1, 1, 0); ArrowLine = 1;
         if (line2[0]) { UI_PrintStringSmallBold(line2, 1, 1, 1); ArrowLine = 2; }
@@ -1307,6 +1414,7 @@ static void DrawF(uint32_t f) {
         UI_PrintString(line3, 1, 128, 4, 8);
     }
 }
+
 
 void LookupChannelInfo() {
     if (lastPeakFrequency == peak.f) 
@@ -1806,15 +1914,31 @@ if ((ShowHistory) && (kbd.counter == 16)) { //(long press):
     indexFd = 1;
     indexFs = 1;
     
+<<<<<<< Updated upstream
     ResetReceivingState();
     
     if (historyListActive == true) {
         //SetState(SPECTRUM);
         //historyListActive = false;
+=======
+    // DODAJ TO: Reset receiving state when history is cleared
+    ResetReceivingState();
+    
+    
+    if (historyListActive == true) {
+        //SetState(SPECTRUM);
+        historyListActive = false;
+>>>>>>> Stashed changes
         historyListIndex = 0;
         historyScrollOffset = 0;
     }
     
+<<<<<<< Updated upstream
+=======
+    // Wymuś pełne odświeżenie ekranu
+    
+    
+>>>>>>> Stashed changes
     ShowHistory = false;
     PopUpclear = 1;
 
@@ -2097,7 +2221,10 @@ static void RenderStatus() {
 }
 
 static void RenderSpectrum() {
+<<<<<<< Updated upstream
   
+=======
+>>>>>>> Stashed changes
     if (classic) {
         DrawNums();
         DrawArrow(128u * (scanInfo.i - 1) / GetStepsCount());
@@ -2118,11 +2245,26 @@ void DrawMeter(int line) {
 }
 
 static void RenderStill() {
+<<<<<<< Updated upstream
+=======
+  static bool previousclassic;
+  previousclassic = classic;
+  if (WaitSpectrum > 150 && WaitSpectrum <61000) { //65000 locks still mode
+      WaitSpectrum -= 150;
+      }
+  if (WaitSpectrum < 200) SetState(SPECTRUM); 
+  
+>>>>>>> Stashed changes
   classic=1;
   DrawF(scanInfo.f);
   settings.dbMax = -20; 
   settings.dbMin = -140;
   DrawMeter(2);
+<<<<<<< Updated upstream
+=======
+  classic = previousclassic;
+
+>>>>>>> Stashed changes
   sLevelAttributes sLevelAtt;
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, scanInfo.f);
 
@@ -2308,11 +2450,18 @@ static void UpdateStill() {
   //Measure();
   scanInfo.rssi = GetRssi();
   UpdateNoiseOn();
+<<<<<<< Updated upstream
+=======
+  
+  
+
+>>>>>>> Stashed changes
   peak.rssi = scanInfo.rssi;
   ToggleRX(gIsPeak);
   
 }
 
+<<<<<<< Updated upstream
 static void UpdateListening(void) { // called every 10ms
     Measure();
     peak.rssi = scanInfo.rssi;
@@ -2330,6 +2479,25 @@ static void UpdateListening(void) { // called every 10ms
     // timer écoulé
     ToggleRX(false);
     ResetScanStats();
+=======
+static void UpdateListening() {
+  
+  Measure(); 
+  peak.rssi = scanInfo.rssi;
+  
+  
+  /*if (StopSpectrum > 0 && StopSpectrum <61000) { //65000 locks still mode
+      StopSpectrum-=20;
+      
+      SYSTEM_DelayMs(1);
+      if (StopSpectrum ==0) gIsPeak = 0; 
+      }
+  */
+  if (gIsPeak) {return;}
+  ToggleRX(false);
+  WaitSpectrum = SpectrumDelay;
+  ResetScanStats();
+>>>>>>> Stashed changes
 }
 
 
@@ -2358,10 +2526,16 @@ static void Tick() {
     } */
   }
 
+<<<<<<< Updated upstream
   if (gNextTimeslice_10ms) {
     HandleUserInput();
     gNextTimeslice_10ms = 0;
     if (isListening) UpdateListening(); 
+=======
+  if (gNextTimeslice_keys) {
+    HandleUserInput();
+    gNextTimeslice_keys = 0;
+>>>>>>> Stashed changes
   }
 
   if (newScanStart) {
