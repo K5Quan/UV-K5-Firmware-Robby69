@@ -1,5 +1,5 @@
 AUTHOR_STRING := ROBZYL
-VERSION_STRING := V5.2.9
+VERSION_STRING := V5.2.11
 
 # compile options (see README.md for descriptions)
 # 0 = disable
@@ -36,9 +36,11 @@ ENABLE_BYP_RAW_DEMODULATORS             := 0
 ENABLE_BLMIN_TMP_OFF                    := 0
 ENABLE_SPECTRUM_SHOW_CHANNEL_NAME       := 1
 ENABLE_SCANNER							:= 1
-ENABLE_FR_BAND							:= 1
+ENABLE_FR_BAND							:= 0
 ENABLE_PL_BAND							:= 0
 ENABLE_RO_BAND							:= 0
+ENABLE_KO_BAND							:= 0
+ENABLE_CZ_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
 ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
@@ -332,6 +334,13 @@ endif
 ifeq ($(ENABLE_RO_BAND),1)
 	CFLAGS  += -DENABLE_RO_BAND
 endif
+ifeq ($(ENABLE_KO_BAND),1)
+	CFLAGS  += -DENABLE_KO_BAND
+endif
+ifeq ($(ENABLE_CZ_BAND),1)
+	CFLAGS  += -DENABLE_CZ_BAND
+endif
+
 ifeq ($(ENABLE_SCREENSHOT),1)
 	CFLAGS  += -DENABLE_SCREENSHOT
 endif

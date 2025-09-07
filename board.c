@@ -483,8 +483,9 @@ void BOARD_ADC_Init(void)
 
 void BOARD_ADC_GetBatteryInfo(uint16_t *pVoltage)
 {
-	ADC_Start();
-	while (!ADC_CheckEndOfConversion(ADC_CH9)) {}
+	ADC_Start();	
+	int safety = 120; // max 100 interruptions
+	while (!ADC_CheckEndOfConversion(ADC_CH9)&& --safety > 0) {}
 	*pVoltage = ADC_GetValue(ADC_CH4);
 }
 

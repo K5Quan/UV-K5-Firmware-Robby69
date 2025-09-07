@@ -94,3 +94,78 @@ static const bandparameters BParams[32] = {
     {"POMPIERI",     14866250,          14933750,       S_STEP_25_0kHz,  MODULATION_FM}
     };          
 #endif
+
+#ifdef ENABLE_KO_BAND
+static const bandparameters BParams[32] = {
+    // BandName       Startfrequency    Stopfrequency   scanStep          modulationType
+    {"AIR 25k",       11800000,         13600000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR MIL1",      22500000,         24107500,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"AIR MIL2",      33540000,         33970000,       S_STEP_25_0kHz,   MODULATION_AM},
+    {"LPD433",        43307500,         43377500,       S_STEP_6_25kHz,   MODULATION_FM},
+	{"PMR 446",       44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"PMR 446b",      44600000,         44620000,       S_STEP_6_25kHz,   MODULATION_FM},
+    {"136-144",      13600000,         14400000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"HAM 144",      14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
+	{"146-150",      14400000,         14600000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"HAM 430",      43000000,         44000000,       S_STEP_10_0kHz,   MODULATION_FM},
+	{"REMOTE433",     43200000,         43400000,       S_STEP_5_0kHz,    MODULATION_FM}, //Remote control search
+	{"RAIL",          15000000,         15550000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"MARINE",        15550000,         16202500,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"VHF-H",         16200000,         17000000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"VHF-H1",        17000000,         17400000,       S_STEP_25_0kHz,   MODULATION_FM},
+    {"17MHz",          1740000,          1780000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"18MHz",          1806800,          1816800,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"21MHz",          2100000,          2145000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"24MHz",          2489000,          2499000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"CB",             2651500,          2800000,       S_STEP_5_0kHz,    MODULATION_AM},
+    {"HAM 28",        2800000,          2870000,       S_STEP_5_0kHz,    MODULATION_USB},
+    {"HAM 50",        5000000,          5200000,       S_STEP_10_0kHz,   MODULATION_FM},
+    {"70 Mhz",         7000000,          7050000,       S_STEP_12_5kHz,   MODULATION_FM},
+    {"UHF400",        40000000,         42000000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"UHF420",        42000000,         43300000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"UHF440",        44000000,         45500000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"UHF455",        45500000,         47000000,       S_STEP_25_0kHz,   MODULATION_FM},
+	{"FM-BROAD",      7000000,          10800000,       S_STEP_100kHz,   MODULATION_FM},
+    {"SATCOM",        24000000,         27000000,       S_STEP_10_0kHz,   MODULATION_FM}
+    }; 
+#endif
+
+#ifdef ENABLE_CZ_BAND
+static const bandparameters BParams[32] = {
+// BandName    StartFreq    StopFreq     scanStep        modulationType
+{"AviCOM",    118000000,   136991600,   S_STEP_8_33kHz, MODULATION_AM},
+{"AviNAV",    108000000,   117950000,   S_STEP_25_0kHz, MODULATION_AM},
+{"AviEMG",    121500000,   121500000,   S_STEP_8_33kHz, MODULATION_AM},
+{"MilAir",    137000000,   144000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"Ham2m",     144000000,   146000000,   S_STEP_12_5kHz, MODULATION_FM},
+{"UtilVHFA",  146000000,   157425000,   S_STEP_12_5kHz, MODULATION_FM},
+{"UtilVHFB",  158400000,   173987500,   S_STEP_12_5kHz, MODULATION_FM},
+{"Ham6m",     50000000,    52000000,    S_STEP_25_0kHz, MODULATION_FM},
+{"CtrlA",     67500000,    72987500,    S_STEP_12_5kHz, MODULATION_FM},
+{"CtrlB",     73025000,    74775000,    S_STEP_25_0kHz, MODULATION_FM},
+{"LowUHF",    40675000,    40985000,    S_STEP_5_0kHz,  MODULATION_FM},
+{"AviBcn",    74800000,    75200000,    S_STEP_25_0kHz, MODULATION_AM},
+{"UHFSAT",    230000000,   380000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"TETRA",     395000000,   400000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"WxLEO",     400000000,   406000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"RepLnk",    424000000,   430000000,   S_STEP_12_5kHz, MODULATION_FM},
+{"Ham70cm",   430000000,   440000000,   S_STEP_12_5kHz, MODULATION_FM},
+{"PubSfty",   440000000,   448000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"PMR446",    446000000,   446200000,   S_STEP_6_25kHz, MODULATION_FM},
+{"TrkUpA",    457400000,   458500000,   S_STEP_10_0kHz, MODULATION_FM},
+{"TrkUpB",    460130000,   461490000,   S_STEP_10_0kHz, MODULATION_FM},
+{"TrkDn",     465710000,   469990000,   S_STEP_10_0kHz, MODULATION_FM},
+{"SRD",       40675000,    40700000,    S_STEP_1_0kHz,  MODULATION_FM},
+{"PubVHF",    160000000,   160500000,   S_STEP_25_0kHz, MODULATION_FM},
+{"EmgUHF",    380000000,   395000000,   S_STEP_12_5kHz, MODULATION_FM},
+{"TrkSrv",    465750000,   467370000,   S_STEP_10_0kHz, MODULATION_FM},
+{"CivHF",     27000000,    28000000,    S_STEP_5_0kHz,  MODULATION_FM},
+{"Ham40m",    7000000,     7500000,     S_STEP_5_0kHz,  MODULATION_FM},
+{"Mar16",     156800000,   156800000,   S_STEP_25_0kHz, MODULATION_FM},
+{"DigDMR",    438000000,   440000000,   S_STEP_12_5kHz, MODULATION_FM},
+{"SAR",       243000000,   245000000,   S_STEP_25_0kHz, MODULATION_FM},
+{"GovUHF",    448000000,   451500000,   S_STEP_10_0kHz, MODULATION_FM}
+//{"TrkRes",    457000000,   459990000,   S_STEP_10_0kHz, MODULATION_FM}
+};          
+#endif
+

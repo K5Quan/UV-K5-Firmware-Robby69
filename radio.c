@@ -500,8 +500,8 @@ void RADIO_SetupRegisters(bool switchToForeground)
 	BK4819_SetupPowerAmplifier(0, 0);
 
 	BK4819_ToggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
-
-	while (1)
+	int safety = 100; // max 100 interruptions
+	while (--safety > 0)
 	{
 		const uint16_t Status = BK4819_ReadRegister(BK4819_REG_0C);
 		if ((Status & 1u) == 0) // INTERRUPT REQUEST
