@@ -1236,7 +1236,7 @@ static void DrawF(uint32_t f) {
     // --- Scan lists activées ---
     char enabledLists[64];
     BuildEnabledScanLists(enabledLists, sizeof(enabledLists));
-
+    int channelFd;
     // --- Contexte canal ---
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
@@ -1280,7 +1280,7 @@ static void DrawF(uint32_t f) {
     } 
 
     if (ShowLines > 3 || !classic) {
-        if (f > 0 && indexFd > 0 ) {
+        if (f > 0 && indexFd > 0 && indexFd <251) {
           formatHistory(line3, indexFd, channelFd, f);
         }
         else {
@@ -1819,9 +1819,8 @@ static void OnKeyDown(uint8_t key) {
             RelaunchScan(); 
             break;
         }
-      
-        if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
-        if (ShowLines == 3) {if (indexFd < indexFs-1) indexFd++;}
+        else if(appMode==FREQUENCY_MODE) {UpdateCurrentFreq(true);}
+        else if (ShowLines > 3) {if (indexFd < indexFs-1) indexFd++;}
         else if(appMode==CHANNEL_MODE){
               BuildValidScanListIndices();
               SlIndex = (SlIndex < validScanListCount ? SlIndex+1 : 0);
@@ -1844,10 +1843,11 @@ static void OnKeyDown(uint8_t key) {
             RelaunchScan(); 
             break;
         }
-    if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
-    indexFd--;
-    if (ShowLines == 3) { if (indexFd < 1) {indexFd = 1;}}
-    else if(appMode==CHANNEL_MODE){
+        else if(appMode==FREQUENCY_MODE){UpdateCurrentFreq(false);}
+    
+        else if (ShowLines > 3) {indexFd = (indexFd >1 ? indexFd-1 : 1);}
+      
+        else if(appMode==CHANNEL_MODE){
             BuildValidScanListIndices();
             SlIndex = (SlIndex < 1 ? validScanListCount-1:SlIndex-1);
             scanListSelectedIndex = SlIndex;
