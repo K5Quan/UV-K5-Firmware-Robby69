@@ -134,7 +134,7 @@ static const bandparameters BParams[32] = {
 static const bandparameters BParams[32] = {
 // BandName    StartFreq    StopFreq     scanStep        modulationType
 {"AviCOM",    11800000,   13699160,   S_STEP_8_33kHz, MODULATION_AM},
-{"AviNAV",    10800000,   11795000,   S_STEP_50_0kHz, MODULATION_AM},
+{"AviNAV",    10800000,   11795000,   S_STEP_25_0kHz, MODULATION_AM},
 {"MilAir",    13700000,   14400000,   S_STEP_25_0kHz, MODULATION_FM},
 {"Ham2m",     14400000,   14600000,   S_STEP_12_5kHz, MODULATION_FM},
 {"UtilVHFA",  14600000,   15742500,   S_STEP_12_5kHz, MODULATION_FM},
