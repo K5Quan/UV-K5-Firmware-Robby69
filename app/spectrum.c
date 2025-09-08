@@ -447,7 +447,7 @@ uint32_t GetFEnd() {
 
 static void TuneToPeak() {
   if (peak.f < 1400000 || peak.f > 130000000) return;
-  //scanInfo.f = peak.f;
+  scanInfo.f = peak.f;
   Last_Tuned_Freq = peak.f;
   scanInfo.rssi = peak.rssi;
   if(peak.i > 0) scanInfo.i = peak.i;
@@ -1236,7 +1236,7 @@ static void DrawF(uint32_t f) {
     // --- Scan lists activées ---
     char enabledLists[64];
     BuildEnabledScanLists(enabledLists, sizeof(enabledLists));
-    int channelFd;
+    
     // --- Contexte canal ---
     f = freqHistory[indexFd];
     int channelFd = BOARD_gMR_fetchChannel(f);
@@ -1275,7 +1275,7 @@ static void DrawF(uint32_t f) {
             snprintf(line2, sizeof(line2), "%s", prefix);
         }
         if (appMode == SCAN_BAND_MODE) {
-            snprintf(line2, sizeof(line2), "%-3s%s", prefix, BParams[bl+1].BandName);
+            snprintf(line2, sizeof(line2), "%-3s%s", prefix, BParams[bl].BandName);
         }
     } 
 
@@ -1301,8 +1301,8 @@ static void DrawF(uint32_t f) {
         DrawMeter(6);
         if (StringCode[0]) {UI_PrintStringSmallBold(line1, 1, 1, 0);}
         else UI_DisplayFrequency(line1, 0, 0, 0);
-        UI_PrintString(line2, 1, 128, 2, 8);
-        UI_PrintString(line3, 1, 128, 4, 8);
+        UI_PrintString(line2, 1, 1, 2, 8);
+        UI_PrintString(line3, 1, 1, 4, 8);
     }
 }
 
@@ -1898,7 +1898,7 @@ static void OnKeyDown(uint8_t key) {
       if (historyListActive == true) {
           Last_Tuned_Freq = freqHistory[historyListIndex+1];
       }
-      else if (historyListIndex < validCount && ShowLines && currentState == SPECTRUM) {
+      else if (historyListIndex < validCount && currentState == SPECTRUM) {
           Last_Tuned_Freq = freqHistory[indexFd];
       } 
       currentFreq = Last_Tuned_Freq;
@@ -2082,9 +2082,13 @@ void DrawMeter(int line) {
 
 static void RenderStill() {
   classic=1;
-  DrawF(scanInfo.f);
+  char freqStr[18];
+  FormatFrequency(scanInfo.f, freqStr, sizeof(freqStr));
+  UI_DisplayFrequency(freqStr, 0, 0, 0);
+
+  //DrawF(scanInfo.f);
   settings.dbMax = -20; 
-  settings.dbMin = -140;
+  settings.dbMin = -70;
   DrawMeter(2);
   sLevelAttributes sLevelAtt;
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, scanInfo.f);
