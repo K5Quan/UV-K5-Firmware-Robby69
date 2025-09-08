@@ -174,26 +174,18 @@ typedef struct
 }  __attribute__((packed))  sLevelAttributes;
 
 extern volatile uint16_t     gBatterySaveCountdown_10ms;
-
 extern volatile bool         gPowerSaveCountdownExpired;
 extern volatile bool         gSchedulePowerSave;
-
 extern volatile bool         gScheduleDualWatch;
-
 extern volatile uint16_t     gDualWatchCountdown_10ms;
 extern bool                  gDualWatchActive;
-
 extern volatile uint8_t      gSerialConfigCountDown_500ms;
-
 extern volatile bool         gNextTimeslice_500ms;
 extern volatile bool         gNextTimeslice_display;
 extern volatile uint16_t     gTxTimerCountdown_500ms;
-extern volatile uint16_t     gTxTimerCountdown_100ms;
 extern volatile bool         gTxTimeoutReached;
-extern volatile bool         gTxTimeoutReached2;
-
 extern volatile uint16_t     gTailNoteEliminationCountdown_10ms;
-extern volatile uint16_t gFmPlayCountdown_10ms;
+extern volatile uint16_t 	 gFmPlayCountdown_10ms;
 extern bool                  gEnableSpeaker;
 extern uint8_t               gKeyInputCountdown;
 extern uint8_t               gKeyLockCountdown;
