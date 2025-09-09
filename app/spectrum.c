@@ -1888,7 +1888,7 @@ static void OnKeyDown(uint8_t key) {
       ExitAndCopyToVfo();
       break;
   
-  case KEY_MENU:
+  case KEY_MENU: //History
       int validCount = 0;
       for (int k = 1; k <= FMaxNumb; ++k) {
           if (freqHistory[k] != 0) {
@@ -1898,12 +1898,12 @@ static void OnKeyDown(uint8_t key) {
       if (historyListActive == true) {
           Last_Tuned_Freq = freqHistory[historyListIndex+1];
       }
-      else if (historyListIndex < validCount && currentState == SPECTRUM) {
+      /* else if (historyListIndex < validCount && currentState == SPECTRUM) {
           Last_Tuned_Freq = freqHistory[indexFd];
-      } 
+      }  */
       currentFreq = Last_Tuned_Freq;
-      //scanInfo.f = Last_Tuned_Freq;
       if(scanInfo.f != Last_Tuned_Freq) SetF(Last_Tuned_Freq);
+      scanInfo.f = Last_Tuned_Freq;
       SetState(STILL);
       menuState = 0;
   break;
@@ -2443,12 +2443,16 @@ typedef struct {
     uint8_t listenBw;
     uint16_t BPRssiTriggerLevelUp[32]; // 32 bytes of settings.rssiTriggerLevelUp levels
     uint8_t SLRssiTriggerLevelUp[15];
-    uint32_t bandListFlags;         // Bits 0-31: bandEnabled[0..31]
-    uint16_t scanListFlags;          // Bits 0-14: scanListEnabled[0..14]
+    uint32_t bandListFlags;            // Bits 0-31: bandEnabled[0..31]
+    uint16_t scanListFlags;            // Bits 0-14: scanListEnabled[0..14]
     int16_t Trigger;
     uint32_t RangeStart;
     uint32_t RangeStop;
     ScanStep scanStepIndex;
+    uint16_t R40;                      // RF TX Deviation
+    uint16_t R29;                      // AF TX noise compressor, AF TX 0dB compressor, AF TX compression ratio
+    uint16_t R19;                      // Disable MIC AGC
+    uint16_t R73;                      // AFC range select
 } SettingsEEPROM;
 
 
@@ -2482,6 +2486,10 @@ static void LoadSettings()
     att = gMR_ChannelAttributes[i];
     if (att.scanlist > validScanListCount) {validScanListCount = att.scanlist;}
   }
+  BK4819_WriteRegister(BK4819_REG_40, eepromData.R40);
+  BK4819_WriteRegister(BK4819_REG_29, eepromData.R29);
+  BK4819_WriteRegister(BK4819_REG_19, eepromData.R19);
+  BK4819_WriteRegister(BK4819_REG_73, eepromData.R73);
 
   }
 
@@ -2503,6 +2511,11 @@ static void SaveSettings()
       eepromData.BPRssiTriggerLevelUp[i] = BPRssiTriggerLevelUp[i];
       if (settings.bandEnabled[i]) eepromData.bandListFlags |= (1 << i);
     }
+  eepromData.R40 = BK4819_ReadRegister(BK4819_REG_40);
+  eepromData.R29 = BK4819_ReadRegister(BK4819_REG_29);
+  eepromData.R19 = BK4819_ReadRegister(BK4819_REG_19);
+  eepromData.R73 = BK4819_ReadRegister(BK4819_REG_73);
+  
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
     EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
@@ -2528,6 +2541,11 @@ static void ClearSettings()
       settings.bandEnabled[i] = 0;
     }
   settings.bandEnabled[1] = 1;
+  
+  BK4819_WriteRegister(BK4819_REG_40, 0x34D0);
+  BK4819_WriteRegister(BK4819_REG_29, 0xAB40);
+  BK4819_WriteRegister(BK4819_REG_19, 0x1041);
+  BK4819_WriteRegister(BK4819_REG_73, 0x4682);
   SaveSettings(); 
 }
 
@@ -2673,17 +2691,15 @@ static void GetHistoryItemText(uint8_t index, char* buffer) {
     char freqStr[16];
     sprintf(freqStr, "%3u.%05u", frequency / 100000, frequency % 100000);
     // Remove trailing zeros and optional decimal point
-    //RemoveTrailZeros(freqStr);
+    RemoveTrailZeros(freqStr);
     
     if (channel != -1) {
-        sprintf(buffer, "%2d:%-8s(%u) ", 
-                realIndex, 
+        sprintf(buffer, "%s:%s:%u", 
+                freqStr,
                 gMR_ChannelFrequencyAttributes[channel].Name,
                 freqCount[realIndex]);
-                
     } else {
-        sprintf(buffer, "%2d:%-8s(%u)", 
-                realIndex,
+        sprintf(buffer, "%s:%u", 
                 freqStr,
                 freqCount[realIndex]);
     }
@@ -2723,13 +2739,13 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
         
         // Wyrównanie maksymalnie do lewej
         if (itemIndex == selectedIndex) {
-            // Zaznaczony element - ">" + tekst, maksymalnie wykorzystaj przestrzeń
             char displayText[MAX_CHARS_PER_LINE + 1];
-            strcpy(displayText, itemText);
-            char selectedText[MAX_CHARS_PER_LINE + 2];
-            sprintf(selectedText, ">%2s", displayText);
-            UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
-            
+
+        strcpy(displayText, itemText);
+        char selectedText[MAX_CHARS_PER_LINE + 2];
+        snprintf(selectedText, sizeof(selectedText), ">%s", displayText);
+        UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
+    
         } else {
             char displayText[MAX_CHARS_PER_LINE + 1];
             strcpy(displayText, itemText);
