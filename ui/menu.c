@@ -57,9 +57,6 @@ const t_menu_item MenuList[] =
 	{"BatVol",  MENU_VOL           },
 	{"Sql",     MENU_SQL           },
 	{"Compnd",  MENU_COMPAND       },
-	// hidden menu items from here on
-	// enabled if pressing both the PTT and upper side button at power-on
-	{"F Lock",  MENU_F_LOCK        },
 	{"ScraEn",  MENU_SCREN         }, 
 	{"Scramb",  MENU_SCR           }, 
 	{"ChDele",  MENU_DEL_CH        },
@@ -80,11 +77,14 @@ const t_menu_item MenuList[] =
 	{"BLMax",   MENU_ABR_MAX       },
 	{"BltTRX",  MENU_ABR_ON_TX_RX  },
 	{"SqTone",  MENU_SQL_TONE      },
+	// hidden menu items from here on
+	// enabled if pressing both the PTT and upper side button at power-on
+	{"Reset",   MENU_RESET         },
+	{"F Lock",  MENU_F_LOCK        },
 	{"1 Call",  MENU_1_CALL        },
 	{"BatCal",  MENU_BATCAL        },
 	{"BatTyp",  MENU_BATTYP        },
-	{"Reset",   MENU_RESET         },
-
+	
 	{"",        0xff               }  // end of list - DO NOT delete or move this
 };
 
@@ -98,7 +98,7 @@ const int CHANNEL_ONLY_SETTINGS[] = {
 
 const int VFO_ONLY_SETTINGS[] = {};
 
-const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_F_LOCK;
+const uint8_t FIRST_HIDDEN_MENU_ITEM = MENU_RESET;
 
 const char gSubMenu_TXP[][5] =
 {

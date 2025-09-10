@@ -41,6 +41,7 @@ ENABLE_PL_BAND							:= 0
 ENABLE_RO_BAND							:= 0
 ENABLE_KO_BAND							:= 0
 ENABLE_CZ_BAND							:= 0
+ENABLE_TU_BAND							:= 0
 ENABLE_SCREENSHOT		  				:= 0
 ENABLE_SCANLIST_SHOW_DETAIL		   		:= 1
 
@@ -339,6 +340,10 @@ ifeq ($(ENABLE_KO_BAND),1)
 endif
 ifeq ($(ENABLE_CZ_BAND),1)
 	CFLAGS  += -DENABLE_CZ_BAND
+endif
+
+ifeq ($(ENABLE_TU_BAND),1)
+	CFLAGS  += -DENABLE_TU_BAND
 endif
 
 ifeq ($(ENABLE_SCREENSHOT),1)
