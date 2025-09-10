@@ -1126,7 +1126,31 @@ static void DrawStatus() {
     break;
     
     case SCAN_BAND_MODE:
-      len = sprintf(&String[pos],"BD ");
+#ifdef ENABLE_FR_BAND
+      len = sprintf(&String[pos],"FR ");
+#endif
+
+#ifdef ENABLE_PL_BAND
+      len = sprintf(&String[pos],"PL ");
+#endif
+
+#ifdef ENABLE_RO_BAND
+      len = sprintf(&String[pos],"RO ");
+#endif
+
+#ifdef ENABLE_KO_BAND
+      len = sprintf(&String[pos],"KO ");
+#endif
+
+#ifdef ENABLE_CZ_BAND
+      len = sprintf(&String[pos],"CZ ");
+#endif
+
+#ifdef ENABLE_TU_BAND
+      len = sprintf(&String[pos],"TU ");
+#endif
+
+
       pos += len;
     break;
   } 
@@ -2783,7 +2807,32 @@ static void RenderParametersSelect() {
   RenderList("PARAMETERS:", PARAMETER_COUNT,parametersSelectedIndex, parametersScrollOffset, GetParametersText);
 }
 
-static void RenderBandSelect() {RenderList("BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+
+#ifdef ENABLE_FR_BAND
+      static void RenderBandSelect() {RenderList("FR BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+#ifdef ENABLE_PL_BAND
+      static void RenderBandSelect() {RenderList("PL BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+#ifdef ENABLE_RO_BAND
+      static void RenderBandSelect() {RenderList("RO BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+#ifdef ENABLE_KO_BAND
+      static void RenderBandSelect() {RenderList("KO BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+#ifdef ENABLE_CZ_BAND
+      static void RenderBandSelect() {RenderList("CZ BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+#ifdef ENABLE_TU_BAND
+      static void RenderBandSelect() {RenderList("TU BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
+#endif
+
+
 
 static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();

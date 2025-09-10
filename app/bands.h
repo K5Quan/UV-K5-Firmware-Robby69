@@ -136,7 +136,6 @@ static const bandparameters BParams[32] = {
     {"AIR 8.33k",        11800000,         13700000,       S_STEP_8_33kHz,   MODULATION_AM},
     {"MIL AIR",          22500000,         40000000,       S_STEP_25_0kHz,   MODULATION_AM},
     {"SATCOM",           24000000,         27500000,       S_STEP_10_0kHz,   MODULATION_FM},
-
     {"HAM 80m USB",       3500000,          3800000,       S_STEP_2_5kHz,    MODULATION_USB},
     {"HAM 40m USB",       7000000,          7200000,       S_STEP_2_5kHz,    MODULATION_USB},
     {"HAM 30m USB",      10100000,         10150000,       S_STEP_2_5kHz,    MODULATION_USB},
@@ -146,22 +145,17 @@ static const bandparameters BParams[32] = {
     {"HAM 12m USB",      24890000,         24990000,       S_STEP_2_5kHz,    MODULATION_USB},
     {"HAM 10m FM",       29000000,         29700000,       S_STEP_10_0kHz,   MODULATION_FM},
     {"HAM 6m FM",        5000000,          5200000,        S_STEP_10_0kHz,   MODULATION_FM},
-
     {"CB FM",            2696500,          2740500,        S_STEP_10_0kHz,   MODULATION_FM},
     {"PMR 446",          44600625,         44619375,       S_STEP_12_5kHz,   MODULATION_FM},
     {"LPD 433",          43307500,         43477500,       S_STEP_25_0kHz,   MODULATION_FM},
-
     {"HAM 2m",          14400000,         14600000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM 70cm",        43000000,         44000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"HAM APRS",        14480000,         14480000,       S_STEP_12_5kHz,   MODULATION_FM},
-
     {"SAT WX 137",      13700000,         13800000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"Meteo sondy",     40300000,         40400000,       S_STEP_12_5kHz,   MODULATION_FM},
-
     {"IZS analog",      16500000,         17400000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"Vlaky",           15000000,         15300000,       S_STEP_12_5kHz,   MODULATION_FM},
-    {"MHD dispecink",   16000000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
-
+    {"MHD dispecin",    16000000,         17000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"Taxi VHF",        15400000,         16000000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"Taxi UHF",        46000000,         46500000,       S_STEP_12_5kHz,   MODULATION_FM},
     {"Ostraha UHF",     44640000,         44660000,       S_STEP_12_5kHz,   MODULATION_FM},
