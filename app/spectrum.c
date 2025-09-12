@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-#include "debugging.h"
+//#include "debugging.h"
 
 
 #ifdef ENABLE_SCREENSHOT
@@ -35,6 +35,7 @@ uint32_t gScanRangeStop = 13000000;             // 5
 //ClearSettings                                 // 9
 #define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
+uint8_t ArrowPos = 0;
 bool gIsPeak = false;
 bool historyListActive = false;
 bool gForceModulation = 0;
@@ -48,6 +49,7 @@ bool StorePtt_Toggle_Mode = 0;
 uint8_t historyListIndex = 0;
 uint8_t ArrowLine = 1;
 static int historyScrollOffset = 0;
+static void ToggleRX(bool on);
 static void NextScanStep();
 static void BuildValidScanListIndices();
 static void RenderHistoryList();
@@ -416,7 +418,6 @@ static void ResetPeak() {
     peak.rssi = 0;
     peak.f = 0;
     peak.i = 0;
-    gIsPeak = false; 
 }
 
 
@@ -446,6 +447,8 @@ static void TuneToPeak() {
   scanInfo.rssi = peak.rssi;
   scanInfo.i = peak.i;
   SetF(peak.f);
+  ToggleRX(true);
+  ResetPeak();
 }
 
 
@@ -749,6 +752,7 @@ static void RelaunchScan() {
     //  Reset receiving state when relaunching scan
     ResetReceivingState();
     gIsPeak = false;
+    for (int i = 0; i < 128; ++i) {rssiHistory[i] = 0;}
 }
 
 
@@ -773,6 +777,17 @@ void UpdateNoiseOff(){
 void UpdateNoiseOn(){
 	const uint16_t NOISLVL = 60; //65-72
 	if( BK4819_GetExNoiseIndicator() < NOISLVL) {gIsPeak = true;}
+}
+
+static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
+
+static void DrawArrow(uint8_t x) {
+  for (signed i = -2; i <= 2; ++i) {
+    signed v = x + i;
+    if (!(v & 128)) {
+      gFrameBuffer[ArrowLine][v] |= (0b111 >> my_abs(i)) & 0b111;
+    }
+  }
 }
 
 static void Measure() {
@@ -829,23 +844,23 @@ static void Measure() {
         }
     } else {
     // Expansion (répétition des valeurs)
-    uint16_t startIndex = (uint32_t)i     * 128 / count;
-    uint16_t endIndex   = (uint32_t)(i+1) * 128 / count;
+    uint16_t bar = 128 / count;
+    uint16_t startIndex = (uint32_t)i     * bar;
+    uint16_t endIndex   = (uint32_t)(i+1) * bar;
 
     if (endIndex > 128) endIndex = 128;
+    ArrowPos =startIndex + (endIndex-startIndex) / 2;
 
     for (uint16_t j = startIndex; j < endIndex; j++) {
         rssiHistory[j] = rssi;
-    
-    //char str[64] = "";sprintf(str, "%d %d %d \r\n", count,scanInfo.f,j);LogUart(str);
+        if(j+bar < 128) rssiHistory[j + bar] = 0;
         }
     }
 }
 
-static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void UpdateDBMaxAuto() {
-  static uint8_t z = 3;
+  static uint8_t z = 2;
     if (scanInfo.rssiMax > 0) {
         int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 2), -160, 160);
 
@@ -1038,27 +1053,23 @@ static void UpdateFreqInput(KEY_Code_t key) {
 
 static bool IsBlacklisted(uint32_t f){
   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
-    if(blacklistFreqs[i] == f) {
-      char str[64] = "";sprintf(str, "isB %d \r\n", blacklistFreqs[i]);LogUart(str);
-      return true;
-    }
+    if(blacklistFreqs[i] == f) {return true;}
   return false;
 }
-
 
 static void Blacklist() {
   
   if(!IsBlacklisted(scanInfo.f))
       blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = scanInfo.f;
   
-  
-  for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++){
+     /////////////////////////DEBUG//////////////////////////
+/*   for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++){
       char str[64] = "";
       if (blacklistFreqs[i])
         sprintf(str, "List %d \r\n", blacklistFreqs[i]);
       LogUart(str);
   }
-
+ */
 
   gIsPeak = 0;
   ToggleRX(false);
@@ -1417,15 +1428,6 @@ static void DrawNums() {
   
 }
 
-static void DrawArrow(uint8_t x) {
-  for (signed i = -2; i <= 2; ++i) {
-    signed v = x + i;
-    if (!(v & 128)) {
-      gFrameBuffer[ArrowLine][v] |= (0b111 >> my_abs(i)) & 0b111;
-    }
-  }
-}
-
 void nextFrequency833() {
     if (scanInfo.i % 3 != 1) {
         scanInfo.f += 833;
@@ -1436,10 +1438,13 @@ void nextFrequency833() {
 
 static void NextScanStep() {
     ++peak.t;
-      // channel mode
+    if (++scanInfo.i > GetStepsCount()) {
+        newScanStart = true;
+        return;
+    }  
+    // channel mode
     if (appMode==CHANNEL_MODE)
-    { ++scanInfo.i; 
-      int currentChannel = scanChannel[scanInfo.i];
+    { int currentChannel = scanChannel[scanInfo.i];
       settings.rssiTriggerLevelUp = SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]];
       scanInfo.f =  gMR_ChannelFrequencyAttributes[currentChannel].Frequency;
     }
@@ -1448,9 +1453,16 @@ static void NextScanStep() {
           // frequency mode
           if(scanInfo.scanStep==833) nextFrequency833();
           else scanInfo.f += scanInfo.scanStep;
-          ++scanInfo.i;
       } while (scanInfo.f % 1300000 == 0 && scanInfo.i < GetStepsCount());
     }
+}
+
+static void Skip() {
+    WaitSpectrum = 0;
+    gIsPeak = false;
+    ToggleRX(false);
+    NextScanStep();
+    ResetPeak();
 }
     
 static void OnKeyDown(uint8_t key) {
@@ -1612,14 +1624,14 @@ static void OnKeyDown(uint8_t key) {
                 ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
                 SetState(SPECTRUM);
                 ResetModifiers();
-                RelaunchScan();
+                //RelaunchScan();
             }
             break;
 				
         case KEY_EXIT: // Exit scan list selection
                 SetState(SPECTRUM); // Return to scanning mode
                 ResetModifiers();
-                RelaunchScan(); 
+                //RelaunchScan(); 
                 break;
         default:
                 break;
@@ -1774,6 +1786,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 80? 0 : settings.rssiTriggerLevelUp + step);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+          Skip();
           break;
       }
 
@@ -1782,6 +1795,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0? 80 : settings.rssiTriggerLevelUp - step);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
+          Skip();
           break;
       }
 
@@ -1795,12 +1809,8 @@ static void OnKeyDown(uint8_t key) {
       break;
 
       case KEY_1: //SKIP
-        WaitSpectrum = 0;
-        gIsPeak = false;
-        ToggleRX(false);
-        NextScanStep();
-        ResetPeak();
-     break;
+        Skip();
+      break;
      
      case KEY_7:
         SaveSettings(); 
@@ -1852,7 +1862,7 @@ static void OnKeyDown(uint8_t key) {
               ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
               SetState(SPECTRUM);
               ResetModifiers();
-              RelaunchScan();
+              //RelaunchScan();
               break;
       }
     }
@@ -2083,7 +2093,7 @@ static void RenderSpectrum() {
   
     if (classic) {
         DrawNums();
-        if(isListening) DrawArrow(128u * (scanInfo.i) / GetStepsCount());
+        DrawArrow(ArrowPos);
         UpdateDBMaxAuto();
         DrawSpectrum();
     }
@@ -2255,7 +2265,6 @@ bool HandleUserInput() {
 }
 
 static void Scan() {
-    if (IsBlacklisted(scanInfo.f)) return;
     SetF(scanInfo.f);
     Measure();
     UpdateScanInfo();
@@ -2264,21 +2273,14 @@ static void Scan() {
 
 static void UpdateScan() {
   Scan();
-  if (scanInfo.i < GetStepsCount()) {
-    NextScanStep();
-    return;
-  }
-
- /* if(scanInfo.measurementsCount < 128)
-    memset(&rssiHistory[scanInfo.measurementsCount], 0, sizeof(rssiHistory) - scanInfo.measurementsCount*sizeof(rssiHistory[0])); */
-  
-  UpdatePeakInfo();
-  if (gIsPeak) {
-      TuneToPeak();
-      ToggleRX(true);
-      return;
-  }
-  newScanStart = true;
+  NextScanStep();
+  if(!isListening) {
+      UpdatePeakInfo();
+      if (gIsPeak) {
+          TuneToPeak();
+          return;
+        }
+    }
 }
 
 static void UpdateStill() {
@@ -2333,16 +2335,14 @@ static void Tick() {
       UpdatePeakInfo();
       if (gIsPeak) {
           TuneToPeak();
-          ResetPeak();
-          ToggleRX(true);
           return;
         }
     }
 
   if (newScanStart) {
+    newScanStart = false;
     ResetPeak();
     InitScan();
-    newScanStart = false;
   }
   if (!isListening) {
     if (currentState == SPECTRUM) {
@@ -2376,32 +2376,19 @@ void APP_RunSpectrum(uint8_t Spectrum_state) {
     currentFreq = initialFreq = gTxVfo->pRX->Frequency;
       gScanRangeStart= currentFreq - (GetBW() >> 1);
       gScanRangeStart= currentFreq + (GetBW() >> 1);
-  
   }
   BackupRegisters();
   ResetInterrupts();
-
   // turn of GREEN LED if spectrum was started during active RX
   BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, false);
-
   isListening = true; // to turn off RX later
-  
-  
   newScanStart = true;
-  
-  //BK4819_SetFilterBandwidth(settings.listenBw = gTxVfo->CHANNEL_BANDWIDTH, false);
   RADIO_SetModulation(settings.modulationType = MODULATION_FM);
   BK4819_SetFilterBandwidth(settings.listenBw, false);
   AutoAdjustFreqChangeStep();
-  
   RelaunchScan();
-
-  for (int i = 0; i < 128; ++i) {
-    rssiHistory[i] = 0;
-  }
-
+  for (int i = 0; i < 128; ++i) {rssiHistory[i] = 0;}
   isInitialized = true;
-
   while (isInitialized) {
     Tick();
   }
