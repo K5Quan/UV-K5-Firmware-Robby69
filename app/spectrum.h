@@ -181,9 +181,8 @@ typedef struct KeyboardState{
 
 typedef struct ScanInfo {
   uint16_t rssi, rssiMin, rssiMax;
-  uint16_t i, iPeak;
-  uint32_t f, fPeak;
-  uint16_t scanStep;
+  uint32_t f;
+  uint16_t scanStep,i;
   uint16_t measurementsCount;
 } ScanInfo;
 
