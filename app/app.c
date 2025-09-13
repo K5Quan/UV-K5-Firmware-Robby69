@@ -447,7 +447,7 @@ void APP_Update(void)
 
 //Robby69 auto start spectrum 
 	uint8_t Spectrum_state = 0; //Spectrum Not Active
-  	EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1);
+  	if (!gF_LOCK) EEPROM_ReadBuffer(0x1D00, &Spectrum_state, 1); //Do not autostart if FLOCK BOOT
 	if (Spectrum_state >0 && Spectrum_state <5)
 		APP_RunSpectrum(Spectrum_state);
 
