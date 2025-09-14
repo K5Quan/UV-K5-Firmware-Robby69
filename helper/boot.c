@@ -32,35 +32,19 @@
 
 BOOT_Mode_t BOOT_GetMode(void)
 {
-	unsigned int i;
-	KEY_Code_t   Keys[2];
-
-	for (i = 0; i < 2; i++)
-	{
-		if (GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT))
-			return BOOT_MODE_NORMAL;   // PTT not pressed
-		Keys[i] = KEYBOARD_Poll();
-		SYSTEM_DelayMs(20);
-	}
-
-	if (Keys[0] == Keys[1])
-	{
-		gKeyReading0 = Keys[0];
-		gKeyReading1 = Keys[0];
-
-		gDebounceCounter = 2;
-
-		if (Keys[0] == KEY_SIDE1)
-			return BOOT_MODE_F_LOCK;
-
-	}
-
-	return BOOT_MODE_NORMAL;
+KEY_Code_t   Keys[2];
+Keys[0] = KEYBOARD_Poll();
+SYSTEM_DelayMs(20);
+gKeyReading0 = Keys[0];
+gKeyReading1 = Keys[0];
+gDebounceCounter = 2;
+if (Keys[0] == KEY_SIDE1) return BOOT_MODE_F_LOCK;
+return BOOT_MODE_NORMAL;
 }
 
 void BOOT_ProcessMode(BOOT_Mode_t Mode)
 {
-	if (Mode == BOOT_MODE_F_LOCK)
+if (Mode == BOOT_MODE_F_LOCK)
 	{
 		GUI_SelectNextDisplay(DISPLAY_MENU);
 	}

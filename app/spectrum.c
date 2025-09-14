@@ -7,7 +7,7 @@
 #include "common.h"
 #include "action.h"
 #include "bands.h"
-//#include "debugging.h"
+#include "debugging.h"
 
 
 #ifdef ENABLE_SCREENSHOT
@@ -420,7 +420,7 @@ uint16_t GetStepsCount()
 { 
   if (appMode==CHANNEL_MODE)
   {
-    return scanChannelsCount;
+    return scanChannelsCount - 1;
   }
   if(appMode==SCAN_RANGE_MODE) {
     return ((gScanRangeStop - gScanRangeStart) / GetScanStep()); //Robby69
@@ -751,9 +751,12 @@ static void DrawArrow(uint8_t x) {
 }
 
 static void Measure() {
+    uint16_t j;    
+    uint16_t startIndex;
     static int16_t previousRssi = 0;
     static bool isFirst = true;
     uint16_t rssi = scanInfo.rssi = GetRssi();
+    if (scanInfo.f % 1300000 == 0) rssi = scanInfo.rssi = 0;
 
     if (isFirst) {
         previousRssi = rssi;
@@ -777,24 +780,32 @@ static void Measure() {
     else if (rssi < previousRssi)
         previousRssi = rssi;
 
-    uint16_t count = GetStepsCount();
+    uint16_t count = GetStepsCount()+1;
     uint16_t i = scanInfo.i;
     if (count > 128) {
         uint16_t pixel = (uint32_t) i * 128 / count;
         rssiHistory[pixel] = rssi;
+        if(++pixel < 128) rssiHistory[pixel] = 0; //2 blank pixels
+        if(++pixel < 128) rssiHistory[pixel] = 0;
         ArrowPos = i % 128;
-    } else {                                      
-          uint16_t width = (128 + count - 1) / count;
-          uint8_t startIndex = i*width;
-          uint8_t endIndex   = i*width + width;
-          uint8_t j;
-          if (endIndex > 124) endIndex = 128;
+    } else {
+          uint16_t base = 128 / count;
+          uint16_t rem  = 128 % count;
+          startIndex = i * base + (i < rem ? i : rem);
+          uint16_t width      = base + (i < rem ? 1 : 0);
+          uint16_t endIndex   = startIndex + width;
+          ArrowPos = startIndex + width / 2;
           for (j = startIndex; j < endIndex; ++j) {rssiHistory[j] = rssi;}
+          
           if(++j < 128) rssiHistory[j] = 0; //2 blank pixels
           if(++j < 128) rssiHistory[j] = 0;
-          ArrowPos = startIndex + width / 2;
       }
-
+/////////////////////////DEBUG//////////////////////////
+//SYSTEM_DelayMs(200);
+/* char str[200] = "";
+sprintf(str,"%d %d %d \r\n", startIndex, j-2, rssiHistory[j-2]);
+LogUart(str); */
+/////////////////////////DEBUG//////////////////////////  
 }
 
 
@@ -1352,6 +1363,7 @@ void nextFrequency833() {
 }
 
 static void NextScanStep() {
+    ++scanInfo.i;  
     if (appMode==CHANNEL_MODE)
     { 
       int currentChannel = scanChannel[scanInfo.i];
@@ -1363,7 +1375,8 @@ static void NextScanStep() {
           if(scanInfo.scanStep==833) nextFrequency833();
           else scanInfo.f += scanInfo.scanStep;
     }
-    ++scanInfo.i;
+    
+
 }
 
 static void Skip() {
@@ -1838,7 +1851,7 @@ static void OnKeyDown(uint8_t key) {
       }
       if (historyListActive == true) {
           Last_Tuned_Freq = freqHistory[historyListIndex+1];
-      }
+      } else Last_Tuned_Freq = peak.f;
       currentFreq = Last_Tuned_Freq;
       if(scanInfo.f != Last_Tuned_Freq) SetF(Last_Tuned_Freq);
       scanInfo.f = Last_Tuned_Freq;
@@ -2028,8 +2041,8 @@ static void RenderStill() {
   UI_DisplayFrequency(freqStr, 0, 0, 0);
 
   //DrawF(scanInfo.f);
-  settings.dbMax = -20; 
-  settings.dbMin = -70;
+  //settings.dbMax = -20; 
+  //settings.dbMin = -70;
   DrawMeter(2);
   sLevelAttributes sLevelAtt;
   sLevelAtt = GetSLevelAttributes(scanInfo.rssi, scanInfo.f);
@@ -2197,21 +2210,24 @@ static void UpdateListening(void) { // called every 10ms
     static uint32_t stableFreq = 0;
     static uint16_t stableCount = 0;
     uint16_t rssi = GetRssi();
-    uint16_t count = GetStepsCount();
+    uint16_t count = GetStepsCount()+1;
     uint16_t i = peak.i;
 
     if (count > 128) {
         uint16_t pixel = (uint32_t) i * 128 / count;
         rssiHistory[pixel] = rssi;
         ArrowPos = i % 128;
-    } else {                                      
-          uint16_t width = (128 + count - 1) / count;
-          uint8_t startIndex = i*width;
-          uint8_t endIndex   = i*width + width;
-          if (endIndex > 124) endIndex = 128;
-          for (uint8_t j = startIndex; j < endIndex; ++j) {rssiHistory[j] = rssi;}
+    } else {
+          uint16_t j;    
+          uint16_t base = 128 / count;
+          uint16_t rem  = 128 % count;
+          uint16_t startIndex = i * base + (i < rem ? i : rem);
+          uint16_t width      = base + (i < rem ? 1 : 0);
+          uint16_t endIndex   = startIndex + width;
           ArrowPos = startIndex + width / 2;
+          for (j = startIndex; j < endIndex; ++j) {rssiHistory[j] = rssi;} 
       }
+      
 
     // Détection de fréquence stable
     if (peak.f == stableFreq) {
