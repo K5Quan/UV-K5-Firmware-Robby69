@@ -57,7 +57,7 @@ uint8_t           gSetting_backlight_on_tx_rx;
 
 uint8_t           gSetting_battery_text;
 
-bool              gMonitor = false;           // true opens the squelch
+bool 	          gMonitor = 0;
 
 uint32_t          gCustomAesKey[4];
 bool              bHasCustomAesKey;
