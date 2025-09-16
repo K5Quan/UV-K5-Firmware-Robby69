@@ -30,16 +30,13 @@
 void UI_DisplayScanner(void) //Close Call, CTCSS/DCS scanner, etc.
 {
 	char    String[16];
-	bool    bCentered;
-	uint8_t Start;
-
 	memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
 
 	memset(String, 0, sizeof(String));
 	if (gScanSingleFrequency || (gScanCssState != SCAN_CSS_STATE_OFF && gScanCssState != SCAN_CSS_STATE_FAILED))
 		sprintf(String, "FREQ:%u.%05u", gScanFrequency / 100000, gScanFrequency % 100000);
 	else
-		strcpy(String, "FREQ:**.*****");
+		strcpy(String, "FREQ:********");
 	UI_PrintString(String, 2, 0, 1, 8);
 
 	memset(String, 0, sizeof(String));
@@ -53,33 +50,17 @@ void UI_DisplayScanner(void) //Close Call, CTCSS/DCS scanner, etc.
 	UI_PrintString(String, 2, 0, 3, 8);
 
 	memset(String, 0, sizeof(String));
-	if (gScannerSaveState == SCAN_SAVE_CHANNEL)
-	{
-		strcpy(String, "SAVE?");
 
-		Start     = 0;
-		bCentered = 1;
+	if (gScanCssState < SCAN_CSS_STATE_FOUND) {
+		strcpy(String, "SCAN");
+		memset(String + 4, '.', (gScanProgressIndicator & 7) + 1);
 	}
+	else if (gScanCssState == SCAN_CSS_STATE_FOUND)
+		strcpy(String, "SCAN CMP.");
 	else
-	{
-		if (gScannerSaveState == SCAN_SAVE_CHAN_SEL) {
-			strcpy(String, "SAVE:");
-			UI_GenerateChannelStringEx(String + 5, gShowChPrefix, gScanChannel);
-		}
-		else if (gScanCssState < SCAN_CSS_STATE_FOUND) {
-			strcpy(String, "SCAN");
-			memset(String + 4, '.', (gScanProgressIndicator & 7) + 1);
-		}
-		else if (gScanCssState == SCAN_CSS_STATE_FOUND)
-			strcpy(String, "SCAN CMP.");
-		else
-			strcpy(String, "SCAN FAIL.");
-
-		Start     = 2;
-		bCentered = 0;
-	}
-	UI_PrintString(String, Start, bCentered ? 127 : 0, 5, 8);
+		strcpy(String, "SCAN FAIL.");
 	
+	UI_PrintString(String, 2, 0 ? 127 : 0, 5, 8);
 	ST7565_BlitFullScreen();
 }
 

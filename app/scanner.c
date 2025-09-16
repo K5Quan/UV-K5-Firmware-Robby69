@@ -32,7 +32,6 @@
 DCS_CodeType_t    gScanCssResultType;
 uint8_t           gScanCssResultCode;
 bool              gScanSingleFrequency; // scan CTCSS/DCS codes for current frequency
-SCAN_SaveState_t  gScannerSaveState;
 uint8_t           gScanChannel;
 uint32_t          gScanFrequency;
 SCAN_CssState_t   gScanCssState;
@@ -63,27 +62,9 @@ void SCANNER_Stop(void)
 static void SCANNER_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
 {
 	if (!bKeyHeld && bKeyPressed) { // short pressed
-		switch (gScannerSaveState) {
-			case SCAN_SAVE_NO_PROMPT:
 				SCANNER_Stop();
 				gRequestDisplayScreen    = DISPLAY_MAIN;
-				break;
-
-			case SCAN_SAVE_CHAN_SEL:
-				if (gInputBoxIndex > 0) {
-					gInputBox[--gInputBoxIndex] = 10;
-					gRequestDisplayScreen       = DISPLAY_SCANNER;
-					break;
-				}
-
-				// Fallthrough
-
-			case SCAN_SAVE_CHANNEL:
-				gScannerSaveState     = SCAN_SAVE_NO_PROMPT;
-				gRequestDisplayScreen = DISPLAY_SCANNER;
-				break;
 		}
-	}
 }
 
 void SCANNER_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
@@ -106,6 +87,8 @@ void SCANNER_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			SCANNER_Key_EXIT(bKeyPressed, bKeyHeld);
 			break;
 		case KEY_STAR:
+			SCANNER_Start(gScanSingleFrequency);
+			break;
 		case KEY_PTT:
 			GENERIC_Key_PTT(bKeyPressed);
 			break;
@@ -163,7 +146,6 @@ void SCANNER_Start(bool singleFreq)
 	gCDCSSCodeType         = 0;
 	g_CTCSS_Lost           = false;
 	g_SquelchLost          = false;
-	gScannerSaveState      = SCAN_SAVE_NO_PROMPT;
 	gScanProgressIndicator = 0;
 }
 
@@ -186,10 +168,6 @@ void SCANNER_TimeSlice10ms(void)
 		BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, true);
 	else
 		BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, false);
-
-	if (gScannerSaveState != SCAN_SAVE_NO_PROMPT) {
-		return;
-	}
 
 	switch (gScanCssState) {
 		case SCAN_CSS_STATE_OFF: {
@@ -284,10 +262,10 @@ void SCANNER_TimeSlice10ms(void)
 
 void SCANNER_TimeSlice500ms(void)
 {
-	if (SCANNER_IsScanning() && gScannerSaveState == SCAN_SAVE_NO_PROMPT && gScanCssState < SCAN_CSS_STATE_FOUND) {
+	if (SCANNER_IsScanning() && gScanCssState < SCAN_CSS_STATE_FOUND) {
 		gScanProgressIndicator++;
 
-		if (gScanProgressIndicator > 32) {
+		if (gScanProgressIndicator > 250) {
 			if (gScanCssState == SCAN_CSS_STATE_SCANNING && !gScanSingleFrequency)
 				gScanCssState = SCAN_CSS_STATE_FOUND;
 			else
