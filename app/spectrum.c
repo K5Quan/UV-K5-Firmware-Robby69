@@ -48,7 +48,6 @@ uint32_t Last_Tuned_Freq = 44610000;
 bool StorePtt_Toggle_Mode = 0;
 uint8_t historyListIndex = 0;
 uint8_t ArrowLine = 1;
-uint8_t ArrowPos = 0;
 static int historyScrollOffset = 0;
 static void LoadValidMemoryChannels(void);
 static void ToggleRX(bool on);
@@ -617,7 +616,7 @@ static void ResetReceivingState() {
 }
 
 static void ToggleRX(bool on) {
-    if(!on && SpectrumMonitor == 2) return;
+    if(!on && SpectrumMonitor == 2) {isListening = 1;return;}
     isListening = on;
     BACKLIGHT_TurnOn();
     // automatically switch modulation & bw if known channel
@@ -743,16 +742,16 @@ void UpdateNoiseOn(){
 
 }
 
-static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
-
-static void DrawArrow(uint8_t x) {
-  for (signed i = -2; i <= 2; ++i) {
-    signed v = x + i;
-    if (!(v & 128)) {
-      gFrameBuffer[ArrowLine][v] ^= (0b111 >> my_abs(i)) & 0b111;
-    }
+static void UpdateScanInfo() {
+  if (scanInfo.rssi > scanInfo.rssiMax) {
+    scanInfo.rssiMax = scanInfo.rssi;
+  }
+  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
+    scanInfo.rssiMin = scanInfo.rssi;
   }
 }
+
+//static uint8_t my_abs(signed v) { return v > 0 ? v : -v; }
 
 static void Measure() {
     uint16_t j;    
@@ -760,6 +759,7 @@ static void Measure() {
     static int16_t previousRssi = 0;
     static bool isFirst = true;
     uint16_t rssi = scanInfo.rssi = GetRssi();
+    UpdateScanInfo();
     if (scanInfo.f % 1300000 == 0 || IsBlacklisted(scanInfo.f)) rssi = scanInfo.rssi = 0;
 
     if (isFirst) {
@@ -777,8 +777,6 @@ static void Measure() {
           gIsPeak = true;
         }
     } 
-
-    // Mise à jour previousRssi
     if (!gIsPeak || !isListening)
         previousRssi = rssi;
     else if (rssi < previousRssi)
@@ -791,6 +789,7 @@ static void Measure() {
         rssiHistory[pixel] = rssi;
         if(++pixel < 128) rssiHistory[pixel] = 0; //2 blank pixels
         if(++pixel < 128) rssiHistory[pixel] = 0;
+        
     } else {
           uint16_t base = 128 / count;
           uint16_t rem  = 128 % count;
@@ -798,6 +797,7 @@ static void Measure() {
           uint16_t width      = base + (i < rem ? 1 : 0);
           uint16_t endIndex   = startIndex + width;
           for (j = startIndex; j < endIndex; ++j) {rssiHistory[j] = rssi;}
+          for (j = endIndex; j < endIndex + width; ++j) {rssiHistory[j] = 0;}
       }
 /////////////////////////DEBUG//////////////////////////
 //SYSTEM_DelayMs(200);
@@ -811,7 +811,7 @@ LogUart(str); */
 static void UpdateDBMaxAuto() {
   static uint8_t z = 3;
     if (scanInfo.rssiMax > 0) {
-        int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 5), -160, 160);
+        int newDbMax = clamp(Rssi2DBm(scanInfo.rssiMax + 10), -160, 160);
 
         if (newDbMax > settings.dbMax + z) {
             settings.dbMax = settings.dbMax + z;   // montée limitée
@@ -828,14 +828,7 @@ static void UpdateDBMaxAuto() {
 }
 
 
-static void UpdateScanInfo() {
-  if (scanInfo.rssi > scanInfo.rssiMax) {
-    scanInfo.rssiMax = scanInfo.rssi;
-  }
-  if (scanInfo.rssi < scanInfo.rssiMin && scanInfo.rssi > 0) {
-    scanInfo.rssiMin = scanInfo.rssi;
-  }
-}
+
 
 static void AutoAdjustFreqChangeStep() {
   settings.frequencyChangeStep = gScanRangeStop - gScanRangeStart;
@@ -1381,7 +1374,7 @@ static void OnKeyDown(uint8_t key) {
   
   
     // NEW HANDLING: press of '4' key in SCAN_BAND_MODE
-    if (appMode == SCAN_BAND_MODE && key == KEY_4) {
+    if (appMode == SCAN_BAND_MODE && key == KEY_4 && currentState == SPECTRUM) {
         SetState(BAND_LIST_SELECT);
         bandListSelectedIndex = 0; // Start from the first band
         bandListScrollOffset = 0;  // Reset scrolling
@@ -1390,7 +1383,7 @@ static void OnKeyDown(uint8_t key) {
     }
 
     // NEW HANDLING: press of '4' key in CHANNEL_MODE
-    if (appMode == CHANNEL_MODE && key == KEY_4) {
+    if (appMode == CHANNEL_MODE && key == KEY_4 && currentState == SPECTRUM) {
         SetState(SCANLIST_SELECT);
         scanListSelectedIndex = 0;
         scanListScrollOffset = 0;
@@ -1398,8 +1391,8 @@ static void OnKeyDown(uint8_t key) {
         return; // Key handled
     }
     
-	if (key == KEY_5) {
-        SetState(PARAMETERS_SELECT);
+	if (key == KEY_5 && currentState == SPECTRUM) {
+        SetState(PARAMETERS_SELECT );
         parametersSelectedIndex = 0;
         parametersScrollOffset = 0;
         
@@ -1453,19 +1446,10 @@ static void OnKeyDown(uint8_t key) {
 				        // NOWA FUNKCJA: Przejście do wybranego zakresu po wciśnięciu MENU
         case KEY_MENU:
             if (bandListSelectedIndex < ARRAY_SIZE(BParams)) {
-                // Ustaw tylko wybrane pasmo jako aktywne
                 memset(settings.bandEnabled, 0, sizeof(settings.bandEnabled));
                 settings.bandEnabled[bandListSelectedIndex] = true;
-                
-                // Ustaw indeks pasma do skanowania
                 nextBandToScanIndex = bandListSelectedIndex;
-                
-                // Przejdź do trybu spektrum/skanowania
                 SetState(SPECTRUM);
-                
-                
-                
-                // Uruchom skanowanie wybranego pasma
                 RelaunchScan();
             }
             break;
@@ -1697,7 +1681,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 80? 0 : settings.rssiTriggerLevelUp + step);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
-          Skip();
+          if (!SpectrumMonitor) Skip();
           break;
       }
 
@@ -1706,7 +1690,7 @@ static void OnKeyDown(uint8_t key) {
           settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp <= 0? 80 : settings.rssiTriggerLevelUp - step);
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
-          Skip();
+          if (!SpectrumMonitor) Skip();
           break;
       }
 
@@ -1757,6 +1741,7 @@ static void OnKeyDown(uint8_t key) {
         if (historyListIndex > 0) {
              historyListIndex--;
             if (historyListIndex < historyScrollOffset) {historyScrollOffset = historyListIndex;}
+        if (SpectrumMonitor > 0)SetF(freqHistory[historyListIndex+1]);
         }
     } else {
         if (appMode==SCAN_BAND_MODE) {
@@ -1780,7 +1765,10 @@ static void OnKeyDown(uint8_t key) {
     break;
   case KEY_DOWN:
     
-    if (historyListActive) {HandleHistoryDown();}
+    if (historyListActive) {
+      HandleHistoryDown();
+      if (SpectrumMonitor > 0)SetF(freqHistory[historyListIndex+1]);
+    }
     else {
         if (appMode==SCAN_BAND_MODE) {
             ToggleScanList(bl, 1);
@@ -1982,7 +1970,7 @@ void OnKeyDownStill(KEY_Code_t key) {
         }
         SetState(SPECTRUM);
         SpectrumDelay = 0; //Prevent coming back to still directly
-        RelaunchScan();
+        
     break;
   default:
     break;
@@ -2004,15 +1992,13 @@ static void RenderSpectrum() {
   
     if (classic) {
         DrawNums();
-        
-        UpdateDBMaxAuto();    
         DrawSpectrum();
     }
     if(isListening) {
-      DrawF(peak.f);
-      DrawArrow(ArrowPos);}
+      DrawF(peak.f);}
     else {
     DrawF(scanInfo.f);
+    UpdateDBMaxAuto();    
     }
 }
 
@@ -2090,7 +2076,7 @@ static void RenderStill() {
 
 static void Render() {
   memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-
+  
   switch (currentState) {
   case SPECTRUM:
     if(historyListActive == true) RenderHistoryList();
@@ -2183,7 +2169,7 @@ bool HandleUserInput() {
 static void UpdateScan() {
   SetF(scanInfo.f);
   Measure();
-  UpdateScanInfo();
+  //UpdateScanInfo();
   if(gIsPeak || SpectrumMonitor)return;
   if (scanInfo.i < GetStepsCount()) {
     NextScanStep();
@@ -2196,13 +2182,13 @@ static void UpdateListening(void) { // called every 10ms
     static uint32_t stableFreq = 0;
     static uint16_t stableCount = 0;
     uint16_t rssi = GetRssi();
+    scanInfo.rssi = rssi;
     uint16_t count = GetStepsCount()+1;
     uint16_t i = peak.i;
 
     if (count > 128) {
         uint16_t pixel = (uint32_t) i * 128 / count;
         rssiHistory[pixel] = rssi;
-        ArrowPos = i % 128;
     } else {
           uint16_t j;    
           uint16_t base = 128 / count;
@@ -2210,7 +2196,6 @@ static void UpdateListening(void) { // called every 10ms
           uint16_t startIndex = i * base + (i < rem ? i : rem);
           uint16_t width      = base + (i < rem ? 1 : 0);
           uint16_t endIndex   = startIndex + width;
-          ArrowPos = startIndex + width / 2;
           for (j = startIndex; j < endIndex; ++j) {rssiHistory[j] = rssi;} 
       }
       
@@ -2659,7 +2644,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
     
     // Draw title - wyrównany do lewej dla maksymalnego wykorzystania miejsca
-    UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
+    if (!SpectrumMonitor) UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
     // List parameters for UI_PrintStringSmall (lines 1-7 available)
     const uint8_t FIRST_ITEM_LINE = 1;  // Start from line 1 (line 0 is title)
     const uint8_t MAX_LINES = 6;        // Lines 1-7 available for items
@@ -2701,7 +2686,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
           }
           
     }
-    
+    if (historyListActive && SpectrumMonitor > 0) DrawMeter(0);
     ST7565_BlitFullScreen();
 }
 

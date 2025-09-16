@@ -714,6 +714,7 @@ void APP_TimeSlice10ms(void)
 			GUI_SelectNextDisplay(DISPLAY_FM);
 		}
 	}
+	SCANNER_TimeSlice10ms();
 	CheckKeys();
 }
 
@@ -886,6 +887,7 @@ void APP_TimeSlice500ms(void)
 	}
 
 	BATTERY_TimeSlice500ms();
+	SCANNER_TimeSlice500ms();
 
 }
 
@@ -1132,6 +1134,9 @@ static void ProcessKey(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 
 				case DISPLAY_MENU:
 					MENU_ProcessKeys(Key, bKeyPressed, bKeyHeld);
+					break;
+				case DISPLAY_SCANNER:
+					SCANNER_ProcessKeys(Key, bKeyPressed, bKeyHeld);
 					break;
 
 				case DISPLAY_INVALID:

@@ -37,7 +37,7 @@ const uint8_t     key_input_timeout_500ms          =  8000 / 500;  // 8 seconds
 const uint16_t    key_repeat_delay_10ms            =   400 / 10;   // 400ms
 const uint16_t    key_repeat_10ms                  =    80 / 10;   // 80ms .. MUST be less than 'key_repeat_delay'
 const uint16_t    key_debounce_10ms                =    20 / 10;   // 20ms
-
+const uint8_t     scan_delay_10ms                  =   210 / 10;   // 210ms
 
 const uint16_t    battery_save_count_10ms          = 10000 / 10;   // 10 seconds
 

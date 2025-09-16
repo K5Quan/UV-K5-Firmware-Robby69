@@ -38,6 +38,16 @@
 #include "ui/ui.h"
 #include <stdlib.h>
 
+static void MAIN_Key_STAR(bool closecall)
+{
+	if (gCurrentFunction == FUNCTION_TRANSMIT)
+		return;
+	gWasFKeyPressed          = false;
+	gUpdateStatus            = true;		
+	SCANNER_Start(closecall);
+	gRequestDisplayScreen = DISPLAY_SCANNER;
+}
+
 static void processFKeyFunction(const KEY_Code_t Key, const bool beep)
 {
 	//uint8_t Band;
@@ -417,6 +427,10 @@ void MAIN_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
 			break;
 		case KEY_EXIT:
 			MAIN_Key_EXIT(bKeyPressed, bKeyHeld);
+			break;
+		case KEY_STAR:
+			if (gWasFKeyPressed) MAIN_Key_STAR(1);
+			else MAIN_Key_STAR(0);
 			break;
 		case KEY_F:
 			GENERIC_Key_F(bKeyPressed, bKeyHeld);

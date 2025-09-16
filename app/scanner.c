@@ -21,7 +21,6 @@
 #include "app/generic.h"
 #include "app/menu.h"
 #include "app/scanner.h"
-
 #include "driver/bk4819.h"
 #include "frequencies.h"
 #include "misc.h"
@@ -39,6 +38,267 @@ uint32_t          gScanFrequency;
 SCAN_CssState_t   gScanCssState;
 uint8_t           gScanProgressIndicator;
 bool              gScanUseCssResult;
+uint8_t               gScanDelay_10ms;
 
 STEP_Setting_t    stepSetting;
+uint8_t           scanHitCount;
+
+bool SCANNER_IsScanning(void)
+{
+	return gCssBackgroundScan || (gScreenToDisplay == DISPLAY_SCANNER);
+}
+
+void SCANNER_Stop(void)
+{
+	if(SCANNER_IsScanning()) {
+		gVfoConfigureMode        = VFO_CONFIGURE_RELOAD;
+		gFlagResetVfos           = true;
+		gUpdateStatus            = true;
+		gCssBackgroundScan 			 = false;
+		gScanUseCssResult = false;
+		BK4819_StopScan();
+	}
+}
+
+static void SCANNER_Key_EXIT(bool bKeyPressed, bool bKeyHeld)
+{
+	if (!bKeyHeld && bKeyPressed) { // short pressed
+		switch (gScannerSaveState) {
+			case SCAN_SAVE_NO_PROMPT:
+				SCANNER_Stop();
+				gRequestDisplayScreen    = DISPLAY_MAIN;
+				break;
+
+			case SCAN_SAVE_CHAN_SEL:
+				if (gInputBoxIndex > 0) {
+					gInputBox[--gInputBoxIndex] = 10;
+					gRequestDisplayScreen       = DISPLAY_SCANNER;
+					break;
+				}
+
+				// Fallthrough
+
+			case SCAN_SAVE_CHANNEL:
+				gScannerSaveState     = SCAN_SAVE_NO_PROMPT;
+				gRequestDisplayScreen = DISPLAY_SCANNER;
+				break;
+		}
+	}
+}
+
+void SCANNER_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld)
+{
+	switch (Key) {
+		case KEY_0:
+		case KEY_1:
+		case KEY_2:
+		case KEY_3:
+		case KEY_4:
+		case KEY_5:
+		case KEY_6:
+		case KEY_7:
+		case KEY_8:
+		case KEY_9:
+		case KEY_MENU:
+		case KEY_UP:
+		case KEY_DOWN:
+		case KEY_EXIT:
+			SCANNER_Key_EXIT(bKeyPressed, bKeyHeld);
+			break;
+		case KEY_STAR:
+		case KEY_PTT:
+			GENERIC_Key_PTT(bKeyPressed);
+			break;
+		default:
+			break;
+	}
+}
+
+void SCANNER_Start(bool singleFreq)
+{
+	gScanSingleFrequency = singleFreq;
+	gMonitor = false;
+	BK4819_StopScan();
+	RADIO_SelectVfos();
+	uint8_t  backupStep      = gTxVfo->STEP_SETTING;
+	uint16_t backupFrequency = gTxVfo->StepFrequency;
+
+	RADIO_InitInfo(gTxVfo, gTxVfo->CHANNEL_SAVE, gTxVfo->pRX->Frequency);
+
+	gTxVfo->STEP_SETTING  = backupStep;
+	gTxVfo->StepFrequency = backupFrequency;
+
+	RADIO_SetupRegisters(true);
+
+#ifdef ENABLE_NOAA
+	gIsNoaaMode = false;
+#endif
+
+	if (gScanSingleFrequency) {
+		gScanCssState  = SCAN_CSS_STATE_SCANNING;
+		gScanFrequency = gTxVfo->pRX->Frequency;
+		stepSetting   = gTxVfo->STEP_SETTING;
+
+		BK4819_PickRXFilterPathBasedOnFrequency(gScanFrequency);
+		BK4819_SetScanFrequency(gScanFrequency);
+
+		gUpdateStatus = true;
+	}
+	else { //Close call
+		gScanCssState  = SCAN_CSS_STATE_OFF;
+		gScanFrequency = 0xFFFFFFFF;
+
+		BK4819_PickRXFilterPathBasedOnFrequency(gScanFrequency);
+		BK4819_EnableFrequencyScan();
+
+		gUpdateStatus = true;
+	}
+	gScanDelay_10ms        = scan_delay_10ms;
+	gScanCssResultCode     = 0xFF;
+	gScanCssResultType     = 0xFF;
+	scanHitCount          = 0;
+	gScanUseCssResult      = false;
+	g_CxCSS_TAIL_Found     = false;
+	g_CDCSS_Lost           = false;
+	gCDCSSCodeType         = 0;
+	g_CTCSS_Lost           = false;
+	g_SquelchLost          = false;
+	gScannerSaveState      = SCAN_SAVE_NO_PROMPT;
+	gScanProgressIndicator = 0;
+}
+
+
+
+void SCANNER_TimeSlice10ms(void)
+{
+	if (!SCANNER_IsScanning())
+		return;
+
+	if (gScanDelay_10ms > 0) {
+		gScanDelay_10ms--;
+		return;
+	}
+	uint16_t rssi;
+	rssi = BK4819_GetRSSI();
+	sLevelAttributes signal = GetSLevelAttributes(rssi, gTxVfo->freq_config_RX.Frequency);
+
+	if(signal.overSquelch)
+		BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, true);
+	else
+		BK4819_ToggleGpioOut(BK4819_GPIO6_PIN2_GREEN, false);
+
+	if (gScannerSaveState != SCAN_SAVE_NO_PROMPT) {
+		return;
+	}
+
+	switch (gScanCssState) {
+		case SCAN_CSS_STATE_OFF: {
+			// must be RF frequency scanning if we're here ?
+			uint32_t result;
+			if (!BK4819_GetFrequencyScanResult(&result))
+				break;
+
+			int32_t delta = result - gScanFrequency;
+			gScanFrequency = result;
+
+			if (delta < 0)
+				delta = -delta;
+			if (delta < 100)
+				scanHitCount++;
+			else
+				scanHitCount = 0;
+
+			BK4819_DisableFrequencyScan();
+			if (scanHitCount < 3) {
+				BK4819_EnableFrequencyScan();
+			}
+			else {
+				BK4819_SetScanFrequency(gScanFrequency);
+				gScanCssResultCode     = 0xFF;
+				gScanCssResultType     = 0xFF;
+				scanHitCount          = 0;
+				gScanUseCssResult      = false;
+				gScanProgressIndicator = 0;
+				gScanCssState          = SCAN_CSS_STATE_SCANNING;
+
+				if(!gCssBackgroundScan)
+					GUI_SelectNextDisplay(DISPLAY_SCANNER);
+
+				gUpdateStatus          = true;
+			}
+			gScanDelay_10ms = scan_delay_10ms;
+			break;
+		}
+		case SCAN_CSS_STATE_SCANNING: {
+			uint32_t cdcssFreq;
+			uint16_t ctcssFreq;
+			BK4819_CssScanResult_t scanResult = BK4819_GetCxCSSScanResult(&cdcssFreq, &ctcssFreq);
+			if (scanResult == BK4819_CSS_RESULT_NOT_FOUND)
+				break;
+
+			BK4819_Disable();
+
+			if (scanResult == BK4819_CSS_RESULT_CDCSS) {
+				const uint8_t Code = DCS_GetCdcssCode(cdcssFreq);
+				if (Code != 0xFF)
+				{
+					gScanCssResultCode = Code;
+					gScanCssResultType = CODE_TYPE_DIGITAL;
+					gScanCssState      = SCAN_CSS_STATE_FOUND;
+					gScanUseCssResult  = true;
+					gUpdateStatus      = true;
+				}
+			}
+			else if (scanResult == BK4819_CSS_RESULT_CTCSS) {
+				const uint8_t Code = DCS_GetCtcssCode(ctcssFreq);
+				if (Code != 0xFF) {
+					
+					++scanHitCount;
+					gScanCssState      = SCAN_CSS_STATE_FOUND;
+					gScanUseCssResult  = true;
+					gUpdateStatus      = true;
+					gScanCssResultType = CODE_TYPE_CONTINUOUS_TONE;
+					gScanCssResultCode = Code;
+				}
+				else {
+					scanHitCount = 0;
+				}
+			}
+
+			if (gScanCssState < SCAN_CSS_STATE_FOUND) { // scanning or off
+				BK4819_SetScanFrequency(gScanFrequency);
+				gScanDelay_10ms = 1;
+				break;
+			}
+				GUI_SelectNextDisplay(DISPLAY_SCANNER);
+
+
+			break;
+		}
+		default:
+			gCssBackgroundScan = false;
+			break;
+	}
+
+}
+
+void SCANNER_TimeSlice500ms(void)
+{
+	if (SCANNER_IsScanning() && gScannerSaveState == SCAN_SAVE_NO_PROMPT && gScanCssState < SCAN_CSS_STATE_FOUND) {
+		gScanProgressIndicator++;
+
+		if (gScanProgressIndicator > 32) {
+			if (gScanCssState == SCAN_CSS_STATE_SCANNING && !gScanSingleFrequency)
+				gScanCssState = SCAN_CSS_STATE_FOUND;
+			else
+				gScanCssState = SCAN_CSS_STATE_FAILED;
+
+			gUpdateStatus = true;
+		}
+		gUpdateDisplay = true;
+	}
+	else if(gCssBackgroundScan) {
+		gUpdateDisplay = true;
+	}
+}
 

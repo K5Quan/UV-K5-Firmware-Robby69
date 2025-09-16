@@ -48,6 +48,10 @@ extern uint32_t          gScanFrequency;
 extern SCAN_CssState_t   gScanCssState;
 extern uint8_t           gScanProgressIndicator;
 extern bool              gScanUseCssResult;
-
+extern uint8_t               gScanDelay_10ms;
+void SCANNER_Start(bool singleFreq);
+void SCANNER_TimeSlice10ms(void);
+void SCANNER_TimeSlice500ms(void);
+void SCANNER_ProcessKeys(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld);
 #endif
 
