@@ -132,6 +132,7 @@ void SCANNER_Start(bool singleFreq)
 		gScanFrequency = 0xFFFFFFFF;
 
 		BK4819_PickRXFilterPathBasedOnFrequency(gScanFrequency);
+		//BK4819_PickRXFilterPathBasedOnFrequency(40000000);
 		BK4819_EnableFrequencyScan();
 
 		gUpdateStatus = true;

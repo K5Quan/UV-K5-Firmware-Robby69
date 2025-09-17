@@ -1,1 +1,0 @@
-del *.o /s & del *.d /s & del *.elf /s & del *.hex /s & del *.bin /s & del *.map /s

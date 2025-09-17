@@ -1754,7 +1754,11 @@ static void OnKeyDown(uint8_t key) {
         else if (ShowLines > 3) {if (indexFd < indexFs-1) indexFd++;}
         else if(appMode==CHANNEL_MODE){
               BuildValidScanListIndices();
-              scanListSelectedIndex = (scanListSelectedIndex < validScanListCount ? scanListSelectedIndex+1 : 0);
+              static bool isFirst = true;
+              if (isFirst) {isFirst = false;
+                  scanListSelectedIndex = 0;
+              }
+              else {scanListSelectedIndex = (scanListSelectedIndex < validScanListCount ? scanListSelectedIndex+1 : 0);}
               ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
               SetState(SPECTRUM);
               ResetModifiers();
@@ -1782,7 +1786,11 @@ static void OnKeyDown(uint8_t key) {
       
         else if(appMode==CHANNEL_MODE){
             BuildValidScanListIndices();
-            scanListSelectedIndex = (scanListSelectedIndex < 1 ? validScanListCount-1:scanListSelectedIndex-1);
+            static bool isFirst = true;
+            if (isFirst) {isFirst= false;
+                scanListSelectedIndex = 0;
+            }
+              else {scanListSelectedIndex = (scanListSelectedIndex < 1 ? validScanListCount-1:scanListSelectedIndex-1);}
             ToggleScanList(validScanListIndices[scanListSelectedIndex], 1);
             SetState(SPECTRUM);
             ResetModifiers();
@@ -2447,7 +2455,12 @@ static void SaveSettings()
   eepromData.R29 = BK4819_ReadRegister(BK4819_REG_29);
   eepromData.R19 = BK4819_ReadRegister(BK4819_REG_19);
   eepromData.R73 = BK4819_ReadRegister(BK4819_REG_73);
+
+  char str[64] = "";sprintf(str, "R40:%d R29:%d R19:%d R73:%d \r\n", eepromData.R40, eepromData.R29, eepromData.R19, eepromData.R73 );LogUart(str);
   
+  
+  //R40:13520 R29:43840 R19:4161 R73:18066
+
   // Write in 8-byte chunks
   for (uint16_t addr = 0; addr < sizeof(eepromData); addr += 8) 
     EEPROM_WriteBuffer(addr + 0x1D10, ((uint8_t*)&eepromData) + addr, 8);
@@ -2478,7 +2491,7 @@ static void ClearSettings()
   BK4819_WriteRegister(BK4819_REG_40, 0x34D0);
   BK4819_WriteRegister(BK4819_REG_29, 0xAB40);
   BK4819_WriteRegister(BK4819_REG_19, 0x1041);
-  BK4819_WriteRegister(BK4819_REG_73, 0x4682);
+  BK4819_WriteRegister(BK4819_REG_73, 0x4692);
   SaveSettings(); 
 }
 
