@@ -127,6 +127,10 @@ const uint8_t modulationTypeTuneSteps[] = {100, 50, 10};
 const uint8_t modTypeReg47Values[] = {1, 7, 5};
 uint8_t BPRssiTriggerLevelUp[32]={0};
 uint8_t SLRssiTriggerLevelUp[15]={0};
+// Deklaracja funkcji pomocniczej
+static bool IsBlacklisted(uint32_t f);
+static uint8_t GetHistoryRealIndex(uint8_t displayIndex);
+
 SpectrumSettings settings = {stepsCount: STEPS_128,
                              scanStepIndex: S_STEP_500kHz,
                              frequencyChangeStep: 80000,
@@ -311,6 +315,22 @@ uint16_t statuslineUpdateTimer = 0;
 static void RelaunchScan();
 static void ResetInterrupts();
 static char StringCode[10] = "";
+
+//
+static uint16_t osdPopupTimer = 0;
+static char osdPopupText[32] = "";
+
+// 
+void ShowOSDPopup(const char *str, uint16_t ms)
+{
+    strncpy(osdPopupText, str, sizeof(osdPopupText)-1);
+    osdPopupText[sizeof(osdPopupText)-1] = '\0';  // Zabezpieczenie przed przepełnieniem
+    osdPopupTimer = ms;
+    UI_DisplayPopup(osdPopupText);
+    ST7565_BlitFullScreen();
+}
+
+
 static uint16_t GetRegMenuValue(uint8_t st) {
   RegisterSpec s = allRegisterSpecs[st];
   return (BK4819_ReadRegister(s.num) >> s.offset) & s.mask;
@@ -1682,7 +1702,12 @@ static void OnKeyDown(uint8_t key) {
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
           if (!SpectrumMonitor) Skip();
-          break;
+		  		  settings.rssiTriggerLevelUp = (settings.rssiTriggerLevelUp >= 80 ? 0 : settings.rssiTriggerLevelUp + 5);
+    // NOWE OSD - formatowanie z sprintf
+    char triggerText[32];
+    sprintf(triggerText, "Trigger: %d", settings.rssiTriggerLevelUp);
+    ShowOSDPopup(triggerText, 1500);  // 1.5 sekundy wyświetlania
+    break;
       }
 
       case KEY_F: {
@@ -1691,17 +1716,30 @@ static void OnKeyDown(uint8_t key) {
           if(appMode == SCAN_BAND_MODE) BPRssiTriggerLevelUp[bl] = settings.rssiTriggerLevelUp;
           if(appMode == CHANNEL_MODE) SLRssiTriggerLevelUp[ScanListNumber[scanInfo.i]] = settings.rssiTriggerLevelUp;
           if (!SpectrumMonitor) Skip();
-          break;
+    // NOWE OSD - formatowanie z sprintf
+    char triggerText[32];
+    sprintf(triggerText, "Trigger: %d", settings.rssiTriggerLevelUp);
+    ShowOSDPopup(triggerText, 1500);
+    break;
       }
 
 
       case KEY_3:
          ToggleListeningBW(1);
+		 // NOWE OSD dla zmiany BW
+    char bwText[32];
+    sprintf(bwText, "BW: %s", bwNames[settings.listenBw]);
+    ShowOSDPopup(bwText, 1000);
+
       break;
      
       case KEY_9:
         ToggleModulation();
-      break;
+		 // NOWE OSD dla zmiany modulacji
+    char modText[32];
+    sprintf(modText, "MOD: %s", gModulationStr[settings.modulationType]);
+    ShowOSDPopup(modText, 1000);
+    break;
 
       case KEY_1: //SKIP
         Skip();
@@ -1818,11 +1856,39 @@ static void OnKeyDown(uint8_t key) {
     case KEY_SIDE1: // Blacklist
         SpectrumMonitor++;
         if (SpectrumMonitor > 2) SpectrumMonitor = 0; // 0 normal, 1 Freq lock, 2 Monitor
+		    char monitorText[32];
+    const char* modes[] = {"Normal", "Freq Lock", "Monitor"};
+    sprintf(monitorText, "Mode: %s", modes[SpectrumMonitor]);
+	ShowOSDPopup(monitorText, 1200);
         if(SpectrumMonitor == 2) ToggleRX(1);
     break;
     case KEY_SIDE2: // Monitor
           if(isListening) Blacklist();
           WaitSpectrum = 0; //don't wait if this frequency not interesting
+		  
+		 // Dodaj/usuń wybraną częstotliwość z blacklisty w historii
+if (historyListActive) {
+    uint8_t realIndex = GetHistoryRealIndex(historyListIndex);
+    uint32_t freq = freqHistory[realIndex];
+    if (IsBlacklisted(freq)) {
+        // Usuwanie z blacklisty
+        for (uint8_t i = 0; i < BLACKLIST_SIZE; i++) {
+            if (blacklistFreqs[i] == freq) {
+                blacklistFreqs[i] = 0;
+                break;
+            }
+        }
+        ShowOSDPopup("Removed BL", 1200);
+    } else {
+        // Dodawanie do blacklisty (circular push)
+        blacklistFreqs[blacklistFreqsIdx++ % BLACKLIST_SIZE] = freq;
+        ShowOSDPopup("Added to BL", 1200);
+    }
+    RenderHistoryList();
+    break;
+}
+
+		  
     break;
 
   case KEY_PTT:
@@ -2249,6 +2315,18 @@ static void Tick() {
 					BACKLIGHT_TurnOff();   // turn backlight off
     gNextTimeslice_500ms = false;
   }
+  
+  if (osdPopupTimer > 0) {
+        UI_DisplayPopup(osdPopupText);  // Wyświetl aktualny tekst
+        ST7565_BlitFullScreen();
+        osdPopupTimer -= 10;  // Tick co 10ms
+        if (osdPopupTimer <= 0) {
+            osdPopupText[0] = '\0';  // Wyczyść tekst po wygaśnięciu
+        }
+        return;  // Priorytet dla OSD (?)
+    }
+
+
 
   if (gNextTimeslice_10ms) {
     HandleUserInput();
@@ -2742,9 +2820,87 @@ static void RenderParametersSelect() {
       static void RenderBandSelect() {RenderList("TU BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
 #endif
 
+// Rozszerzona funkcja do rysowania listy, wewnątrz RenderList
+void RenderHistoryList()
+{
+    uint8_t validItems = CountValidHistoryItems();
+    char headerString[24];
+    sprintf(headerString, "HISTORY: %d", validItems);
+    // Kopia logiczna RenderList, ale z obsługą blacklisty
+    memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
+    UI_PrintStringSmallBold(headerString, 1, LCD_WIDTH - 1, 0);
+
+    const uint8_t FIRST_ITEM_LINE = 1;
+    const uint8_t MAX_LINES = 6;
+
+    uint8_t scrollOffset = historyScrollOffset;
+    uint8_t selectedIndex = historyListIndex;
+
+    if (validItems <= MAX_LINES)
+        scrollOffset = 0;
+    else if (selectedIndex < scrollOffset)
+        scrollOffset = selectedIndex;
+    else if (selectedIndex >= scrollOffset + MAX_LINES)
+        scrollOffset = selectedIndex - MAX_LINES + 1;
+
+for (uint8_t i = 0; i < MAX_LINES; i++) {
+    uint8_t itemIndex = i + scrollOffset;
+    if (itemIndex >= validItems) break;
+    char itemText[32];
+    GetHistoryItemText(itemIndex, itemText);
+    uint8_t lineNumber = FIRST_ITEM_LINE + i;
+    uint8_t realIndex = GetHistoryRealIndex(itemIndex);
+    uint32_t freq = freqHistory[realIndex];
+    bool isBlacklist = IsBlacklisted(freq);
+
+    if (itemIndex == selectedIndex && isBlacklist) {
+        // kursor na polu z blacklistą: specjalne wyróżnienie
+        for (uint8_t px = 0; px < 128; ++px)
+        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py)
+            PutPixel(px, py, true); // czarny prostokąt
+
+        // ramka jasna – górna i dolna linia
+        for (uint8_t px = 0; px < 128; ++px) {
+            PutPixel(px, lineNumber * 8, false);         // gora - białe
+            PutPixel(px, lineNumber * 8 + 5, false);     // dol - białe
+        }
+        // lewe/prawe pionowe linie
+        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py) {
+            PutPixel(0, py, false);          // lewa
+            PutPixel(127, py, false);        // prawa
+        }
+        // tekst z kursorowym znakiem >xxx<
+        char highlightText[34];
+        snprintf(highlightText, sizeof(highlightText), ">%s<", itemText);
+        GUI_DisplaySmallest(highlightText, 0, lineNumber * 8, false, false);
+        //UI_PrintStringSmall(highlightText, 1, 0, lineNumber);
+        
+    }
+    else if (isBlacklist) {
+        // tło czarne, litery białe
+        for (uint8_t px = 0; px < 128; ++px)
+        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py)
+            PutPixel(px, py, true); // czarny prostokąt
+        GUI_DisplaySmallest(itemText, 0, lineNumber * 8, false, false);
+        //UI_PrintStringSmall(itemText, 1, 0, lineNumber);
+    }
+    else if (itemIndex == selectedIndex) {
+        // Zaznaczenie zwykłej pozycji
+        char displayText[19];
+        snprintf(displayText, sizeof(displayText), ">%s", itemText);
+        UI_PrintStringSmall(displayText, 1, 0, lineNumber);
+    }
+    else {
+        // Zwykły tekst
+        UI_PrintStringSmall(itemText, 1, 0, lineNumber);
+    }
+}
+
+    ST7565_BlitFullScreen();
+}
 
 
-static void RenderHistoryList() {
+/* static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
     
     char headerString[24];
@@ -2752,7 +2908,7 @@ static void RenderHistoryList() {
     
     RenderList(headerString, validItems, 
               historyListIndex, historyScrollOffset, GetHistoryItemText);
-}
+} */
 
 #ifdef ENABLE_SCANLIST_SHOW_DETAIL
 static void BuildScanListChannels(uint8_t scanListIndex) {

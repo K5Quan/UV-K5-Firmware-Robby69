@@ -231,10 +231,10 @@ void UI_DrawRectangleBuffer(uint8_t (*buffer)[128], int16_t x1, int16_t y1, int1
 	UI_DrawLineBuffer(buffer, x1,y2, x2,y2, black);
 }
 
-void UI_DisplayPopup(const char *string) 
+/* void UI_DisplayPopup(const char *string) 
 {
-	for(uint8_t i = 0; i < 7; i++) {
-		memset(gFrameBuffer[i], 0x00, 128);
+	for(uint8_t i = 2; i < 4; i++) {
+		memset(gFrameBuffer[i], 0x00, 111);
 	}
 
 	// for(uint8_t i = 1; i < 5; i++) {
@@ -253,7 +253,29 @@ void UI_DisplayPopup(const char *string)
 	// DrawRectangle(9,9, 118,38, true);
 	UI_PrintString(string, 9, 118, 2, 8);
 	//UI_PrintStringSmall("Press EXIT", 9, 118, 6);
+} */
+
+void UI_DisplayPopup(const char *string)
+{
+    // Wyczyść obszar dla popupu (linie 2-3)
+    for(uint8_t i = 2; i < 4; i++) {
+        memset(gFrameBuffer[i], 0x00, 128);  // Zwiększ do 128 dla pełnej szerokości
+    }
+    
+    // prosta ramka (opcjonalnie)
+    for(uint8_t x = 8; x < 120; x++) {
+        gFrameBuffer[1][x] = 0x80;  // Górna linia
+        gFrameBuffer[4][x] = 0x01;  // Dolna linia
+    }
+    for(uint8_t y = 16; y < 40; y++) {
+        PutPixel(8, y, true);   // Lewa linia
+        PutPixel(119, y, true); // Prawa linia
+    }
+    
+    // Wyśrodkowany tekst
+    UI_PrintString(string, 12, 116, 2, 8);
 }
+
 
 void UI_DrawDottedLineBuffer(uint8_t (*buffer)[128], int16_t x1, int16_t y1, int16_t x2, int16_t y2, bool black, int dotSpacing)
 {
