@@ -19,7 +19,7 @@
           char str[64] = "";sprintf(str, "%d\r\n", Spectrum_state );LogUart(str);
 */
 #define MAX_VISIBLE_LINES 6
-#define HISTORY_SIZE 250
+#define HISTORY_SIZE 200
 
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
@@ -35,6 +35,15 @@ uint32_t gScanRangeStop = 13000000;             // 5
 //ClearSettings                                 // 9
 #define PARAMETER_COUNT 9
 ////////////////////////////////////////////////////////////////////
+
+typedef struct {
+    uint32_t frequency;
+    uint16_t count;
+    bool blacklisted;
+} HistoryEntry;
+
+HistoryEntry history[HISTORY_SIZE] = {0};
+
 bool gIsPeak = false;
 bool historyListActive = false;
 bool gForceModulation = 0;
@@ -115,10 +124,6 @@ State currentState = SPECTRUM, previousState = SPECTRUM;
 uint8_t Spectrum_state; 
 PeakInfo peak;
 ScanInfo scanInfo;
-#define BLACKLIST_SIZE 50
-static uint32_t blacklistFreqs[BLACKLIST_SIZE]={0};
-static uint8_t blacklistFreqsIdx = 0;
-static bool IsBlacklisted(uint32_t f);
 char     latestScanListName[12];
 const char *bwOptions[] = {"  25k", "12.5k", "6.25k"};
 const char *scanListOptions[] = {"SL1", "SL2", "SL3", "SL4", "SL5", "SL6", 
@@ -149,8 +154,6 @@ SpectrumSettings settings = {stepsCount: STEPS_128,
 uint32_t currentFreq, tempFreq;
 uint16_t rssiHistory[128];
 const uint8_t FMaxNumb = HISTORY_SIZE;
-uint32_t freqHistory[HISTORY_SIZE+1]= {0};
-uint16_t freqCount[HISTORY_SIZE+1] = {0};
 uint8_t indexFd = 0;
 uint8_t indexFs = 1;
 int ShowLines = 3;
@@ -486,7 +489,7 @@ static void DeInitSpectrum(bool ComeBack) {
 static void ExitAndCopyToVfo() {
   RestoreRegisters();
 if (historyListActive == true){
-      SETTINGS_SetVfoFrequency(freqHistory[historyListIndex+1]); 
+      SETTINGS_SetVfoFrequency(history[historyListIndex].frequency); 
       gTxVfo->Modulation = MODULATION_FM;
       gRequestSaveChannel = 1;
       DeInitSpectrum(0);
@@ -589,12 +592,12 @@ static void ToggleAudio(bool on) {
 void HandleHistoryDown() {
     int numValidEntries = 0;
     for (int k = 0; k < FMaxNumb; ++k) {
-        if (freqHistory[k] != 0) {
+        if (history[k].frequency != 0) {
             numValidEntries++;
         }
     }
 
-    if (historyListIndex < numValidEntries - 1) {
+    if (historyListIndex < numValidEntries) {
         historyListIndex++;
         if (historyListIndex >= historyScrollOffset + MAX_VISIBLE_LINES) {
             historyScrollOffset = historyListIndex - MAX_VISIBLE_LINES + 1;
@@ -603,14 +606,11 @@ void HandleHistoryDown() {
 }
 
 void FillfreqHistory() {
-    if (scanInfo.f == 0 || scanInfo.f >= 130000000) {
-        return;
-    }
-
-    for (uint8_t i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] == scanInfo.f) {
+  
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency == scanInfo.f) {
             if ((lastReceivingFreq != scanInfo.f || !wasReceiving)) {
-                freqCount[i]++;
+                history[i].count++;
                 wasReceiving = true;
                 lastReceivingFreq = scanInfo.f;
             }
@@ -618,21 +618,29 @@ void FillfreqHistory() {
             return;
         }
     }
-    freqHistory[indexFs] = scanInfo.f;
-    freqCount[indexFs] = 1; 
-    indexFd = indexFs;
-    
-    if (++indexFs > FMaxNumb) {
-        indexFs = 1;
+
+    // Trouver un slot libre
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency == 0) {
+            history[i].frequency = scanInfo.f;
+            history[i].count = 1;
+            history[i].blacklisted = false;
+            indexFd = i;
+            indexFs = (i + 1) % HISTORY_SIZE;
+            break;
+        }
     }
+
+/*     /////////////////////////DEBUG//////////////////////////
+    char str[200] = "";
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+    sprintf(str,"%d %d %d \r\n",history[i].frequency,history[i].count = 1,history[i].blacklisted);
+    LogUart(str); }
+    /////////////////////////DEBUG//////////////////////////   */
+    
     wasReceiving = true;
     lastReceivingFreq = scanInfo.f;
     if (historyListActive) HandleHistoryDown();
-}
-
-static void ResetReceivingState() {
-    wasReceiving = false;
-    //lastReceivingFreq = 0;
 }
 
 static void ToggleRX(bool on) {
@@ -668,7 +676,6 @@ static void ToggleRX(bool on) {
         gBacklightCountdown = 0;
     } else { 
         if(appMode!=CHANNEL_MODE) BK4819_WriteRegister(0x43, GetBWRegValueForScan());
-        ResetReceivingState();
     }
 }
 
@@ -744,8 +751,6 @@ static void RelaunchScan() {
     InitScan();
     ToggleRX(false);
     scanInfo.rssiMin = RSSI_MAX_VALUE;
-    //  Reset receiving state when relaunching scan
-    ResetReceivingState();
     gIsPeak = false;
 }
 
@@ -973,33 +978,20 @@ static void UpdateFreqInput(KEY_Code_t key) {
   
 }
 
-static bool IsBlacklisted(uint32_t f){
-  for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++){
-    //if(!blacklistFreqs[i]){return false;} //end of list
-    if(blacklistFreqs[i] == f) {return true;}
-  }
-  return false;
+static bool IsBlacklisted(uint32_t f) {
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency == f && history[i].blacklisted) {
+            return true;
+        }
+    }
+    return false;
 }
 
-static void Blacklist(uint32_t f, bool add)
-{
-    if (add)
-    {
-        if (!IsBlacklisted(f))
-            blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = f;
-    }
-    else
-    {
-        for (size_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
-        {
-            if (blacklistFreqs[i] == f)
-            {
-                blacklistFreqs[i] = 0;
-                for (size_t j = i; j < ARRAY_SIZE(blacklistFreqs) - 1; j++)
-                    blacklistFreqs[j] = blacklistFreqs[j + 1];
-                blacklistFreqs[ARRAY_SIZE(blacklistFreqs) - 1] = 0;
-                break;
-            }
+static void Blacklist(uint32_t f, bool add) {
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency == f) {
+            history[i].blacklisted = add;
+            break;
         }
     }
 
@@ -1151,13 +1143,13 @@ static void formatHistory(char *buf, uint8_t index, int channel, uint32_t freq) 
         snprintf(buf, 19, "%u:%s(%u)", 
                 index, 
                 gMR_ChannelFrequencyAttributes[channel].Name,
-                freqCount[index]);
+                history[index].count);
                 
     } else {
         snprintf(buf, 19, "%u:%s(%u)", 
                 index,
                 freqStr,
-                freqCount[index]);
+                history[index].count);
         }
 }
 
@@ -1232,7 +1224,7 @@ static void DrawF(uint32_t f) {
     BuildEnabledScanLists(enabledLists, sizeof(enabledLists));
     
     // --- Contexte canal ---
-    f = freqHistory[indexFd];
+    f = history[indexFd].frequency;
     int channelFd = BOARD_gMR_fetchChannel(f);
     isKnownChannel = (channelFd != -1);
     memmove(rxChannelName, channelName, sizeof(rxChannelName));
@@ -1274,7 +1266,7 @@ static void DrawF(uint32_t f) {
     } 
 
     if (ShowLines > 3 || !classic) {
-        if (f > 0 && indexFd > 0 && indexFd <251) {
+        if (f > 0 && indexFd <251) {
           formatHistory(line3, indexFd, channelFd, f);
         }
         else {
@@ -1762,31 +1754,27 @@ static void OnKeyDown(uint8_t key) {
       classic=!classic;
       break;
 
-     case KEY_8:
-
-        if (historyListActive) {
-            memset(&freqHistory[1], 0, sizeof(freqHistory) - sizeof(freqHistory[0]));
-            memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0]));
-            indexFd = 1;
-            indexFs = 1;
-            historyListIndex = 0;
-            historyScrollOffset = 0;
-            
-        }
-        else {
+    case KEY_8:
+      if (historyListActive) {
+          memset(history, 0, sizeof(history)); // Reset complet
+          indexFd = 0;
+          indexFs = 0;
+          historyListIndex = 0;
+          historyScrollOffset = 0;
+      } else {
           ShowLines++; 
           if (ShowLines > 4) ShowLines = 0;
-        }
-      break;
+      }
+    break;
 
       
     case KEY_UP:
     
     if (historyListActive) {
         if (historyListIndex > 0) {
-             historyListIndex--;
-            if (historyListIndex < historyScrollOffset) {historyScrollOffset = historyListIndex;}
-        if (SpectrumMonitor > 0)SetF(freqHistory[historyListIndex+1]);
+        historyListIndex--;
+        if (historyListIndex < historyScrollOffset) {historyScrollOffset = historyListIndex;}
+        if (SpectrumMonitor > 0) SetF(history[historyListIndex].frequency);
         }
     } else {
         if (appMode==SCAN_BAND_MODE) {
@@ -1816,7 +1804,7 @@ static void OnKeyDown(uint8_t key) {
     
     if (historyListActive) {
       HandleHistoryDown();
-      if (SpectrumMonitor > 0)SetF(freqHistory[historyListIndex+1]);
+      if (SpectrumMonitor > 0) SetF(history[historyListIndex].frequency);
     }
     else {
         if (appMode==SCAN_BAND_MODE) {
@@ -1869,26 +1857,23 @@ static void OnKeyDown(uint8_t key) {
 	ShowOSDPopup(monitorText, 1200);
         if(SpectrumMonitor == 2) ToggleRX(1);
     break;
-    case KEY_SIDE2:
-          if(isListening) Blacklist(peak.f,1);
-          WaitSpectrum = 0; //don't wait if this frequency not interesting
-		  
-		 // Dodaj/usuń wybraną częstotliwość z blacklisty w historii
-if (historyListActive) {
-    uint8_t realIndex = GetHistoryRealIndex(historyListIndex);
-    uint32_t freq = freqHistory[realIndex];
-    if (IsBlacklisted(freq)) {
-        Blacklist(freq,0);
-        ShowOSDPopup("Removed BL", 1200);
-    } else {
-        Blacklist(freq,1);
-        ShowOSDPopup("Added to BL", 1200);
-    }
-    RenderHistoryList();
-    break;
-}
 
-		  
+    case KEY_SIDE2:
+    if (historyListActive) {
+        uint8_t realIndex = GetHistoryRealIndex(historyListIndex);
+        history[realIndex].blacklisted = !history[realIndex].blacklisted;
+        
+        if (history[realIndex].blacklisted) {
+            ShowOSDPopup("Added to BL", 1200);
+        } else {
+            ShowOSDPopup("Removed BL", 1200);
+        }
+        RenderHistoryList();
+        break;
+    }
+    
+    if (isListening) Blacklist(peak.f, true);
+    WaitSpectrum = 0;
     break;
 
   case KEY_PTT:
@@ -1897,13 +1882,13 @@ if (historyListActive) {
   
   case KEY_MENU: //History
       int validCount = 0;
-      for (int k = 1; k <= FMaxNumb; ++k) {
-          if (freqHistory[k] != 0) {
+      for (int k = 1; k < FMaxNumb; ++k) {
+          if (history[k].frequency != 0) {
               validCount++;
           }
       }
       if (historyListActive == true) {
-          Last_Tuned_Freq = freqHistory[historyListIndex+1];
+          Last_Tuned_Freq = history[historyListIndex].frequency;
       } else Last_Tuned_Freq = peak.f;
       currentFreq = Last_Tuned_Freq;
       if(scanInfo.f != Last_Tuned_Freq) SetF(Last_Tuned_Freq);
@@ -2275,7 +2260,7 @@ static void UpdateListening(void) { // called every 10ms
       
 
     // Détection de fréquence stable
-    if (peak.f == stableFreq) {
+    if (peak.f == stableFreq && stableFreq) {
         if (++stableCount >= 100) {  // ~1s
             FillfreqHistory();
             stableCount = 0;
@@ -2577,21 +2562,21 @@ static void ClearSettings()
 // Helper functions for history list
 static uint8_t CountValidHistoryItems() {
     uint8_t count = 0;
-    for (uint8_t i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] != 0) count++;
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency != 0) count++;
     }
     return count;
 }
 
 static uint8_t GetHistoryRealIndex(uint8_t displayIndex) {
     uint8_t count = 0;
-    for (uint8_t i = 1; i <= FMaxNumb; i++) {
-        if (freqHistory[i] != 0) {
+    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+        if (history[i].frequency != 0) {
             if (count == displayIndex) return i;
             count++;
         }
     }
-    return 1; // Fallback
+    return 0; // Fallback
 }
 
 static bool GetScanListLabel(uint8_t scanListIndex, char* bufferOut) {
@@ -2708,24 +2693,25 @@ static void GetParametersText(uint8_t index, char *buffer) {
 
 static void GetHistoryItemText(uint8_t index, char* buffer) {
     uint8_t realIndex = GetHistoryRealIndex(index);
-    uint32_t frequency = freqHistory[realIndex];
-    int channel = BOARD_gMR_fetchChannel(frequency);
+    HistoryEntry entry = history[realIndex];
     
-    // Format frequency string with potential trailing zeros
     char freqStr[16];
-    sprintf(freqStr, "%3u.%05u", frequency / 100000, frequency % 100000);
-    // Remove trailing zeros and optional decimal point
+    sprintf(freqStr, "%u.%05u", entry.frequency / 100000, entry.frequency % 100000);
     RemoveTrailZeros(freqStr);
     
+    int channel = BOARD_gMR_fetchChannel(entry.frequency);
+    
     if (channel != -1) {
-        sprintf(buffer, "%s:%s:%u", 
+        sprintf(buffer, "%s%s:%s:%u", 
+                entry.blacklisted ? "BL:" : "",
                 freqStr,
                 gMR_ChannelFrequencyAttributes[channel].Name,
-                freqCount[realIndex]);
+                entry.count);
     } else {
-        sprintf(buffer, "%s:%u", 
+        sprintf(buffer, "%s%s:%u", 
+                entry.blacklisted ? "BL:" : "",
                 freqStr,
-                freqCount[realIndex]);
+                entry.count);
     }
 }
 
@@ -2820,64 +2806,80 @@ static void RenderParametersSelect() {
       static void RenderBandSelect() {RenderList("TU BANDS:", ARRAY_SIZE(BParams),bandListSelectedIndex, bandListScrollOffset, GetBandItemText);}
 #endif
 
-// Rozszerzona funkcja do rysowania listy, wewnątrz RenderList
-void RenderHistoryList()
-{
+static void RenderHistoryList() {
     uint8_t validItems = CountValidHistoryItems();
     char headerString[24];
     sprintf(headerString, "HISTORY: %d", validItems);
-    // Kopia logiczna RenderList, ale z obsługą blacklisty
+    
+    // Clear display buffer
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-    UI_PrintStringSmall(headerString, 1, LCD_WIDTH - 1, 0,0);
-
+    
+    // Draw title
+    UI_PrintStringSmall(headerString, 1, LCD_WIDTH - 1, 0, 0);
+    
     const uint8_t FIRST_ITEM_LINE = 1;
     const uint8_t MAX_LINES = 6;
-
+    
     uint8_t scrollOffset = historyScrollOffset;
     uint8_t selectedIndex = historyListIndex;
-
-    if (validItems <= MAX_LINES)
+    
+    // Adjust scroll offset if needed
+    if (validItems <= MAX_LINES) {
         scrollOffset = 0;
-    else if (selectedIndex < scrollOffset)
+    } else if (selectedIndex < scrollOffset) {
         scrollOffset = selectedIndex;
-    else if (selectedIndex >= scrollOffset + MAX_LINES)
+    } else if (selectedIndex >= scrollOffset + MAX_LINES) {
         scrollOffset = selectedIndex - MAX_LINES + 1;
-
+    }
+    
+    // Draw visible items
     for (uint8_t i = 0; i < MAX_LINES; i++) {
         uint8_t itemIndex = i + scrollOffset;
         if (itemIndex >= validItems) break;
+        
         char itemText[32];
         GetHistoryItemText(itemIndex, itemText);
+        
         uint8_t lineNumber = FIRST_ITEM_LINE + i;
         uint8_t realIndex = GetHistoryRealIndex(itemIndex);
-        uint32_t freq = freqHistory[realIndex];
-        bool isBlacklist = IsBlacklisted(freq);
-        char displayText[19];
-        if (isBlacklist) {
-            snprintf(displayText, sizeof(displayText), "BL:%s", itemText);
-        }
-        else {
-            snprintf(displayText, sizeof(displayText), "%s", itemText);
-        }
+        
+        // Vérifier si l'élément est blacklisté
+        bool isBlacklisted = history[realIndex].blacklisted;
+        
         if (itemIndex == selectedIndex) {
-            UI_PrintStringSmall(displayText, 1, 0, lineNumber,1);
+            // Élément sélectionné - afficher en surbrillance
+            if (isBlacklisted) {
+                // Fond noir pour les éléments blacklistés sélectionnés
+                for (uint8_t x = 0; x < LCD_WIDTH; x++) {
+                    for (uint8_t y = lineNumber * 8; y < (lineNumber + 1) * 8; y++) {
+                        PutPixel(x, y, true);
+                    }
+                }
+                // Texte blanc pour la surbrillance
+                UI_PrintStringSmall(itemText, 1, 0, lineNumber, 0);
+            } else {
+                // Surbrillance normale pour les éléments non blacklistés
+                UI_PrintStringSmall(itemText, 1, 0, lineNumber, 1);
+            }
+        } else {
+            // Élément normal
+            if (isBlacklisted) {
+                // Texte avec préfixe "BL:" pour les éléments blacklistés
+                UI_PrintStringSmall(itemText, 1, 0, lineNumber, 0);
+            } else {
+                // Texte normal pour les éléments non blacklistés
+                UI_PrintStringSmall(itemText, 1, 0, lineNumber, 0);
+            }
         }
-        else 
-            UI_PrintStringSmall(displayText, 1, 0, lineNumber,0);
-    }      
-  ST7565_BlitFullScreen();
+    }
+    
+    // Si en mode monitor, afficher le meter
+    if (historyListActive && SpectrumMonitor > 0) {
+        DrawMeter(0);
+    }
+    
+    ST7565_BlitFullScreen();
 }
-
-
-/* static void RenderHistoryList() {
-    uint8_t validItems = CountValidHistoryItems();
-    
-    char headerString[24];
-    sprintf(headerString, "HISTORY: %d", validItems);
-    
-    RenderList(headerString, validItems, 
-              historyListIndex, historyScrollOffset, GetHistoryItemText);
-} */
 
 #ifdef ENABLE_SCANLIST_SHOW_DETAIL
 static void BuildScanListChannels(uint8_t scanListIndex) {
