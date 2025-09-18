@@ -295,10 +295,10 @@ void UI_DisplayMenu(void)
 			{	// leading menu items - small text
 				const int k = menu_index + i - 2;
 				if (k < 0)
-					UI_PrintStringSmall(MenuList[gMenuListCount + k].name, 0, 0, i);  // wrap-a-round
+					UI_PrintStringSmall(MenuList[gMenuListCount + k].name, 0, 0, i,0);  // wrap-a-round
 				else
 				if (k >= 0 && k < (int)gMenuListCount)
-					UI_PrintStringSmall(MenuList[k].name, 0, 0, i);
+					UI_PrintStringSmall(MenuList[k].name, 0, 0, i,0);
 				i++;
 			}
 
@@ -311,16 +311,16 @@ void UI_DisplayMenu(void)
 			{	// trailing menu item - small text
 				const int k = menu_index + i - 2;
 				if (k >= 0 && k < (int)gMenuListCount)
-					UI_PrintStringSmall(MenuList[k].name, 0, 0, 1 + i);
+					UI_PrintStringSmall(MenuList[k].name, 0, 0, 1 + i,0);
 				else
 				if (k >= (int)gMenuListCount)
-					UI_PrintStringSmall(MenuList[gMenuListCount - k].name, 0, 0, 1 + i);  // wrap-a-round
+					UI_PrintStringSmall(MenuList[gMenuListCount - k].name, 0, 0, 1 + i,0);  // wrap-a-round
 				i++;
 			}
 
 			// draw the menu index number/count
 			sprintf(String, "%2u.%u", 1 + gMenuCursor, gMenuListCount);
-			UI_PrintStringSmall(String, 2, 0, 6);
+			UI_PrintStringSmall(String, 2, 0, 6,0);
 		}
 		else
 		if (menu_index >= 0 && menu_index < (int)gMenuListCount)
@@ -328,7 +328,7 @@ void UI_DisplayMenu(void)
 			strcpy(String, MenuList[menu_index].name);
 //			strcat(String, ":");
 			UI_PrintString(String, 0, 0, 0, 8);
-//			UI_PrintStringSmall(String, 0, 0, 0);
+//			UI_PrintStringSmall(String, 0, 0, 0,0);
 		}
 	}
 
@@ -636,7 +636,7 @@ void UI_DisplayMenu(void)
 			for (i = 0; i < len && lines > 0; lines--)
 			{
 				if (small)
-					UI_PrintStringSmall(String + i, menu_item_x1, menu_item_x2, y);
+					UI_PrintStringSmall(String + i, menu_item_x1, menu_item_x2, y,0);
 				else
 					UI_PrintString(String + i, menu_item_x1, menu_item_x2, y, 8);
 
@@ -666,7 +666,7 @@ void UI_DisplayMenu(void)
 
 	{
 		sprintf(String, "%2d", gSubMenuSelection);
-		UI_PrintStringSmall(String, 105, 0, 0);
+		UI_PrintStringSmall(String, 105, 0, 0,0);
 	}
 
 	if ((UI_MENU_GetCurrentMenuId() == MENU_RESET    ||

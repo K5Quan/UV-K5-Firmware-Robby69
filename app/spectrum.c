@@ -981,27 +981,35 @@ static bool IsBlacklisted(uint32_t f){
   return false;
 }
 
-static void Blacklist() {
-  
-  if(!IsBlacklisted(peak.f))
-      blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = peak.f;
+static void Blacklist(uint32_t f, bool add)
+{
+    if (add)
+    {
+        if (!IsBlacklisted(f))
+            blacklistFreqs[blacklistFreqsIdx++ % ARRAY_SIZE(blacklistFreqs)] = f;
+    }
+    else
+    {
+        for (size_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++)
+        {
+            if (blacklistFreqs[i] == f)
+            {
+                blacklistFreqs[i] = 0;
+                for (size_t j = i; j < ARRAY_SIZE(blacklistFreqs) - 1; j++)
+                    blacklistFreqs[j] = blacklistFreqs[j + 1];
+                blacklistFreqs[ARRAY_SIZE(blacklistFreqs) - 1] = 0;
+                break;
+            }
+        }
+    }
 
-      /////////////////////////DEBUG//////////////////////////
-  /* char str[64] = "";
-  for(uint8_t i = 0; i < ARRAY_SIZE(blacklistFreqs); i++){
-      if (blacklistFreqs[i]){
-        sprintf(str, "BlackList %d \r\n", blacklistFreqs[i]);
-        LogUart(str);
-      }
-  } */
-  
-  gIsPeak = 0;
-  ToggleRX(false);
-  //rssiHistory[scanInfo.i] = 0;
-  isBlacklistApplied = true;
-  ResetScanStats();
-  NextScanStep();
+    gIsPeak = 0;
+    ToggleRX(false);
+    isBlacklistApplied = true;
+    ResetScanStats();
+    NextScanStep();
 }
+
 
 // Draw things
 
@@ -1280,12 +1288,12 @@ static void DrawF(uint32_t f) {
     if (classic) {
         if (ShowLines == 0) ArrowLine = 0; //Draw nothing
         if (ShowLines == 1) {UI_DisplayFrequency(line1, 0, 0, 0);ArrowLine = 2;}
-        if (ShowLines > 1) {UI_PrintStringSmallBold(line1, 1, 1, 0); ArrowLine = 1;}
-        if (ShowLines > 2) { UI_PrintStringSmallBold(line2, 1, 1, 1); ArrowLine = 2; }
-        if (ShowLines > 3) { UI_PrintStringSmallBold(line3, 1, 1, 2); ArrowLine = 3; }
+        if (ShowLines > 1) {UI_PrintStringSmall(line1, 1, 1, 0,1); ArrowLine = 1;}
+        if (ShowLines > 2) { UI_PrintStringSmall(line2, 1, 1, 1,1); ArrowLine = 2; }
+        if (ShowLines > 3) { UI_PrintStringSmall(line3, 1, 1, 2,1); ArrowLine = 3; }
     } else {
         DrawMeter(6);
-        if (StringCode[0]) {UI_PrintStringSmallBold(line1, 1, 1, 0);}
+        if (StringCode[0]) {UI_PrintStringSmall(line1, 1, 1, 0,1);}
         else UI_DisplayFrequency(line1, 0, 0, 0);
         UI_PrintString(line2, 1, 1, 2, 8);
         UI_PrintString(line3, 1, 1, 4, 8);
@@ -1761,7 +1769,6 @@ static void OnKeyDown(uint8_t key) {
             memset(&freqCount[1], 0, sizeof(freqCount) - sizeof(freqCount[0]));
             indexFd = 1;
             indexFs = 1;
-            ResetReceivingState();
             historyListIndex = 0;
             historyScrollOffset = 0;
             
@@ -1853,7 +1860,7 @@ static void OnKeyDown(uint8_t key) {
       APP_RunSpectrum(Spectrum_state);
     break;
   
-    case KEY_SIDE1: // Blacklist
+    case KEY_SIDE1:
         SpectrumMonitor++;
         if (SpectrumMonitor > 2) SpectrumMonitor = 0; // 0 normal, 1 Freq lock, 2 Monitor
 		    char monitorText[32];
@@ -1862,8 +1869,8 @@ static void OnKeyDown(uint8_t key) {
 	ShowOSDPopup(monitorText, 1200);
         if(SpectrumMonitor == 2) ToggleRX(1);
     break;
-    case KEY_SIDE2: // Monitor
-          if(isListening) Blacklist();
+    case KEY_SIDE2:
+          if(isListening) Blacklist(peak.f,1);
           WaitSpectrum = 0; //don't wait if this frequency not interesting
 		  
 		 // Dodaj/usuń wybraną częstotliwość z blacklisty w historii
@@ -1871,17 +1878,10 @@ if (historyListActive) {
     uint8_t realIndex = GetHistoryRealIndex(historyListIndex);
     uint32_t freq = freqHistory[realIndex];
     if (IsBlacklisted(freq)) {
-        // Usuwanie z blacklisty
-        for (uint8_t i = 0; i < BLACKLIST_SIZE; i++) {
-            if (blacklistFreqs[i] == freq) {
-                blacklistFreqs[i] = 0;
-                break;
-            }
-        }
+        Blacklist(freq,0);
         ShowOSDPopup("Removed BL", 1200);
     } else {
-        // Dodawanie do blacklisty (circular push)
-        blacklistFreqs[blacklistFreqsIdx++ % BLACKLIST_SIZE] = freq;
+        Blacklist(freq,1);
         ShowOSDPopup("Added to BL", 1200);
     }
     RenderHistoryList();
@@ -2021,14 +2021,14 @@ void OnKeyDownStill(KEY_Code_t key) {
       case KEY_7:
       break;
           
-      case KEY_SIDE1: // Blacklist in STILL
+      case KEY_SIDE1: 
           SpectrumMonitor++;
           if (SpectrumMonitor > 2) SpectrumMonitor = 0; // 0 normal, 1 Freq lock, 2 Monitor
           if(SpectrumMonitor == 2) ToggleRX(1);
       break;
 
-      case KEY_SIDE2: // Monitor in STILL
-            if(isListening) Blacklist();
+      case KEY_SIDE2: 
+            if(isListening) Blacklist(peak.f,1);
             WaitSpectrum = 0; //don't wait if this frequency not interesting
       break;
       case KEY_PTT:
@@ -2735,7 +2735,7 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
     
     // Draw title - wyrównany do lewej dla maksymalnego wykorzystania miejsca
-    if (!SpectrumMonitor) UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
+    if (!SpectrumMonitor) UI_PrintStringSmall(title, 1, LCD_WIDTH - 1, 0,0);
     // List parameters for UI_PrintStringSmall (lines 1-7 available)
     const uint8_t FIRST_ITEM_LINE = 1;  // Start from line 1 (line 0 is title)
     const uint8_t MAX_LINES = 6;        // Lines 1-7 available for items
@@ -2767,13 +2767,13 @@ static void RenderList(const char* title, uint8_t numItems, uint8_t selectedInde
 
         strcpy(displayText, itemText);
         char selectedText[MAX_CHARS_PER_LINE + 2];
-        snprintf(selectedText, sizeof(selectedText), ">%s", displayText);
-        UI_PrintStringSmall(selectedText, 1, 0, lineNumber);
+        snprintf(selectedText, sizeof(selectedText), "%s", displayText);
+        UI_PrintStringSmall(selectedText, 1, 0, lineNumber,1);
     
         } else {
             char displayText[MAX_CHARS_PER_LINE + 1];
             strcpy(displayText, itemText);
-            UI_PrintStringSmall(displayText, 1, 0, lineNumber); // Minimalne wcięcie
+            UI_PrintStringSmall(displayText, 1, 0, lineNumber,0); // Minimalne wcięcie
           }
           
     }
@@ -2828,7 +2828,7 @@ void RenderHistoryList()
     sprintf(headerString, "HISTORY: %d", validItems);
     // Kopia logiczna RenderList, ale z obsługą blacklisty
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-    UI_PrintStringSmallBold(headerString, 1, LCD_WIDTH - 1, 0);
+    UI_PrintStringSmall(headerString, 1, LCD_WIDTH - 1, 0,0);
 
     const uint8_t FIRST_ITEM_LINE = 1;
     const uint8_t MAX_LINES = 6;
@@ -2843,60 +2843,29 @@ void RenderHistoryList()
     else if (selectedIndex >= scrollOffset + MAX_LINES)
         scrollOffset = selectedIndex - MAX_LINES + 1;
 
-for (uint8_t i = 0; i < MAX_LINES; i++) {
-    uint8_t itemIndex = i + scrollOffset;
-    if (itemIndex >= validItems) break;
-    char itemText[32];
-    GetHistoryItemText(itemIndex, itemText);
-    uint8_t lineNumber = FIRST_ITEM_LINE + i;
-    uint8_t realIndex = GetHistoryRealIndex(itemIndex);
-    uint32_t freq = freqHistory[realIndex];
-    bool isBlacklist = IsBlacklisted(freq);
-
-    if (itemIndex == selectedIndex && isBlacklist) {
-        // kursor na polu z blacklistą: specjalne wyróżnienie
-        for (uint8_t px = 0; px < 128; ++px)
-        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py)
-            PutPixel(px, py, true); // czarny prostokąt
-
-        // ramka jasna – górna i dolna linia
-        for (uint8_t px = 0; px < 128; ++px) {
-            PutPixel(px, lineNumber * 8, false);         // gora - białe
-            PutPixel(px, lineNumber * 8 + 5, false);     // dol - białe
-        }
-        // lewe/prawe pionowe linie
-        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py) {
-            PutPixel(0, py, false);          // lewa
-            PutPixel(127, py, false);        // prawa
-        }
-        // tekst z kursorowym znakiem >xxx<
-        char highlightText[34];
-        snprintf(highlightText, sizeof(highlightText), ">%s<", itemText);
-        GUI_DisplaySmallest(highlightText, 0, lineNumber * 8, false, false);
-        //UI_PrintStringSmall(highlightText, 1, 0, lineNumber);
-        
-    }
-    else if (isBlacklist) {
-        // tło czarne, litery białe
-        for (uint8_t px = 0; px < 128; ++px)
-        for (uint8_t py = lineNumber * 8; py < lineNumber*8+6; ++py)
-            PutPixel(px, py, true); // czarny prostokąt
-        GUI_DisplaySmallest(itemText, 0, lineNumber * 8, false, false);
-        //UI_PrintStringSmall(itemText, 1, 0, lineNumber);
-    }
-    else if (itemIndex == selectedIndex) {
-        // Zaznaczenie zwykłej pozycji
+    for (uint8_t i = 0; i < MAX_LINES; i++) {
+        uint8_t itemIndex = i + scrollOffset;
+        if (itemIndex >= validItems) break;
+        char itemText[32];
+        GetHistoryItemText(itemIndex, itemText);
+        uint8_t lineNumber = FIRST_ITEM_LINE + i;
+        uint8_t realIndex = GetHistoryRealIndex(itemIndex);
+        uint32_t freq = freqHistory[realIndex];
+        bool isBlacklist = IsBlacklisted(freq);
         char displayText[19];
-        snprintf(displayText, sizeof(displayText), ">%s", itemText);
-        UI_PrintStringSmall(displayText, 1, 0, lineNumber);
-    }
-    else {
-        // Zwykły tekst
-        UI_PrintStringSmall(itemText, 1, 0, lineNumber);
-    }
-}
-
-    ST7565_BlitFullScreen();
+        if (isBlacklist) {
+            snprintf(displayText, sizeof(displayText), "BL:%s", itemText);
+        }
+        else {
+            snprintf(displayText, sizeof(displayText), "%s", itemText);
+        }
+        if (itemIndex == selectedIndex) {
+            UI_PrintStringSmall(displayText, 1, 0, lineNumber,1);
+        }
+        else 
+            UI_PrintStringSmall(displayText, 1, 0, lineNumber,0);
+    }      
+  ST7565_BlitFullScreen();
 }
 
 
@@ -2939,7 +2908,7 @@ static void RenderScanListChannels() {
 static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItems, 
                                              uint8_t selectedIndex, uint8_t scrollOffset) {
     memset(gFrameBuffer, 0, sizeof(gFrameBuffer));
-    UI_PrintStringSmallBold(title, 1, LCD_WIDTH - 1, 0);
+    UI_PrintStringSmall(title, 1, LCD_WIDTH - 1, 0,1);
     
     const uint8_t MAX_ITEMS_VISIBLE = 3; // 3 kanały x 2 linie = 6 linii
     
@@ -2968,8 +2937,8 @@ static void RenderScanListChannelsDoubleLines(const char* title, uint8_t numItem
             sprintf(freqText, " %s", freqStr);
         }
         
-        UI_PrintStringSmall(nameText, 1, 0, line1);
-        UI_PrintStringSmall(freqText, 1, 0, line2);
+        UI_PrintStringSmall(nameText, 1, 0, line1,0);
+        UI_PrintStringSmall(freqText, 1, 0, line2,0);
     }
     
     ST7565_BlitFullScreen();

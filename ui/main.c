@@ -175,7 +175,7 @@ static void DisplayRSSIBar(const int16_t rssi, const bool now)
 			sprintf(str, "% 4d  %2d", sLevelAtt.dBmRssi, sLevelAtt.over);
 			memcpy(p_line + 2 + 7*5, &plus, ARRAY_SIZE(plus));
 		}
-		UI_PrintStringSmall(str, 2, 0, line); 
+		UI_PrintStringSmall(str, 2, 0, line,0); 
 		DrawLevelBar(bar_x, line, sLevelAtt.sLevel + overS9Bars);
 	}
 
@@ -233,7 +233,7 @@ void UI_DisplayMain(void)
 
 		if (gCurrentFunction == FUNCTION_TRANSMIT){// transmitting
 			mode = 1;
-			UI_PrintStringSmallBold("TX", 0, 0, line+2);
+			UI_PrintStringSmall("TX", 0, 0, line+2,0);
 		}
 		else
 		{	// receiving .. show the RX symbol
@@ -242,7 +242,7 @@ void UI_DisplayMain(void)
 			     gCurrentFunction == FUNCTION_MONITOR ||
 			     gCurrentFunction == FUNCTION_INCOMING) &&
 			     0 == vfo_num)
-			{UI_PrintStringSmallBold("RX", 0, 0, line+2);}
+			{UI_PrintStringSmall("RX", 0, 0, line+2,0);}
 		}
 
 		if (IS_MR_CHANNEL(gEeprom.ScreenChannel[vfo_num]))
@@ -252,7 +252,6 @@ void UI_DisplayMain(void)
 				sprintf(String, "M%u", gEeprom.ScreenChannel[vfo_num] + 1);
 			else
 				sprintf(String, "M%.3s", INPUTBOX_GetAscii());  // show the input text
-			//UI_PrintStringSmall(String, x, 0, line);
 			UI_PrintString(String , 0, 0, line ,8);
 		}
 		
@@ -271,7 +270,7 @@ void UI_DisplayMain(void)
 				bool isGigaF = frequency>=100000000;
 				sprintf(String, "%.*s.%.3s", 3 + isGigaF, ascii, ascii + 3 + isGigaF);
 				// show the remaining 2 small frequency digits
-				UI_PrintStringSmall(String + 7, 109, 0, line + 1); //temp
+				UI_PrintStringSmall(String + 7, 109, 0, line + 1,0); //temp
 				String[7] = 0;
 				// show the main large frequency digits
 				UI_DisplayFrequency(String, 16, line, false);
@@ -353,11 +352,11 @@ void UI_DisplayMain(void)
 				s = gModulationStr[mod];
 			break;
 		}		
-		UI_PrintStringSmall(s, LCD_WIDTH + 25, 0, line +5);
+		UI_PrintStringSmall(s, LCD_WIDTH + 25, 0, line +5,0);
 
 		// show the Ptt_Toggle_Mode
 		
-		if (Ptt_Toggle_Mode) 	UI_PrintStringSmall("T", LCD_WIDTH + 0, 0, line +5);
+		if (Ptt_Toggle_Mode) 	UI_PrintStringSmall("T", LCD_WIDTH + 0, 0, line +5,0);
 
 		if (state == VFO_STATE_NORMAL || state == VFO_STATE_ALARM)
 		{	// show the TX power
@@ -365,7 +364,7 @@ void UI_DisplayMain(void)
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].OUTPUT_POWER;
 			String[0] = (i < ARRAY_SIZE(pwr_list)) ? pwr_list[i] : '\0';
 			String[1] = '\0';
-			UI_PrintStringSmall(String, LCD_WIDTH + 50, 0, line + 5);
+			UI_PrintStringSmall(String, LCD_WIDTH + 50, 0, line + 5,0);
 		}
 
 		if (gEeprom.VfoInfo[vfo_num].freq_config_RX.Frequency != gEeprom.VfoInfo[vfo_num].freq_config_TX.Frequency)
@@ -374,16 +373,16 @@ void UI_DisplayMain(void)
 			const unsigned int i = gEeprom.VfoInfo[vfo_num].TX_OFFSET_FREQUENCY_DIRECTION;
 			String[0] = (i < sizeof(dir_list)) ? dir_list[i] : '?';
 			String[1] = '\0';
-			UI_PrintStringSmall(String, LCD_WIDTH + 60, 0, line + 5);
+			UI_PrintStringSmall(String, LCD_WIDTH + 60, 0, line + 5,0);
 		}
 
 		{	// show the narrow band symbol
-			UI_PrintStringSmall(bwNames[gEeprom.VfoInfo[vfo_num].CHANNEL_BANDWIDTH], LCD_WIDTH + 70, 0, line + 5);
+			UI_PrintStringSmall(bwNames[gEeprom.VfoInfo[vfo_num].CHANNEL_BANDWIDTH], LCD_WIDTH + 70, 0, line + 5,0);
 		}
 
 		// show the audio scramble symbol
 		if (gEeprom.VfoInfo[vfo_num].SCRAMBLING_TYPE > 0 && gSetting_ScrambleEnable)
-			UI_PrintStringSmall("SCR", LCD_WIDTH + 106, 0, line + 5);
+			UI_PrintStringSmall("SCR", LCD_WIDTH + 106, 0, line + 5,0);
 
 	if (center_line == CENTER_LINE_NONE)
 	{	// we're free to use the middle line

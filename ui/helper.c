@@ -86,54 +86,58 @@ void UI_PrintString(const char *pString, uint8_t Start, uint8_t End, uint8_t Lin
 	}
 }
 
-void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_t Line)
+void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, bool Invert)
 {
-	const size_t Length = strlen(pString);
-	size_t       i;
+    const size_t Length = strlen(pString);
 
-	const unsigned int char_width   = ARRAY_SIZE(gFontSmall[0]);
-	const unsigned int char_spacing = char_width + 1;
+    const unsigned int char_width  = ARRAY_SIZE(gFontSmall[0]);
+    const unsigned int spacing     = 1;   // espacement minimal entre caractères
+    const unsigned int space_width = 4;   // largeur spéciale pour ' '
 
-	if (End > Start)
-		Start += (((End - Start) - (Length * char_spacing)) + 1) / 2;
+    // cast pour éviter le warning
+    size_t start_pos = (size_t)Start;
+    size_t end_pos   = (size_t)End;
 
+    if (end_pos > start_pos)
+        start_pos += (((end_pos - start_pos) - (Length * (char_width + spacing))) + 1) / 2;
 
-	uint8_t            *pFb         = gFrameBuffer[Line] + Start;
-	for (i = 0; i < Length; i++)
-	{
-		if (pString[i] > ' ')
-		{
-			const unsigned int index = (unsigned int)pString[i] - ' ' - 1;
-			if (index < ARRAY_SIZE(gFontSmall))
-				memmove(pFb + (i * char_spacing) + 1, &gFontSmall[index], char_width);
-		}
-	}
+    uint8_t *pFb = gFrameBuffer[Line] + start_pos;
+    
+    // remplir le fond
+    memset(pFb, Invert ? 0xFF : 0x00, 127);
+
+    // position courante
+    uint8_t *cursor = pFb;
+
+    for (size_t i = 0; i < Length; i++)
+    {
+        if (pString[i] > ' ')
+        {
+            const unsigned int index = (unsigned int)pString[i] - ' ' - 1;
+            if (index < ARRAY_SIZE(gFontSmall))
+            {
+                unsigned int char_width_used = char_width;
+                while (char_width_used > 0 && gFontSmall[index][char_width_used - 1] == 0)
+                    char_width_used--;
+
+                uint8_t *dst = cursor;
+
+                if (!Invert) {
+                    memmove(dst, gFontSmall[index], char_width_used);
+                } else {
+                    for (unsigned int c = 0; c < char_width_used; c++)
+                        dst[c] = ~gFontSmall[index][c];
+                }
+
+                cursor += char_width_used + spacing;
+            }
+        }
+        else // espace
+        {
+            cursor += space_width;
+        }
+    }
 }
-
-#ifdef ENABLE_SMALL_BOLD
-	void UI_PrintStringSmallBold(const char *pString, uint8_t Start, uint8_t End, uint8_t Line)
-	{
-		const size_t Length = strlen(pString);
-		size_t       i;
-	
-		const unsigned int char_width   = ARRAY_SIZE(gFontSmallBold[0]);
-		const unsigned int char_spacing = char_width + 1;
-
-		if (End > Start)
-			Start += (((End - Start) - (Length * char_spacing)) + 1) / 2;
-
-		uint8_t            *pFb         = gFrameBuffer[Line] + Start;
-		for (i = 0; i < Length; i++)
-		{
-			if (pString[i] > ' ')
-			{
-				const unsigned int index = (unsigned int)pString[i] - ' ' - 1;
-				if (index < ARRAY_SIZE(gFontSmallBold))
-					memmove(pFb + (i * char_spacing) + 1, &gFontSmallBold[index], char_width);
-			}
-		}
-	}
-#endif
 
 void UI_PrintStringSmallBuffer(const char *pString, uint8_t *buffer)
 {
