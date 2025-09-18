@@ -19,7 +19,7 @@
           char str[64] = "";sprintf(str, "%d\r\n", Spectrum_state );LogUart(str);
 */
 #define MAX_VISIBLE_LINES 6
-#define HISTORY_SIZE 200
+#define HISTORY_SIZE 10
 
 /////////////////////////////Parameters://///////////////////////////
 // see parametersSelectedIndex
@@ -165,8 +165,6 @@ static const bandparameters BParams[32];
 static uint8_t nextBandToScanIndex = 0;
 
 uint8_t menuState = 0;
-static bool wasReceiving = false;
-static uint32_t lastReceivingFreq = 0;
 
 #ifdef ENABLE_SCANLIST_SHOW_DETAIL
   static uint8_t scanListChannels[200]; // Array to store channel indices for selected scanlist
@@ -607,39 +605,23 @@ void HandleHistoryDown() {
 
 void FillfreqHistory() {
   
-    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
-        if (history[i].frequency == scanInfo.f) {
-            if ((lastReceivingFreq != scanInfo.f || !wasReceiving)) {
-                history[i].count++;
-                wasReceiving = true;
-                lastReceivingFreq = scanInfo.f;
-            }
-            indexFd = i;
-            return;
+for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+    if (history[i].frequency == peak.f && peak.f) {
+        history[i].count++;
+        indexFd = i;
+        return; // <-- uniquement si on a trouvé la fréquence
+    }
+}
+for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
+    if (history[i].frequency == 0) {
+       history[i].frequency = peak.f;
+       history[i].count = 1;
+       history[i].blacklisted = false;
+       indexFd = i;
+       indexFs = (i + 1) % HISTORY_SIZE;
+       break;
         }
     }
-
-    // Trouver un slot libre
-    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
-        if (history[i].frequency == 0) {
-            history[i].frequency = scanInfo.f;
-            history[i].count = 1;
-            history[i].blacklisted = false;
-            indexFd = i;
-            indexFs = (i + 1) % HISTORY_SIZE;
-            break;
-        }
-    }
-
-/*     /////////////////////////DEBUG//////////////////////////
-    char str[200] = "";
-    for (uint8_t i = 0; i < HISTORY_SIZE; i++) {
-    sprintf(str,"%d %d %d \r\n",history[i].frequency,history[i].count = 1,history[i].blacklisted);
-    LogUart(str); }
-    /////////////////////////DEBUG//////////////////////////   */
-    
-    wasReceiving = true;
-    lastReceivingFreq = scanInfo.f;
     if (historyListActive) HandleHistoryDown();
 }
 
@@ -1751,7 +1733,13 @@ static void OnKeyDown(uint8_t key) {
         break;
      
      case KEY_2: //FREE
-      classic=!classic;
+      //classic=!classic;
+    /////////////////////////DEBUG//////////////////////////
+    char str[200] = "";
+    for (uint8_t i = 0; i < 10; i++) {
+    sprintf(str,"%d %d %d \r\n",history[i].frequency,history[i].count = 1,history[i].blacklisted);
+    LogUart(str); }
+    /////////////////////////DEBUG////////////////////////// 
       break;
 
     case KEY_8:
@@ -2238,7 +2226,7 @@ static void UpdateScan() {
 }
 
 static void UpdateListening(void) { // called every 10ms
-    static uint32_t stableFreq = 0;
+    static uint32_t stableFreq = 1;
     static uint16_t stableCount = 0;
     uint16_t rssi = GetRssi();
     scanInfo.rssi = rssi;
@@ -2260,7 +2248,7 @@ static void UpdateListening(void) { // called every 10ms
       
 
     // Détection de fréquence stable
-    if (peak.f == stableFreq && stableFreq) {
+    if (peak.f == stableFreq) {
         if (++stableCount >= 100) {  // ~1s
             FillfreqHistory();
             stableCount = 0;

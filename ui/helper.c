@@ -104,7 +104,7 @@ void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_
     uint8_t *pFb = gFrameBuffer[Line] + start_pos;
     
     // remplir le fond
-    memset(pFb, Invert ? 0xFF : 0x00, 127);
+    if (Invert) memset(pFb, 0xFF, 127);
 
     // position courante
     uint8_t *cursor = pFb;
