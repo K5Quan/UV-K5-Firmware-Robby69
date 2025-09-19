@@ -86,7 +86,7 @@ void UI_PrintString(const char *pString, uint8_t Start, uint8_t End, uint8_t Lin
 	}
 }
 
-void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, bool Invert)
+void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_t Line, uint8_t background)
 {
     const size_t Length = strlen(pString);
 
@@ -104,8 +104,8 @@ void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_
     uint8_t *pFb = gFrameBuffer[Line] + start_pos;
     
     // remplir le fond
-    if (Invert) memset(pFb, 0xFF, 127);
-
+    if (background == 1) memset(pFb, 0xFF, 127);
+    if (background == 2) memset(pFb, 0x24, 127);
     // position courante
     uint8_t *cursor = pFb;
 
@@ -121,12 +121,16 @@ void UI_PrintStringSmall(const char *pString, uint8_t Start, uint8_t End, uint8_
                     char_width_used--;
 
                 uint8_t *dst = cursor;
-
-                if (!Invert) {
-                    memmove(dst, gFontSmall[index], char_width_used);
-                } else {
-                    for (unsigned int c = 0; c < char_width_used; c++)
-                        dst[c] = ~gFontSmall[index][c];
+                switch (background) {
+                    case 0:
+                    case 2:
+                        memmove(dst, gFontSmall[index], char_width_used);
+                        break;
+                    case 1:
+                    
+                        for (unsigned int c = 0; c < char_width_used; c++)
+                            dst[c] = ~gFontSmall[index][c];
+                        break;
                 }
 
                 cursor += char_width_used + spacing;
